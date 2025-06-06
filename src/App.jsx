@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE
+// src/App.jsx - VERSI FINAL DENGAN LAYOUT FIXED HEADER & BOTTOM NAV
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -18,7 +18,8 @@ const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=G`,
   address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
-  user_metadata: {}
+  user_metadata: {},
+  is_admin: false
 };
 
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
@@ -30,7 +31,8 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
     stats: profileData?.stats || defaultGuestUserForApp.stats,
     address: profileData?.web3_address || null, 
-    user_metadata: authUser.user_metadata || {}
+    user_metadata: authUser.user_metadata || {},
+    is_admin: profileData?.is_admin || false
   };
 };
 
@@ -38,7 +40,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState("home");
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null); 
-  const [userAirdrops, setUserAirdrops] = useState([]); // Dikelola di PageMyWork sekarang
+  const [userAirdrops, setUserAirdrops] = useState([]); 
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const pageContentRef = useRef(null);
 
@@ -50,7 +52,7 @@ export default function App() {
         if (session && session.user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('*, is_admin')
             .eq('id', session.user.id)
             .maybeSingle(); 
 
@@ -71,32 +73,34 @@ export default function App() {
       }
     };
     
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
 
-    // Cek sesi awal saat aplikasi pertama kali dimuat
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        setLoadingInitialSession(false); // Jika tidak ada sesi sama sekali, berhenti loading
+        setLoadingInitialSession(false);
         setCurrentUser(defaultGuestUserForApp);
+      } else {
+        handleAuthChange(session); 
       }
-      // Jika ada sesi, onAuthStateChange akan menanganinya
     });
 
     return () => {
-      // Cleanup subscription
-      // const { data: { subscription } } = supabase.auth.onAuthStateChange...
-      // subscription?.unsubscribe(); // Ini cara lama, di v2 Supabase unsubscribe lebih kompleks.
-      // Cukup return fungsi kosong jika tidak ada isu memory leak.
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, []);
 
   useEffect(() => {
     if (pageContentRef.current) {
       const el = pageContentRef.current;
+      // Hapus kelas animasi saat pindah halaman agar reset
       el.classList.remove("content-enter-active", "content-enter");    
+      // Memaksa reflow untuk me-reset animasi
       void el.offsetWidth;                      
+      // Tambahkan kelas animasi lagi
       el.classList.add("content-enter");       
       const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50); 
       return () => clearTimeout(timer);
@@ -107,7 +111,7 @@ export default function App() {
     setCurrentPage(pageId);
     const titles = { home: "AIRDROP FOR ALL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
     setHeaderTitle(titles[pageId] || "AIRDROP FOR ALL");
-    window.scrollTo(0, 0);
+    // Tidak perlu window.scrollTo(0,0) di sini karena scroll di handle oleh `main` element
   }, []);
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
@@ -118,8 +122,6 @@ export default function App() {
       localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
   }, []); 
-
-  const mainPaddingBottomClass = currentPage === 'forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
 
   const renderPage = () => {
     if (loadingInitialSession) {
@@ -135,8 +137,8 @@ export default function App() {
 
     switch (currentPage) {
       case "home": return <PageHome key="home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
-      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />; // <-- KIRIM currentUser KE SINI
-      case "airdrops": return <PageAirdrops key="airdrops" />; 
+      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />; 
+      case "airdrops": return <PageAirdrops key="airdrops" currentUser={userToPass} />; 
       case "forum": return <PageForum key="forum" currentUser={userToPass} />;
       case "profile": return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
       default: return <PageHome key="default-home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
@@ -146,15 +148,26 @@ export default function App() {
   const userForHeader = currentUser || defaultGuestUserForApp;
 
   return (
-    <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
-      <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigateTo} />
+    // Container utama aplikasi: flex kolom, mengisi seluruh viewport
+    <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col">
+      {/* Header (tinggi tetap) */}
+      <header className="flex-shrink-0">
+        <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigateTo} />
+      </header>
+      
+      {/* Konten Utama (mengambil sisa ruang, bisa discroll) */}
       <main 
         ref={pageContentRef} 
-        className={`flex-grow pt-[var(--header-height)] px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto`}
+        className="flex-grow px-4 overflow-y-auto pt-[var(--header-height)] pb-[var(--bottomnav-height)]" // Padding disesuaikan
       >
+        {/* Konten halaman (`renderPage()`) akan diisi di sini */}
         {renderPage()}
       </main>
-      <BottomNav currentPage={currentPage} navigateTo={navigateTo} />
+      
+      {/* Bottom Navigation (tinggi tetap) */}
+      <footer className="flex-shrink-0">
+        <BottomNav currentPage={currentPage} navigateTo={navigateTo} />
+      </footer>
     </div>
   );
 }
