@@ -12,7 +12,7 @@ const getTranslations = (lang) => {
 
 export default function ModalManageCategory({ isOpen, onClose, onSave, initialData }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).pageMyWork; // Menggunakan terjemahan dari PageMyWork
+  const t = getTranslations(language).myWorkPage; // Menggunakan terjemahan dari PageMyWork
 
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
@@ -48,7 +48,7 @@ export default function ModalManageCategory({ isOpen, onClose, onSave, initialDa
       });
       onClose();
     } else {
-      alert(t.categoryNameEmpty); // Menggunakan terjemahan
+      alert(t.modalManageCategory.emptyNameAlert); // PERBAIKAN: Menggunakan kunci dari modalManageCategory
     }
   };
 
@@ -63,42 +63,42 @@ export default function ModalManageCategory({ isOpen, onClose, onSave, initialDa
           <div className="modal-header">
             <h2 className="modal-title flex items-center">
               <FontAwesomeIcon icon={isEditing ? faEdit : faFolderPlus} className="mr-2 w-5 h-5" />
-              {isEditing ? t.modalEditCategoryTitle : t.modalAddCategoryTitle}
+              {isEditing ? t.modalManageCategory.editCategoryTitle : t.modalManageCategory.addCategoryTitle} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             </h2>
             <button type="button" className="modal-close-btn" onClick={onClose}>&times;</button>
           </div>
           <div className="form-group">
-            <label htmlFor="categoryNameInputModal">{t.categoryName}</label>
+            <label htmlFor="categoryNameInputModal">{t.modalManageCategory.categoryNameLabel}</label> {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             <input
               id="categoryNameInputModal"
               type="text"
               className="w-full p-2.5 px-3 rounded-md bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
-              placeholder={t.categoryNamePlaceholder}
+              placeholder={t.modalManageCategory.categoryNamePlaceholder} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="categoryIconInputModal">{t.categoryIcon}</label>
+            <label htmlFor="categoryIconInputModal">{t.modalManageCategory.iconClassLabel}</label> {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             <input
               id="categoryIconInputModal"
               type="text"
               className="w-full p-2.5 px-3 rounded-md bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
-              placeholder={t.categoryIconPlaceholder}
+              placeholder={t.modalManageCategory.iconClassPlaceholder} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
               value={icon}
               onChange={(e) => setIcon(e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              {t.categoryIconHint}
+              {t.modalManageCategory.iconClassHint} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             </p>
           </div>
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-secondary px-4 py-2 text-sm rounded">
-              {t.cancel}
+              {t.modalManageCategory.cancelButton} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             </button>
             <button type="submit" className="btn-primary px-4 py-2 text-sm rounded">
-              {isEditing ? t.saveCategoryChanges : t.saveCategory}
+              {isEditing ? t.modalManageCategory.saveChangesButton : t.modalManageCategory.saveCategoryButton} {/* PERBAIKAN: Menggunakan kunci dari modalManageCategory */}
             </button>
           </div>
         </form>
