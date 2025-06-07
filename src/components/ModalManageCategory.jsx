@@ -12,7 +12,7 @@ const getTranslations = (lang) => {
 
 export default function ModalManageCategory({ isOpen, onClose, onSave, initialData }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).myWorkPage; // Menggunakan terjemahan dari PageMyWork
+  const t = getTranslations(language).modalManageCategory;
 
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
