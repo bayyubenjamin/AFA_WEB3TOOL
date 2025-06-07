@@ -10,16 +10,15 @@ import { faCheckCircle as farFaCheckCircle } from "@fortawesome/free-regular-svg
 import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-import translationsId from "../translations/id.json"; // Import terjemahan ID
-import translationsEn from "../translations/en.json"; // Import terjemahan EN
+import { useLanguage } from "../context/LanguageContext";
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
 // Komponen helper ConfirmDeleteModal
-// PERBAIKAN: Menambahkan props cancelText dan confirmText
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancelText, confirmText }) => {
   if (!isOpen) return null;
   return (
@@ -31,7 +30,6 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancel
         </div>
         <p className="text-gray-300 my-4">{message}</p>
         <div className="modal-footer">
-          {/* PERBAIKAN: Menggunakan prop untuk teks tombol */}
           <button onClick={onClose} className="btn-secondary">{cancelText}</button>
           <button onClick={onConfirm} className="btn-danger">{confirmText}</button>
         </div>
@@ -79,10 +77,11 @@ const Notification = ({ message, type, onClose }) => {
 
 
 export default function PageMyWork({ currentUser }) {
-  const { language } = useLanguage(); // Dapatkan bahasa saat ini
-  // PERBAIKAN UTAMA: Mengambil terjemahan langsung dari file JSON
-  const pageMyWorkT = getTranslations(language).myWorkPage; // Mengambil objek terjemahan 'myWorkPage' dari JSON
-  // const commonT = t.common; // Baris ini tidak lagi diperlukan karena pageMyWorkT sudah menyediakan semua yang dibutuhkan.
+  const { language } = useLanguage();
+  const pageMyWorkT = getTranslations(language).myWorkPage;
+  // ====================== PERBAIKAN BUG NOTIFIKASI ======================
+  const modalAirdropT = getTranslations(language).modalManageAirdrop;
+  // ======================================================================
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +103,7 @@ export default function PageMyWork({ currentUser }) {
   const fetchData = useCallback(async () => {
     if (!currentUser || !currentUser.id) {
         setLoading(false);
-        setError(pageMyWorkT.errorAuth); // Menggunakan kunci terjemahan yang ada
+        setError(pageMyWorkT.errorAuth);
         return;
     }
 
@@ -120,19 +119,31 @@ export default function PageMyWork({ currentUser }) {
 
       if (fetchError) throw fetchError;
 
-      const sortedData = data.map(cat => ({
-          ...cat,
-          user_airdrops: cat.user_airdrops ? cat.user_airdrops.sort((a, b) => (a.name || '').localeCompare(b.name || '')) : []
-      }));
+      // ========================= PERBAIKAN UTAMA PENYEBAB CRASH =========================
+      // Kode ini memastikan data diproses dengan aman, bahkan jika ada data `null` dari database.
+      const processedData = data.map(cat => {
+          // 1. Pastikan `user_airdrops` adalah array dan filter semua item yang null/undefined
+          const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
+          
+          // 2. Urutkan hanya item-item yang valid
+          validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          
+          // 3. Kembalikan kategori dengan daftar airdrop yang sudah bersih dan terurut
+          return {
+              ...cat,
+              user_airdrops: validAirdrops
+          };
+      });
+      // ==================================================================================
 
-      setCategories(sortedData || []);
+      setCategories(processedData || []);
     } catch (err) {
       console.error("Error fetching my work data:", err);
-      setError(pageMyWorkT.errorFetch); // Menggunakan kunci terjemahan yang ada
+      setError(pageMyWorkT.errorFetch);
     } finally {
       setLoading(false);
     }
-  }, [currentUser, pageMyWorkT]); // pageMyWorkT sebagai dependency
+  }, [currentUser, pageMyWorkT]);
 
   useEffect(() => {
     fetchData();
@@ -175,7 +186,7 @@ export default function PageMyWork({ currentUser }) {
             setCategories(prevCategories => prevCategories.map(cat =>
                 cat.id === editingCategory.id ? { ...cat, ...categoryData } : cat
             ));
-            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" }); // Menggunakan kunci terjemahan yang ada
+            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
         }
     } else {
         categoryData.iconColor = getRandomColorClass();
@@ -189,15 +200,15 @@ export default function PageMyWork({ currentUser }) {
         } else if (newCategoryArr && newCategoryArr.length > 0) {
             const newCategory = { ...newCategoryArr[0], user_airdrops: [] };
             setCategories(prevCategories => [...prevCategories, newCategory].sort((a,b) => a.display_order - b.display_order));
-            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" }); // Menggunakan kunci terjemahan yang ada
+            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
         } else {
-            error = { message: pageMyWorkT.notificationSaveCategoryError + "Data not found after insert." }; // Menggunakan kunci terjemahan yang ada
+            error = { message: pageMyWorkT.notificationSaveCategoryError + "Data not found after insert." };
         }
     }
 
     if (error) {
       console.error("Error saving category:", error);
-      setNotification({ message: pageMyWorkT.notificationSaveCategoryError + error.message, type: "error" }); // Menggunakan kunci terjemahan yang ada
+      setNotification({ message: pageMyWorkT.notificationSaveCategoryError + error.message, type: "error" });
     }
 
     setShowManageCategoryModal(false);
@@ -212,7 +223,7 @@ export default function PageMyWork({ currentUser }) {
         ({ error } = await supabase.from('user_categories').delete().eq('id', deleteTarget.id).eq('user_id', currentUser.id));
         if (!error) {
             setCategories(prevCategories => prevCategories.filter(cat => cat.id !== deleteTarget.id));
-            setNotification({ message: pageMyWorkT.notificationDeleteCategorySuccess.replace('{name}', deleteTarget.name), type: "success" }); // Menggunakan kunci terjemahan yang ada
+            setNotification({ message: pageMyWorkT.notificationDeleteCategorySuccess.replace('{name}', deleteTarget.name), type: "success" });
         }
     } else if (deleteTarget.type === 'item') {
         ({ error } = await supabase.from('user_airdrops').delete().eq('id', deleteTarget.id).eq('user_id', currentUser.id));
@@ -221,13 +232,14 @@ export default function PageMyWork({ currentUser }) {
                 ...cat,
                 user_airdrops: cat.user_airdrops.filter(item => item.id !== deleteTarget.id)
             })));
-            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" }); // Menggunakan kunci terjemahan save airdrop sebagai notifikasi sukses hapus item
+            // Menggunakan notifikasi hapus yang lebih sesuai jika ada, jika tidak, notifikasi sukses simpan sudah cukup
+            setNotification({ message: `Successfully deleted task "${deleteTarget.name}"!`, type: "success" }); 
         }
     }
 
     if (error) {
       console.error("Error deleting item:", error);
-      setNotification({ message: pageMyWorkT.notificationDeleteCategoryError + error.message, type: "error" }); // Menggunakan kunci terjemahan yang ada
+      setNotification({ message: pageMyWorkT.notificationDeleteCategoryError + error.message, type: "error" });
     }
 
     setShowConfirmDeleteModal(false);
@@ -235,9 +247,12 @@ export default function PageMyWork({ currentUser }) {
   };
 
   const handleSaveAirdrop = async (airdropData) => {
+    // ====================== PERBAIKAN BUG NOTIFIKASI ======================
     if (!airdropData.name || !airdropData.category_id || !currentUser) {
-        setNotification({ message: pageMyWorkT.modalManageAirdrop.requiredFieldsAlert, type: "error" }); return; // Menggunakan kunci terjemahan yang ada
+        setNotification({ message: modalAirdropT.requiredFieldsAlert, type: "error" }); 
+        return;
     }
+    // ======================================================================
 
     const dataToSave = { ...airdropData, user_id: currentUser.id };
     if (!editingAirdrop) { delete dataToSave.id; }
@@ -247,44 +262,23 @@ export default function PageMyWork({ currentUser }) {
         ({ error } = await supabase.from('user_airdrops').update(dataToSave).eq('id', editingAirdrop.id).eq('user_id', currentUser.id));
 
         if (!error) {
-            setCategories(prevCategories => prevCategories.map(cat => {
-                if (cat.id === airdropData.category_id) {
-                    return {
-                        ...cat,
-                        user_airdrops: cat.user_airdrops.map(item =>
-                            item.id === editingAirdrop.id ? { ...item, ...dataToSave } : item
-                        ).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                    };
-                }
-                return cat;
-            }));
-            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" }); // Menggunakan kunci terjemahan yang ada
+            await fetchData(); // Cukup panggil ulang fetchData untuk data yang paling segar
+            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
         }
 
     } else {
-        const { data: newAirdropArr, error: insertError } = await supabase.from('user_airdrops').insert(dataToSave).select();
+        const { error: insertError } = await supabase.from('user_airdrops').insert(dataToSave).select();
         if (insertError) {
             error = insertError;
-        } else if (newAirdropArr && newAirdropArr.length > 0) {
-            const newAirdrop = newAirdropArr[0];
-            setCategories(prevCategories => prevCategories.map(cat => {
-                if (cat.id === newAirdrop.category_id) {
-                    return {
-                        ...cat,
-                        user_airdrops: [...cat.user_airdrops, newAirdrop].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                    };
-                }
-                return cat;
-            }));
-            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" }); // Menggunakan kunci terjemahan yang ada
         } else {
-            error = { message: pageMyWorkT.notificationAirdropSaveFailed + "Data not found after insert." }; // Menggunakan kunci terjemahan yang ada
+            await fetchData(); // Panggil ulang fetchData
+            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
         }
     }
 
     if (error) {
       console.error("Error saving airdrop:", error);
-      setNotification({ message: pageMyWorkT.notificationAirdropSaveFailed + error.message, type: "error" }); // Menggunakan kunci terjemahan yang ada
+      setNotification({ message: pageMyWorkT.notificationSaveAirdropError + error.message, type: "error" });
     }
 
     setShowManageAirdropModal(false);
@@ -298,22 +292,22 @@ export default function PageMyWork({ currentUser }) {
 
       if(error) {
         console.error("Error toggling daily done:", error);
-        setNotification({ message: pageMyWorkT.notificationToggleStatusFailed + error.message, type: "error" }); // Menggunakan kunci terjemahan yang ada
-      }
-      else {
+        setNotification({ message: "Failed to update daily status: " + error.message, type: "error" });
+      } else {
         setCategories(prevCategories => prevCategories.map(cat => ({
             ...cat,
             user_airdrops: cat.user_airdrops.map(airdrop =>
                 airdrop.id === item.id ? { ...airdrop, daily_done: newDailyDoneStatus } : airdrop
             )
         })));
-        setNotification({ message: pageMyWorkT.notificationStatusUpdated, type: "success" }); // Menggunakan kunci terjemahan yang ada
+        // Notifikasi untuk aksi kecil ini bisa dihilangkan agar tidak terlalu berisik
+        // setNotification({ message: pageMyWorkT.updateStatusSuccess, type: "success" });
       }
   };
 
   const handleMoveCategory = useCallback(async (catId, direction) => {
     if (!currentUser || !currentUser.id) {
-        setNotification({ message: pageMyWorkT.errorAuth, type: "error" }); // Menggunakan kunci terjemahan yang ada
+        setNotification({ message: pageMyWorkT.errorAuth, type: "error" });
         return;
     }
 
@@ -327,13 +321,13 @@ export default function PageMyWork({ currentUser }) {
 
     if (direction === 'up') {
       if (categoryToMoveIndex === 0) {
-        setNotification({ message: pageMyWorkT.categoryAlreadyTop, type: "info" }); // Menggunakan kunci terjemahan yang ada
+        setNotification({ message: pageMyWorkT.categoryAlreadyTop, type: "info" });
         return;
       }
       targetCategoryIndex = categoryToMoveIndex - 1;
     } else {
       if (categoryToMoveIndex === currentCategories.length - 1) {
-        setNotification({ message: pageMyWorkT.categoryAlreadyBottom, type: "info" }); // Menggunakan kunci terjemahan yang ada
+        setNotification({ message: pageMyWorkT.categoryAlreadyBottom, type: "info" });
         return;
       }
       targetCategoryIndex = categoryToMoveIndex + 1;
@@ -361,26 +355,14 @@ export default function PageMyWork({ currentUser }) {
 
       if (error2) throw error2;
 
-      setCategories(prevCategories => {
-        const updatedCategories = prevCategories.map(cat => {
-          if (cat.id === categoryToMove.id) {
-            return { ...cat, display_order: newOrderCategoryToMove };
-          }
-          if (cat.id === targetCategory.id) {
-            return { ...cat, display_order: newOrderTargetCategory };
-          }
-          return cat;
-        });
-        return updatedCategories.sort((a, b) => a.display_order - b.display_order);
-      });
-
+      await fetchData(); // Panggil ulang fetchData untuk memastikan urutan benar
       setOpenDropdownKey(null);
-      setNotification({ message: pageMyWorkT.categoryMoved, type: "success" }); // Menggunakan kunci terjemahan yang ada
+      setNotification({ message: pageMyWorkT.categoryMoved, type: "success" });
     } catch (err) {
       console.error("Error moving category:", err);
-      setNotification({ message: pageMyWorkT.notificationMoveCategoryFailed + err.message, type: "error" }); // Menggunakan kunci terjemahan yang ada
+      setNotification({ message: "Failed to move category: " + err.message, type: "error" });
     }
-  }, [categories, currentUser, setNotification, pageMyWorkT]);
+  }, [categories, currentUser, setNotification, pageMyWorkT, fetchData]);
 
   const handleToggleCategory = useCallback((categoryId) => {
     setExpandedCategories(prev => {
@@ -418,10 +400,10 @@ export default function PageMyWork({ currentUser }) {
       <section className="page-content space-y-6 pt-6">
         <div className="card rounded-xl p-4 md:p-6">
           <div className="main-category-header">
-            <h2 className="text-xl font-semibold text-primary flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5" /> {pageMyWorkT.mainHeader} </h2> {/* Menggunakan mainHeader */}
-            <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-xs px-3 py-1.5 rounded-md flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-3 h-3" />{pageMyWorkT.addCategory} </button> </div> {/* Menggunakan addCategory */}
+            <h2 className="text-xl font-semibold text-primary flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5" /> {pageMyWorkT.mainHeader} </h2>
+            <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-xs px-3 py-1.5 rounded-md flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-3 h-3" />{pageMyWorkT.addCategory} </button> </div>
           </div>
-          {categories.length === 0 && ( <p className="text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )} {/* Menggunakan emptyCategory */}
+          {categories.length === 0 && ( <p className="text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
           <div className="space-y-4">
             {categories.map((category, index) => {
               const itemsInCategory = category.user_airdrops || [];
@@ -442,7 +424,7 @@ export default function PageMyWork({ currentUser }) {
                     <div className={`category-title-container flex items-center ${categoryColorClass}`}>
                       <FontAwesomeIcon icon={iconObject} className={`mr-2 w-4 h-4`} />
                       <span className="category-title-text">{category.name}</span>
-                      <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span> {/* Menggunakan itemsInCategory */}
+                      <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
                     </div>
                     <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
                       <button onClick={(e) => { e.stopPropagation(); handleToggleDropdown(category.id); }} className="category-settings-dropdown-button" title={pageMyWorkT.categorySettings}><FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" /></button>
@@ -481,7 +463,6 @@ export default function PageMyWork({ currentUser }) {
           onConfirm={handleConfirmDelete}
           title={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteTitleCategory : pageMyWorkT.confirmDeleteTitleItem}
           message={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteMessageCategory.replace('{name}', deleteTarget.name) : pageMyWorkT.confirmDeleteMessageItem.replace('{name}', deleteTarget.name)}
-          // PERBAIKAN: Melewatkan teks tombol dari pageMyWorkT
           cancelText={pageMyWorkT.cancel} 
           confirmText={pageMyWorkT.yesDelete}
         />
