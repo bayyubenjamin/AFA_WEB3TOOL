@@ -10,7 +10,7 @@ const getTranslations = (lang) => {
 
 export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialData, categories, defaultCategoryKey }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).pageMyWork; // Menggunakan terjemahan dari PageMyWork
+  const t = getTranslations(language).myWorkPage; // Menggunakan terjemahan dari PageMyWork
 
   const [formData, setFormData] = useState({
     id: initialData?.id || null,
@@ -66,13 +66,13 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
     <div className="modal active">
       <div className="modal-content max-w-2xl bg-gray-800 text-gray-100 rounded-xl shadow-lg">
         <div className="modal-header border-b border-gray-700 pb-4 mb-6">
-          <h3 className="modal-title text-xl font-semibold text-white">{initialData ? t.modalEditAirdropTitle : t.modalAddAirdropTitle}</h3>
+          <h3 className="modal-title text-xl font-semibold text-white">{initialData ? t.modalManageAirdrop.editAirdropTitle : t.modalManageAirdrop.addAirdropTitle}</h3> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
           <button className="modal-close-btn text-gray-400 hover:text-white transition-colors duration-200" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 pt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropName} <span className="text-red-500">*</span></label>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">{t.modalManageAirdrop.airdropNameLabel} <span className="text-red-500">*</span></label> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               <input
                 type="text"
                 id="name"
@@ -80,13 +80,13 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 value={formData.name}
                 onChange={handleChange}
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white"
-                placeholder={t.airdropPlaceholderName}
+                placeholder={t.modalManageAirdrop.airdropNamePlaceholder} {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropLink}</label>
+              <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">{t.modalManageAirdrop.link}</label> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               <input
                 type="url"
                 id="link"
@@ -94,12 +94,12 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 value={formData.link}
                 onChange={handleChange}
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white"
-                placeholder={t.airdropPlaceholderLink}
+                placeholder={t.modalManageAirdrop.linkPlaceholder} {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               />
             </div>
 
             <div>
-              <label htmlFor="category_id" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropCategory} <span className="text-red-500">*</span></label>
+              <label htmlFor="category_id" className="block text-sm font-medium text-gray-300 mb-1">{t.modalManageAirdrop.category} <span className="text-red-500">*</span></label> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               <select
                 id="category_id"
                 name="category_id"
@@ -108,7 +108,7 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary text-white appearance-none"
                 required
               >
-                <option value="">-- {language === 'id' ? 'Pilih Kategori' : 'Select Category'} --</option>
+                <option value="">-- {t.modalManageAirdrop.selectCategoryPlaceholder} --</option> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
@@ -118,7 +118,7 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
             </div>
 
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropStatus} <span className="text-red-500">*</span></label>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">{t.modalManageAirdrop.status} <span className="text-red-500">*</span></label> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               <select
                 id="status"
                 name="status"
@@ -127,27 +127,27 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary text-white appearance-none"
                 required
               >
-                <option value="in progress">{t.airdropStatusInProgress}</option>
-                <option value="completed">{t.airdropStatusCompleted}</option>
+                <option value="in progress">{t.modalManageAirdrop.statusInProgress}</option> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
+                <option value="completed">{t.modalManageAirdrop.statusCompleted}</option> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
               </select>
             </div>
           </div>
 
           <div className="mb-6">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropDescription}</label>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">{t.modalManageAirdrop.shortDescription}</label> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               className="form-input w-full p-2.5 h-24 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white resize-y"
-              placeholder={t.airdropPlaceholderDescription}
+              placeholder={t.modalManageAirdrop.shortDescriptionPlaceholder} {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
             ></textarea>
           </div>
 
           <div className="modal-footer flex justify-end space-x-3 pt-6 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.cancel}</button>
-            <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.saveAirdrop}</button>
+            <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.modalManageAirdrop.cancelButton}</button> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
+            <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.modalManageAirdrop.saveButton}</button> {/* PERBAIKAN: Menggunakan kunci dari modalManageAirdrop */}
           </div>
         </form>
       </div>
