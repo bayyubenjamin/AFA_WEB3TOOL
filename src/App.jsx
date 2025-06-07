@@ -142,8 +142,8 @@ export default function App() {
 
     switch (currentPage) {
       case "home": return <PageHome key="home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
-      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />; // <-- KIRIM currentUser KE SINI
-      case "airdrops": return <PageAirdrops key="airdrops" />; 
+      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />; 
+      case "airdrops": return <PageAirdrops key="airdrops" currentUser={userToPass} />; {/* Perbarui untuk mengirim currentUser */}
       case "forum": return <PageForum key="forum" currentUser={userToPass} />;
       case "profile": return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
       default: return <PageHome key="default-home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
@@ -161,7 +161,7 @@ export default function App() {
       >
         {renderPage()}
       </main>
-      <BottomNav currentPage={currentPage} navigateTo={navigateTo} />
+      <BottomNav currentPage={currentPage} navigateTo={navigateTo} currentUser={currentUser} /> {/* Tambahkan currentUser di sini */}
     </div>
   );
 }
