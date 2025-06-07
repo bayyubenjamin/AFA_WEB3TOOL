@@ -10,7 +10,7 @@ const getTranslations = (lang) => {
 
 export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialData, categories, defaultCategoryKey }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).myWorkPage; // Menggunakan terjemahan dari PageMyWork
+  const t = getTranslations(language).modalManageAirdrop;
 
   const [formData, setFormData] = useState({
     id: initialData?.id || null,
