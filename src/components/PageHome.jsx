@@ -63,7 +63,7 @@ export default function PageHome({ onMintNft, navigateTo }) {
       <div className="space-y-10 px-4">
         <div className="text-center">
           <h2 className="text-3xl md:text-4xl font-semibold text-white mb-2">
-            Kenapa Memilih <span className="text-primary">AFA</span>?
+            Di <span className="text-primary">AFA WEB3TOOL</span>?
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto">
             Kami menyediakan semua yang Anda butuhkan untuk sukses di dunia airdrop.
