@@ -2,8 +2,18 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolderPlus, faEdit } from "@fortawesome/free-solid-svg-icons";
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
+
+const getTranslations = (lang) => {
+  return lang === 'id' ? translationsId : translationsEn;
+};
 
 export default function ModalManageCategory({ isOpen, onClose, onSave, initialData }) {
+  const { language } = useLanguage();
+  const t = getTranslations(language).pageMyWork; // Menggunakan terjemahan dari PageMyWork
+
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
 
@@ -33,12 +43,12 @@ export default function ModalManageCategory({ isOpen, onClose, onSave, initialDa
       onSave({
         key: initialData?.key,
         name: name.trim(),
-        icon: finalIcon, 
+        icon: finalIcon,
         iconColor: finalIconColor,
       });
       onClose();
     } else {
-      alert("Nama kategori tidak boleh kosong.");
+      alert(t.categoryNameEmpty); // Menggunakan terjemahan
     }
   };
 
@@ -53,42 +63,42 @@ export default function ModalManageCategory({ isOpen, onClose, onSave, initialDa
           <div className="modal-header">
             <h2 className="modal-title flex items-center">
               <FontAwesomeIcon icon={isEditing ? faEdit : faFolderPlus} className="mr-2 w-5 h-5" />
-              {isEditing ? "Edit Kategori" : "Tambah Kategori Baru"}
+              {isEditing ? t.modalEditCategoryTitle : t.modalAddCategoryTitle}
             </h2>
             <button type="button" className="modal-close-btn" onClick={onClose}>&times;</button>
           </div>
           <div className="form-group">
-            <label htmlFor="categoryNameInputModal">Nama Kategori</label>
+            <label htmlFor="categoryNameInputModal">{t.categoryName}</label>
             <input
               id="categoryNameInputModal"
               type="text"
               className="w-full p-2.5 px-3 rounded-md bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
-              placeholder="Contoh: DeFi Tasks"
+              placeholder={t.categoryNamePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="categoryIconInputModal">Kelas Ikon Font Awesome (Opsional)</label>
+            <label htmlFor="categoryIconInputModal">{t.categoryIcon}</label>
             <input
               id="categoryIconInputModal"
               type="text"
               className="w-full p-2.5 px-3 rounded-md bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
-              placeholder="fas fa-coins atau fas fa-rocket text-blue-400"
+              placeholder={t.categoryIconPlaceholder}
               value={icon}
               onChange={(e) => setIcon(e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Format: `prefix nama-ikon warna-tailwind` (mis: `fas fa-flask text-green-400`).
+              {t.categoryIconHint}
             </p>
           </div>
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-secondary px-4 py-2 text-sm rounded">
-              Batal
+              {t.cancel}
             </button>
             <button type="submit" className="btn-primary px-4 py-2 text-sm rounded">
-              {isEditing ? "Simpan Perubahan" : "Simpan Kategori"}
+              {isEditing ? t.saveCategoryChanges : t.saveCategory}
             </button>
           </div>
         </form>

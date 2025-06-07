@@ -1,39 +1,49 @@
 // src/components/PageHome.jsx
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { 
-  faFingerprint, // Untuk AFA Identity
-  faRocket,      // Untuk Jelajahi Airdrop
-  faTasks,       // Untuk Kelola Garapan
-  faComments,    // Untuk Forum Komunitas
-  faArrowRight   // Untuk tombol CTA kecil
+import {
+  faFingerprint,
+  faRocket,
+  faTasks,
+  faComments,
+  faArrowRight
 } from "@fortawesome/free-solid-svg-icons";
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import translationsId from "../translations/id.json"; // Import terjemahan ID
+import translationsEn from "../translations/en.json"; // Import terjemahan EN
+
+const getTranslations = (lang) => {
+  return lang === 'id' ? translationsId : translationsEn;
+};
 
 export default function PageHome({ onMintNft, navigateTo }) {
+  const { language } = useLanguage(); // Dapatkan bahasa saat ini
+  const t = getTranslations(language).home; // Dapatkan objek terjemahan untuk halaman home
+
   const features = [
     {
       icon: faRocket,
-      title: "Airdrop Terbaru",
-      description: "Temukan dan ikuti partisipasi dalam airdrop dari proyek Web3 paling menjanjikan.",
-      actionText: "Jelajahi Airdrop",
+      title: t.feature1Title, // Gunakan terjemahan
+      description: t.feature1Description, // Gunakan terjemahan
+      actionText: t.feature1Action, // Gunakan terjemahan
       actionTarget: "airdrops",
-      color: "text-purple-400", // Contoh warna aksen
+      color: "text-purple-400",
     },
     {
       icon: faTasks,
-      title: "Kelola Garapan",
-      description: "Lacak semua progres garapan airdrop Anda dengan mudah di satu tempat terpusat.",
-      actionText: "Lihat Garapanku",
+      title: t.feature2Title,
+      description: t.feature2Description,
+      actionText: t.feature2Action,
       actionTarget: "myWork",
-      color: "text-blue-400", // Contoh warna aksen
+      color: "text-blue-400",
     },
     {
       icon: faComments,
-      title: "Forum Komunitas",
-      description: "Bergabunglah dengan komunitas, diskusi, dan dapatkan tips terbaru seputar airdrop.",
-      actionText: "Kunjungi Forum",
+      title: t.feature3Title,
+      description: t.feature3Description,
+      actionText: t.feature3Action,
       actionTarget: "forum",
-      color: "text-teal-400", // Contoh warna aksen
+      color: "text-teal-400",
     },
   ];
 
@@ -42,11 +52,11 @@ export default function PageHome({ onMintNft, navigateTo }) {
       {/* Hero Section */}
       <div className="text-center space-y-6 max-w-3xl mx-auto px-4">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-          <span className="futuristic-text-gradient">Maksimalkan</span> Potensi 
-          <span className="text-primary"> Airdrop Anda</span>
+          <span className="futuristic-text-gradient">{t.heroTitlePart1}</span> {t.heroTitlePart2}
+          <span className="text-primary"> {t.heroTitlePart3}</span>
         </h1>
         <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-          Selamat datang di <strong>AIRDROP FOR ALL</strong>! Platform terpadu untuk menemukan, mengelola, dan mengklaim airdrop Web3 dengan lebih cerdas dan efisien.
+          {t.heroDescription}
         </p>
         <div className="pt-4">
           <button
@@ -54,7 +64,7 @@ export default function PageHome({ onMintNft, navigateTo }) {
             className="btn-primary text-white font-semibold py-3 px-8 md:py-4 md:px-10 rounded-lg text-lg md:text-xl shadow-xl transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
           >
             <FontAwesomeIcon icon={faFingerprint} className="mr-3 h-5 w-5" />
-            Mint AFA Identity Anda
+            {t.mintIdentityButton}
           </button>
         </div>
       </div>
@@ -63,19 +73,18 @@ export default function PageHome({ onMintNft, navigateTo }) {
       <div className="space-y-10 px-4">
         <div className="text-center">
           <h2 className="text-3xl md:text-4xl font-semibold text-white mb-2">
-            Di <span className="text-primary">AFA WEB3TOOL</span>!
+            {t.featuresSectionTitlePart1} <span className="text-primary">{t.featuresSectionTitlePart2}</span>{t.featuresSectionTitlePart3}
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto">
-            Kami menyediakan semua yang Anda butuhkan untuk sukses di dunia airdrop.
+            {t.featuresSectionSubtitle}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {features.map((feature, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="card rounded-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col"
-              // style={{ borderColor: feature.color.replace('text-', '') }} // Jika ingin border berwarna
             >
               <div className={`mb-4 text-3xl ${feature.color}`}>
                 <FontAwesomeIcon icon={feature.icon} />
@@ -97,17 +106,16 @@ export default function PageHome({ onMintNft, navigateTo }) {
       {/* (Opsional) Ajakan Bergabung atau Info Tambahan */}
       <div className="text-center pt-8 px-4">
         <h3 className="text-2xl md:text-3xl font-semibold text-white mb-4">
-          Siap Memulai Perjalanan Airdrop Anda?
+          {t.ctaTitle}
         </h3>
         <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-          Jangan lewatkan. Bergabunglah dengan Airdrop For All sekarang!
+          {t.ctaDescription}
         </p>
-        {/* Bisa tambahkan tombol navigasi ke halaman register/login jika ada, atau ulangi CTA mint */}
         <button
-          onClick={onMintNft} // Atau navigasi ke halaman airdrops
+          onClick={onMintNft}
           className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg"
         >
-          Mulai Sekarang
+          {t.ctaButton}
         </button>
       </div>
     </section>

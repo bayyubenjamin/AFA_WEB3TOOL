@@ -7,16 +7,27 @@ import {
   faBriefcase,
   faParachuteBox,
   faComments,
-  faUserCircle, // Menambahkan ikon untuk profil
+  faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
 
-export default function BottomNav({ currentPage, navigateTo, currentUser }) { // Menerima currentUser
+const getTranslations = (lang) => {
+  return lang === 'id' ? translationsId : translationsEn;
+};
+
+export default function BottomNav({ currentPage, navigateTo, currentUser }) {
+  const { language } = useLanguage();
+  const commonT = getTranslations(language).common; // Untuk terjemahan umum
+  const homeT = getTranslations(language).home; // Untuk terjemahan spesifik home, jika ada
+
   const navItems = [
-    { id: "home", icon: faHome, label: "Home" },
-    { id: "myWork", icon: faBriefcase, label: "Garapanku" },
-    { id: "airdrops", icon: faParachuteBox, label: "Airdrop" },
-    { id: "forum", icon: faComments, label: "Forum" },
-    { id: "profile", icon: faUserCircle, label: "Profil" }, 
+    { id: "home", icon: faHome, label: language === 'id' ? 'Home' : 'Home' }, // Sesuaikan label jika 'Home' perlu terjemahan berbeda
+    { id: "myWork", icon: faBriefcase, label: language === 'id' ? 'Garapanku' : 'My Work' },
+    { id: "airdrops", icon: faParachuteBox, label: language === 'id' ? 'Airdrop' : 'Airdrops' },
+    { id: "forum", icon: faComments, label: language === 'id' ? 'Forum' : 'Forum' },
+    { id: "profile", icon: faUserCircle, label: language === 'id' ? 'Profil' : 'Profile' },
   ];
 
   return (
@@ -28,14 +39,13 @@ export default function BottomNav({ currentPage, navigateTo, currentUser }) { //
         pb-[env(safe-area-inset-bottom)]
         glassmorphism
         z-50
-        grid grid-cols-5                      {/* Ganti menjadi 5 kolom */}
+        grid grid-cols-5
       "
     >
       {navItems.map((item) => {
-        // Logika untuk menampilkan avatar atau ikon default untuk Profil
         const isProfileItem = item.id === "profile";
         const isProfileActive = currentPage === "profile";
-        
+
         return (
           <button
             key={item.id}

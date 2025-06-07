@@ -1,17 +1,18 @@
 // src/components/Header.jsx
-import React, { useState, useEffect, useRef } from "react"; // Tambahkan useRef
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
 
 export default function Header({ title, currentUser, navigateTo }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const menuRef = useRef(null); // Buat ref untuk menu opsi
+  const menuRef = useRef(null);
+  const { language, changeLanguage } = useLanguage(); // Gunakan hook useLanguage
 
   const toggleOptionsMenu = () => {
     setIsOptionsMenuOpen(prev => !prev);
   };
 
-  // Efek untuk menutup menu ketika klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -23,11 +24,11 @@ export default function Header({ title, currentUser, navigateTo }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []); // Hanya dijalankan sekali saat mount
+  }, []);
 
   const handleLanguageChange = (lang) => {
+    changeLanguage(lang); // Panggil fungsi changeLanguage dari context
     console.log(`Mengganti bahasa ke: ${lang}`);
-    // Logika untuk mengganti bahasa di sini
     setIsOptionsMenuOpen(false);
   };
 
@@ -52,18 +53,15 @@ export default function Header({ title, currentUser, navigateTo }) {
 
   const handleAuthAction = () => {
     if (currentUser && currentUser.id) {
-      // Jika user sudah login, ini adalah aksi logout
-      navigateTo('profile'); // Arahkan ke halaman profil untuk logout
+      navigateTo('profile');
     } else {
-      // Jika user belum login, ini adalah aksi login
-      navigateTo('profile'); // Arahkan ke halaman profil untuk login
+      navigateTo('profile');
     }
     setIsOptionsMenuOpen(false);
   };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
-      {/* Bagian Kiri: Logo AFA */}
       <div className="flex-none">
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
@@ -72,7 +70,6 @@ export default function Header({ title, currentUser, navigateTo }) {
         />
       </div>
 
-      {/* Bagian Tengah: Judul Halaman */}
       <h1
         id="headerTitle"
         className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center flex-grow"
@@ -80,36 +77,34 @@ export default function Header({ title, currentUser, navigateTo }) {
         {title}
       </h1>
 
-      {/* Bagian Kanan: Menu Hamburger */}
-      <div className="relative flex-none" ref={menuRef}> {/* Tambahkan ref di sini */}
-        <button 
-          onClick={toggleOptionsMenu} 
-          className="hamburger-menu" 
+      <div className="relative flex-none" ref={menuRef}>
+        <button
+          onClick={toggleOptionsMenu}
+          className="hamburger-menu"
           aria-label="Menu Opsi"
         >
           <FontAwesomeIcon icon={faBars} className="text-xl text-gray-300 hover:text-white transition-colors duration-200" />
         </button>
 
-        {/* Gunakan class 'active' secara kondisional berdasarkan state */}
-        <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}> 
+        <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
           <ul>
             <li onClick={() => handleLanguageChange('id')}>
-              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Bahasa (ID)
+              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
             </li>
             <li onClick={() => handleLanguageChange('en')}>
-              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Language (EN)
+              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
             </li>
             <li onClick={handleShare}>
-              <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> Bagikan
+              <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
             </li>
             <li onClick={handleAuthAction}>
               {currentUser && currentUser.id ? (
                 <>
-                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
                 </>
               ) : (
                 <>
-                  <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> Login
+                  <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
                 </>
               )}
             </li>

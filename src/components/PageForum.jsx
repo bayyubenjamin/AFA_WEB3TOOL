@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx - FINAL VERSION WITH STABLE REALTIME
+// src/components/PageForum.jsx - FINAL VERSION WITH STABLE REALTIME + TRANSLATIONS
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,6 +8,13 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import { supabase } from '../supabaseClient';
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
+
+const getTranslations = (lang) => {
+    return lang === 'id' ? translationsId : translationsEn;
+};
 
 const formatMessageTimestamp = (isoString) => {
     if (!isoString) return '';
@@ -19,74 +26,69 @@ const formatMessageTimestamp = (isoString) => {
 };
 
 export default function PageForum({ currentUser }) {
+  const { language } = useLanguage();
+  const t = getTranslations(language).pageForum || {}; // Asumsi ada terjemahan untuk halaman forum
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const messagesEndRef = useRef(null);
   const messageInputRef = useRef(null);
 
-  const scrollToBottom = () => { 
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-  
+
   const fetchMessages = useCallback(async () => {
-    // This function now handles all message fetching
     const { data, error: fetchError } = await supabase
       .from('messages')
       .select(`*, profiles (username, avatar_url)`)
       .order('created_at', { ascending: true })
-      .limit(500); // Limit to the last 500 messages
+      .limit(500);
 
     if (fetchError) {
       console.error('PageForum - Error fetching messages:', fetchError);
-      setError("Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar.");
+      setError(t.failedToLoadMessages || "Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar.");
     } else {
       setMessages(data);
     }
     setLoading(false);
-  }, []);
+  }, [t]); // Dependency on t for error message
 
   useEffect(() => {
-    // Fetch initial messages when the component mounts
     fetchMessages();
 
-    // Setup a simple Realtime listener
-const channel = supabase.channel('realtime:forum-messages')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', // Only listen for new messages
-          schema: 'public', 
-          table: 'messages' 
-        }, 
+    const channel = supabase.channel('realtime:forum-messages')
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
         (payload) => {
           console.log('Realtime: Pesan baru terdeteksi!', payload.new);
-          // When a new message arrives, simply re-fetch the whole list.
-          // This is a very robust way to ensure the UI is updated correctly.
           fetchMessages();
         }
       )
       .subscribe((status, err) => {
-        // This callback helps debug the subscription status itself
         if (status === 'SUBSCRIBED') {
             console.log('PageForum: Berhasil terhubung ke Realtime channel!');
             setError(null);
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             console.error(`PageForum: Realtime subscription failed! Status: ${status}`, err);
-            setError("COMING SOON!");
+            setError(t.realtimeConnectionFailed || "COMING SOON!"); // Fallback if translation is missing
         }
       });
 
-    // Cleanup subscription when the component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchMessages]); // Dependency on fetchMessages
+  }, [fetchMessages, t]);
 
   useEffect(() => {
-    // Scroll to bottom whenever messages change
     if (messages.length > 0) {
         scrollToBottom();
     }
@@ -95,50 +97,50 @@ const channel = supabase.channel('realtime:forum-messages')
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (newMessage.trim() === "" || !currentUser || !currentUser.id) return;
-    
-    // The insert operation remains the same
+
     const { error: insertError } = await supabase
       .from('messages')
-      .insert([{ 
-        content: newMessage.trim(), 
-        user_id: currentUser.id, 
-        channel_id: 'general' 
+      .insert([{
+        content: newMessage.trim(),
+        user_id: currentUser.id,
+        channel_id: 'general'
       }]);
 
     if (insertError) {
-      alert("Gagal mengirim pesan: " + insertError.message);
+      alert((t.sendMessageFailed || "Gagal mengirim pesan: ") + insertError.message);
     } else {
-      setNewMessage(""); // Clear input field after successful send
+      setNewMessage("");
     }
   };
-  
+
   return (
     <section className="page-content flex flex-col h-[calc(100vh-var(--header-height)-var(--bottomnav-height))] p-0 overflow-hidden">
       <div className="flex-grow flex flex-col bg-card overflow-hidden">
         <div className="flex-grow p-4 space-y-4 overflow-y-auto">
-          
+
           {loading && (
             <div className="flex justify-center items-center h-full">
               <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/>
+              <p className="ml-3 text-gray-300">{t.loadingMessages || "Memuat pesan..."}</p>
             </div>
           )}
           {error && (
             <div className="flex flex-col justify-center items-center h-full text-center text-red-400">
               <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/>
-              <p className="font-semibold">Terjadi Kesalahan</p>
+              <p className="font-semibold">{t.errorMessageTitle || "Terjadi Kesalahan"}</p>
               <p className="text-sm max-w-xs">{error}</p>
             </div>
           )}
-          
+
           {!loading && !error && messages.length === 0 && (
              <div className="flex justify-center items-center h-full text-center text-gray-500">
-                <p>Belum ada pesan.<br/>Jadilah yang pertama mengirim pesan!</p>
+                <p>{t.noMessagesYet || "Belum ada pesan."}<br/>{t.beTheFirst || "Jadilah yang pertama mengirim pesan!"}</p>
              </div>
           )}
 
           {!loading && !error && messages.map(msg => {
             const isCurrentUser = msg.user_id === currentUser?.id;
-            const senderName = isCurrentUser ? 'Anda' : (msg.profiles?.username || 'User');
+            const senderName = isCurrentUser ? (t.youLabel || 'Anda') : (msg.profiles?.username || 'User');
             const senderAvatar = isCurrentUser ? currentUser?.avatar_url : (msg.profiles?.avatar_url);
 
             return (
@@ -159,11 +161,11 @@ const channel = supabase.channel('realtime:forum-messages')
           })}
           <div ref={messagesEndRef} />
         </div>
-        
+
         <div className="p-3 md:p-4 border-t border-white/10 flex-shrink-0 bg-card">
           <form onSubmit={handleSendMessage} className="flex items-center gap-2 md:gap-3">
-            <input ref={messageInputRef} type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={!currentUser?.id ? "Anda harus login untuk mengirim pesan" : "Ketik pesan Anda di sini..."} disabled={!currentUser?.id} className="flex-grow p-2.5 px-4 rounded-full bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 disabled:opacity-50" />
-            <button type="submit" className="btn-primary p-0 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0" title="Kirim Pesan" disabled={newMessage.trim() === "" || !currentUser?.id}> <FontAwesomeIcon icon={faPaperPlane} className="text-base md:text-lg"/> </button>
+            <input ref={messageInputRef} type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={!currentUser?.id ? (t.loginToSend || "Anda harus login untuk mengirim pesan") : (t.typeMessage || "Ketik pesan Anda di sini...")} disabled={!currentUser?.id} className="flex-grow p-2.5 px-4 rounded-full bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 disabled:opacity-50" />
+            <button type="submit" className="btn-primary p-0 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0" title={t.sendMessageTitle || "Kirim Pesan"} disabled={newMessage.trim() === "" || !currentUser?.id}> <FontAwesomeIcon icon={faPaperPlane} className="text-base md:text-lg"/> </button>
           </form>
         </div>
       </div>

@@ -1,7 +1,17 @@
 // src/components/ModalManageAirdrop.jsx
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
+
+const getTranslations = (lang) => {
+  return lang === 'id' ? translationsId : translationsEn;
+};
 
 export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialData, categories, defaultCategoryKey }) {
+  const { language } = useLanguage();
+  const t = getTranslations(language).pageMyWork; // Menggunakan terjemahan dari PageMyWork
+
   const [formData, setFormData] = useState({
     id: initialData?.id || null,
     name: initialData?.name || '',
@@ -13,8 +23,6 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
   });
 
   useEffect(() => {
-    // Pastikan category_id diatur dengan defaultCategoryKey saat menambah baru
-    // atau mempertahankan nilai existing saat mengedit
     if (initialData) {
       setFormData({
         id: initialData.id,
@@ -27,12 +35,12 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
       });
     } else {
       setFormData(prevFormData => ({
-        ...prevFormData, // Pertahankan nilai dari state sebelumnya
+        ...prevFormData,
         id: null,
         name: '',
         link: '',
         description: '',
-        category_id: defaultCategoryKey || '', // Atur default category jika ada
+        category_id: defaultCategoryKey || '',
         status: 'in progress',
         daily_done: false,
       }));
@@ -58,15 +66,13 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
     <div className="modal active">
       <div className="modal-content max-w-2xl bg-gray-800 text-gray-100 rounded-xl shadow-lg">
         <div className="modal-header border-b border-gray-700 pb-4 mb-6">
-          <h3 className="modal-title text-xl font-semibold text-white">{initialData ? "Edit Garapan" : "Tambah Garapan Baru"}</h3>
+          <h3 className="modal-title text-xl font-semibold text-white">{initialData ? t.modalEditAirdropTitle : t.modalAddAirdropTitle}</h3>
           <button className="modal-close-btn text-gray-400 hover:text-white transition-colors duration-200" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 pt-0">
-          {/* Grouping Fields in Two Columns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
-            {/* Nama Proyek Airdrop */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Nama Proyek Airdrop <span className="text-red-500">*</span></label>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropName} <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 id="name"
@@ -74,14 +80,13 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 value={formData.name}
                 onChange={handleChange}
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white"
-                placeholder="Contoh: ZK Sync Mainnet"
+                placeholder={t.airdropPlaceholderName}
                 required
               />
             </div>
 
-            {/* Link */}
             <div>
-              <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">Link</label>
+              <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropLink}</label>
               <input
                 type="url"
                 id="link"
@@ -89,13 +94,12 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 value={formData.link}
                 onChange={handleChange}
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white"
-                placeholder="https://zeachain.com/testnet-tasks"
+                placeholder={t.airdropPlaceholderLink}
               />
             </div>
 
-            {/* Kategori */}
             <div>
-              <label htmlFor="category_id" className="block text-sm font-medium text-gray-300 mb-1">Kategori <span className="text-red-500">*</span></label>
+              <label htmlFor="category_id" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropCategory} <span className="text-red-500">*</span></label>
               <select
                 id="category_id"
                 name="category_id"
@@ -104,7 +108,7 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary text-white appearance-none"
                 required
               >
-                <option value="">--Pilih Kategori--</option>
+                <option value="">-- {language === 'id' ? 'Pilih Kategori' : 'Select Category'} --</option>
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
@@ -113,9 +117,8 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
               </select>
             </div>
 
-            {/* Status */}
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status <span className="text-red-500">*</span></label>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropStatus} <span className="text-red-500">*</span></label>
               <select
                 id="status"
                 name="status"
@@ -124,28 +127,27 @@ export default function ModalManageAirdrop({ isOpen, onClose, onSave, initialDat
                 className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary text-white appearance-none"
                 required
               >
-                <option value="in progress">Sedang dikerjakan (In Progress)</option>
-                <option value="completed">Selesai</option>
+                <option value="in progress">{t.airdropStatusInProgress}</option>
+                <option value="completed">{t.airdropStatusCompleted}</option>
               </select>
             </div>
-          </div> {/* End of Two Columns */}
+          </div>
 
-          {/* Deskripsi Tugas Singkat */}
           <div className="mb-6">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">Deskripsi Tugas Singkat (Opsional)</label>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropDescription}</label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               className="form-input w-full p-2.5 h-24 rounded-md bg-gray-700 border border-gray-600 focus:ring-primary focus:border-primary placeholder-gray-500 text-white resize-y"
-              placeholder="Contoh: Swap & Stake mingguan"
+              placeholder={t.airdropPlaceholderDescription}
             ></textarea>
           </div>
-          
+
           <div className="modal-footer flex justify-end space-x-3 pt-6 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">Batal</button>
-            <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">Simpan Garapan</button>
+            <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.cancel}</button>
+            <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold transition-colors duration-200">{t.saveAirdrop}</button>
           </div>
         </form>
       </div>

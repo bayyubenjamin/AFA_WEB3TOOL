@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE + MAINTENANCE MODE
+// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE + MAINTENANCE MODE + LANGUAGE CONTEXT
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -11,6 +11,7 @@ import PageProfile from "./components/PageProfile";
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext"; // Import LanguageProvider dan useLanguage
 
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
@@ -29,12 +30,12 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
     stats: profileData?.stats || defaultGuestUserForApp.stats,
-    address: profileData?.web3_address || null, 
+    address: profileData?.web3_address || null,
     user_metadata: authUser.user_metadata || {}
   };
 };
 
-export default function App() {
+function MainAppContent() { // Pisahkan logika utama App ke komponen baru
   // 💥 MAINTENANCE MODE
   if (process.env.REACT_APP_MAINTENANCE === 'true') {
     return (
@@ -49,10 +50,11 @@ export default function App() {
 
   const [currentPage, setCurrentPage] = useState("home");
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
-  const [currentUser, setCurrentUser] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null);
   const [userAirdrops, setUserAirdrops] = useState([]); // Dikelola di PageMyWork sekarang
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const pageContentRef = useRef(null);
+  const { language } = useLanguage(); // Gunakan hook useLanguage untuk mendapatkan bahasa aktif
 
   useEffect(() => {
     setLoadingInitialSession(true);
@@ -64,10 +66,10 @@ export default function App() {
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .maybeSingle(); 
+            .maybeSingle();
 
           if (profileError) throw profileError;
-          
+
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
@@ -82,38 +84,46 @@ export default function App() {
         setLoadingInitialSession(false);
       }
     };
-    
+
     supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
 
-    // Cek sesi awal saat aplikasi pertama kali dimuat
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        setLoadingInitialSession(false); // Jika tidak ada sesi sama sekali, berhenti loading
+        setLoadingInitialSession(false);
         setCurrentUser(defaultGuestUserForApp);
       }
-      // Jika ada sesi, onAuthStateChange akan menanganinya
     });
 
     return () => {};
   }, []);
 
+  // Update header title based on current page and language
+  useEffect(() => {
+    const titles_id = { home: "AFA WEB3TOOL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
+    const titles_en = { home: "AFA WEB3TOOL", myWork: "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
+
+    if (language === 'id') {
+        setHeaderTitle(titles_id[currentPage] || "AFA WEB3TOOL");
+    } else {
+        setHeaderTitle(titles_en[currentPage] || "AFA WEB3TOOL");
+    }
+  }, [currentPage, language]); // Tambahkan language sebagai dependency
+
   useEffect(() => {
     if (pageContentRef.current) {
       const el = pageContentRef.current;
-      el.classList.remove("content-enter-active", "content-enter");    
-      void el.offsetWidth;                      
-      el.classList.add("content-enter");       
-      const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50); 
+      el.classList.remove("content-enter-active", "content-enter");
+      void el.offsetWidth;
+      el.classList.add("content-enter");
+      const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50);
       return () => clearTimeout(timer);
     }
   }, [currentPage]);
 
   const navigateTo = useCallback((pageId) => {
     setCurrentPage(pageId);
-    const titles = { home: "AFA WEB3TOOL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
-    setHeaderTitle(titles[pageId] || "AFA WEB3TOOL");
     window.scrollTo(0, 0);
   }, []);
 
@@ -124,7 +134,7 @@ export default function App() {
     try {
       localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
-  }, []); 
+  }, []);
 
   const mainPaddingBottomClass = currentPage === 'forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
 
@@ -133,17 +143,17 @@ export default function App() {
       return (
         <div className="flex flex-col items-center justify-center h-full text-white pt-10">
           <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-          Memuat Aplikasi...
+          {language === 'id' ? 'Memuat Aplikasi...' : 'Loading Application...'}
         </div>
       );
     }
-    
+
     const userToPass = currentUser || defaultGuestUserForApp;
 
     switch (currentPage) {
       case "home": return <PageHome key="home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
-      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />; 
-      case "airdrops": return <PageAirdrops key="airdrops" currentUser={userToPass} />; {/* Perbarui untuk mengirim currentUser */}
+      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />;
+      case "airdrops": return <PageAirdrops key="airdrops" currentUser={userToPass} />;
       case "forum": return <PageForum key="forum" currentUser={userToPass} />;
       case "profile": return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
       default: return <PageHome key="default-home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
@@ -155,13 +165,21 @@ export default function App() {
   return (
     <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
       <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigateTo} />
-      <main 
-        ref={pageContentRef} 
+      <main
+        ref={pageContentRef}
         className={`flex-grow pt-[var(--header-height)] px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto`}
       >
         {renderPage()}
       </main>
-      <BottomNav currentPage={currentPage} navigateTo={navigateTo} currentUser={currentUser} /> {/* Tambahkan currentUser di sini */}
+      <BottomNav currentPage={currentPage} navigateTo={navigateTo} currentUser={currentUser} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <MainAppContent />
+    </LanguageProvider>
   );
 }
