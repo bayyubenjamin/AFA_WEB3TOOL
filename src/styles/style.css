@@ -37,6 +37,30 @@
   }
   .content-enter { @apply opacity-0 translate-y-5; }
 
+  /* --- Style Baru untuk Header Hamburger Menu --- */
+  .hamburger-menu {
+    @apply bg-transparent border-none p-2 cursor-pointer;
+  }
+  .options-menu {
+    @apply absolute top-full right-0 bg-[#2a2a3a] border border-white/10 rounded-md shadow-xl min-w-[150px] z-50 opacity-0 invisible pointer-events-none transform translate-y-2 transition-all duration-200 ease-out;
+  }
+  .options-menu.active { /* Class ini tidak digunakan di JS yang saya berikan, tetapi bisa berguna jika ingin mengontrol visibilitas dengan class aktif */
+    @apply opacity-100 visible pointer-events-auto translate-y-0;
+  }
+  .options-menu ul {
+    @apply list-none p-0 m-0;
+  }
+  .options-menu li {
+    @apply flex items-center px-4 py-2.5 text-sm text-gray-200 cursor-pointer hover:bg-white/5 transition-colors duration-150;
+  }
+  .options-menu li:first-child { @apply rounded-t-md; }
+  .options-menu li:last-child { @apply rounded-b-md; }
+  .options-menu li svg {
+    @apply mr-2 w-4 h-4;
+  }
+  /* --- Akhir Style Baru untuk Header Hamburger Menu --- */
+
+
   /* === Style SPESIFIK untuk PageMyWork (Garapanku) dan Modals === */
   .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-500/50; }
   .category-wrapper { @apply border border-gray-500/40 rounded-lg p-3 mb-4 bg-gray-800/20; }
