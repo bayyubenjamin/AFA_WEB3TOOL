@@ -37,7 +37,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
 
 function MainAppContent() { // Pisahkan logika utama App ke komponen baru
   // 💥 MAINTENANCE MODE
-  if (process.env.REACT_APP_MAINTENANCE === 'true') {
+  if (import.meta.env.VITE_REACT_APP_MAINTENANCE === 'true') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-6">
         <div className="text-center">
