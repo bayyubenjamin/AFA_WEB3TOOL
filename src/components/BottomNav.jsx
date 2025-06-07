@@ -12,11 +12,11 @@ import {
 
 export default function BottomNav({ currentPage, navigateTo, currentUser }) { // Menerima currentUser
   const navItems = [
-    { id: "profile", icon: faUserCircle, label: "Profil" }, // Pindahkan Profil ke paling kiri
     { id: "home", icon: faHome, label: "Home" },
     { id: "myWork", icon: faBriefcase, label: "Garapanku" },
     { id: "airdrops", icon: faParachuteBox, label: "Airdrop" },
     { id: "forum", icon: faComments, label: "Forum" },
+    { id: "profile", icon: faUserCircle, label: "Profil" }, 
   ];
 
   return (
