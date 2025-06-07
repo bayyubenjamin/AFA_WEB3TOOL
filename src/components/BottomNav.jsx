@@ -9,7 +9,7 @@ import {
   faComments,
   faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
@@ -19,15 +19,16 @@ const getTranslations = (lang) => {
 
 export default function BottomNav({ currentPage, navigateTo, currentUser }) {
   const { language } = useLanguage();
-  const commonT = getTranslations(language).common; // Untuk terjemahan umum
-  const homeT = getTranslations(language).home; // Untuk terjemahan spesifik home, jika ada
+  // PERBAIKAN: Mengambil terjemahan dari objek "bottomNav" yang benar
+  const t = getTranslations(language).bottomNav;
 
+  // PERBAIKAN: Menggunakan terjemahan dari 't' untuk label
   const navItems = [
-    { id: "home", icon: faHome, label: language === 'id' ? 'Home' : 'Home' }, // Sesuaikan label jika 'Home' perlu terjemahan berbeda
-    { id: "myWork", icon: faBriefcase, label: language === 'id' ? 'Garapanku' : 'My Work' },
-    { id: "airdrops", icon: faParachuteBox, label: language === 'id' ? 'Airdrop' : 'Airdrops' },
-    { id: "forum", icon: faComments, label: language === 'id' ? 'Forum' : 'Forum' },
-    { id: "profile", icon: faUserCircle, label: language === 'id' ? 'Profil' : 'Profile' },
+    { id: "home", icon: faHome, label: t.home },
+    { id: "myWork", icon: faBriefcase, label: t.myWork },
+    { id: "airdrops", icon: faParachuteBox, label: t.airdrops },
+    { id: "forum", icon: faComments, label: t.forum },
+    { id: "profile", icon: faUserCircle, label: t.profile },
   ];
 
   return (
@@ -45,20 +46,21 @@ export default function BottomNav({ currentPage, navigateTo, currentUser }) {
       {navItems.map((item) => {
         const isProfileItem = item.id === "profile";
         const isProfileActive = currentPage === "profile";
+        const isActive = currentPage === item.id;
 
         return (
           <button
             key={item.id}
             onClick={() => navigateTo(item.id)}
             className={`nav-item flex flex-col items-center justify-center h-full text-gray-300 hover:text-primary transition-colors duration-200 ${
-              currentPage === item.id ? "active" : ""
+              isActive ? "active" : ""
             }`}
           >
-            {isProfileItem && currentUser ? (
+            {isProfileItem && currentUser?.id ? (
               <img
                 src={currentUser.avatar_url || `https://placehold.co/100x100/7f5af0/FFFFFF?text=${currentUser.name ? currentUser.name.substring(0,1).toUpperCase() : "U"}`}
                 alt={currentUser.name || "User Avatar"}
-                className="h-6 w-6 rounded-full object-cover mb-1 border-2 border-transparent group-hover:border-primary transition-all"
+                className={`h-6 w-6 rounded-full object-cover mb-1 border-2 transition-all ${isActive ? 'border-primary' : 'border-transparent'}`}
               />
             ) : (
               <FontAwesomeIcon icon={item.icon} className="text-xl mb-1" />
