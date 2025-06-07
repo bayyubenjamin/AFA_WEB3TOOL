@@ -42,9 +42,15 @@
     @apply bg-transparent border-none p-2 cursor-pointer;
   }
   .options-menu {
-    @apply absolute top-full right-0 bg-[#2a2a3a] border border-white/10 rounded-md shadow-xl min-w-[150px] z-50 opacity-0 invisible pointer-events-none transform translate-y-2 transition-all duration-200 ease-out;
+    /* Pastikan posisi absolut dan z-index tinggi */
+    @apply absolute top-full right-0 bg-[#2a2a3a] border border-white/10 rounded-md shadow-xl min-w-[150px] z-50;
+    
+    /* Atur default state tersembunyi */
+    @apply opacity-0 invisible pointer-events-none transform translate-y-2;
+    /* Tambahkan transisi untuk efek slide/fade */
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
   }
-  .options-menu.active { /* Class ini tidak digunakan di JS yang saya berikan, tetapi bisa berguna jika ingin mengontrol visibilitas dengan class aktif */
+  .options-menu.active { /* Class ini digunakan di JS yang saya berikan */
     @apply opacity-100 visible pointer-events-auto translate-y-0;
   }
   .options-menu ul {
