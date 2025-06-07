@@ -113,7 +113,7 @@ export default function App() {
   const navigateTo = useCallback((pageId) => {
     setCurrentPage(pageId);
     const titles = { home: "AFA WEB3TOOL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
-    setHeaderTitle(titles[pageId] || "AIRDROP FOR ALL");
+    setHeaderTitle(titles[pageId] || "AFA WEB3TOOL");
     window.scrollTo(0, 0);
   }, []);
 
