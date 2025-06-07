@@ -11,7 +11,7 @@ import PageProfile from "./components/PageProfile";
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { LanguageProvider, useLanguage } from "./context/LanguageContext"; // Import LanguageProvider dan useLanguage
+import { LanguageProvider, useLanguage } from "./contexts/LanguageContexts"; // PERBAIKAN DI SINI: ganti "./context/LanguageContext" menjadi "./contexts/LanguageContexts"
 
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
