@@ -1,20 +1,34 @@
 // src/components/Header.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Tambahkan useRef
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons"; // Menambahkan faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 
 export default function Header({ title, currentUser, navigateTo }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const menuRef = useRef(null); // Buat ref untuk menu opsi
 
   const toggleOptionsMenu = () => {
     setIsOptionsMenuOpen(prev => !prev);
   };
 
+  // Efek untuk menutup menu ketika klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Hanya dijalankan sekali saat mount
+
   const handleLanguageChange = (lang) => {
     console.log(`Mengganti bahasa ke: ${lang}`);
     // Logika untuk mengganti bahasa di sini
-    // Misalnya, menggunakan context API atau state global jika ada
-    setIsOptionsMenuOpen(false); // Tutup menu setelah aksi
+    setIsOptionsMenuOpen(false);
   };
 
   const handleShare = () => {
@@ -29,12 +43,11 @@ export default function Header({ title, currentUser, navigateTo }) {
       });
     } else {
       alert("Fungsi berbagi tidak didukung di browser ini.");
-      // Alternatif: copy URL to clipboard
       navigator.clipboard.writeText(window.location.href)
         .then(() => alert("URL telah disalin ke clipboard!"))
         .catch(err => console.error('Gagal menyalin URL: ', err));
     }
-    setIsOptionsMenuOpen(false); // Tutup menu setelah aksi
+    setIsOptionsMenuOpen(false);
   };
 
   const handleAuthAction = () => {
@@ -45,7 +58,7 @@ export default function Header({ title, currentUser, navigateTo }) {
       // Jika user belum login, ini adalah aksi login
       navigateTo('profile'); // Arahkan ke halaman profil untuk login
     }
-    setIsOptionsMenuOpen(false); // Tutup menu setelah aksi
+    setIsOptionsMenuOpen(false);
   };
 
   return (
@@ -68,7 +81,7 @@ export default function Header({ title, currentUser, navigateTo }) {
       </h1>
 
       {/* Bagian Kanan: Menu Hamburger */}
-      <div className="relative flex-none">
+      <div className="relative flex-none" ref={menuRef}> {/* Tambahkan ref di sini */}
         <button 
           onClick={toggleOptionsMenu} 
           className="hamburger-menu" 
@@ -77,32 +90,31 @@ export default function Header({ title, currentUser, navigateTo }) {
           <FontAwesomeIcon icon={faBars} className="text-xl text-gray-300 hover:text-white transition-colors duration-200" />
         </button>
 
-        {isOptionsMenuOpen && (
-          <div className="options-menu">
-            <ul>
-              <li onClick={() => handleLanguageChange('id')}>
-                <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Bahasa (ID)
-              </li>
-              <li onClick={() => handleLanguageChange('en')}>
-                <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Language (EN)
-              </li>
-              <li onClick={handleShare}>
-                <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> Bagikan
-              </li>
-              <li onClick={handleAuthAction}>
-                {currentUser && currentUser.id ? (
-                  <>
-                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> Login
-                  </>
-                )}
-              </li>
-            </ul>
-          </div>
-        )}
+        {/* Gunakan class 'active' secara kondisional berdasarkan state */}
+        <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}> 
+          <ul>
+            <li onClick={() => handleLanguageChange('id')}>
+              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Bahasa (ID)
+            </li>
+            <li onClick={() => handleLanguageChange('en')}>
+              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> Language (EN)
+            </li>
+            <li onClick={handleShare}>
+              <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> Bagikan
+            </li>
+            <li onClick={handleAuthAction}>
+              {currentUser && currentUser.id ? (
+                <>
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> Login
+                </>
+              )}
+            </li>
+          </ul>
+        </div>
       </div>
     </header>
   );
