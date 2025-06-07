@@ -1,4 +1,3 @@
-// src/components/PageMyWork.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -119,15 +118,9 @@ export default function PageMyWork({ currentUser }) {
       if (fetchError) throw fetchError;
 
       // ========================= PERBAIKAN UTAMA PENYEBAB CRASH =========================
-      // Kode ini memastikan data diproses dengan aman, bahkan jika ada data `null` dari database.
       const processedData = data.map(cat => {
-          // 1. Pastikan `user_airdrops` adalah array dan filter semua item yang null/undefined
           const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
-          
-          // 2. Urutkan hanya item-item yang valid
           validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-          
-          // 3. Kembalikan kategori dengan daftar airdrop yang sudah bersih dan terurut
           return {
               ...cat,
               user_airdrops: validAirdrops
@@ -167,7 +160,7 @@ export default function PageMyWork({ currentUser }) {
       }
   }, [notification]);
 
-  const handleSaveCategory = async ({ key, name, icon, iconColor }) => {
+  const handleSaveCategory = async ({ name, icon, iconColor }) => {
     if (!name.trim() || !currentUser) return;
 
     let categoryData = {
@@ -183,7 +176,7 @@ export default function PageMyWork({ currentUser }) {
 
         if (!error) {
             setCategories(prevCategories => prevCategories.map(cat =>
-                cat.id === editingCategory.id ? { ...cat, ...categoryData } : cat
+                cat.id === editingCategory.id ? { ...cat, name, icon, iconColor } : cat
             ));
             setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
         }
@@ -231,9 +224,6 @@ export default function PageMyWork({ currentUser }) {
                 ...cat,
                 user_airdrops: cat.user_airdrops.filter(item => item.id !== deleteTarget.id)
             })));
-            // PERBAIKAN: Menggunakan string terjemahan agar konsisten dan bisa diterjemahkan.
-            // Anda perlu menambahkan key "notificationDeleteTaskSuccess": "Successfully deleted task \"{name}\"!" di file en.json
-            // dan "notificationDeleteTaskSuccess": "Berhasil menghapus garapan \"{name}\"!" di file id.json
             const message = (pageMyWorkT.notificationDeleteTaskSuccess || "Successfully deleted task \"{name}\"!").replace('{name}', deleteTarget.name);
             setNotification({ message, type: "success" }); 
         }
@@ -260,25 +250,16 @@ export default function PageMyWork({ currentUser }) {
     let error;
     if (editingAirdrop) {
         ({ error } = await supabase.from('user_airdrops').update(dataToSave).eq('id', editingAirdrop.id).eq('user_id', currentUser.id));
-
-        if (!error) {
-            await fetchData(); // Cukup panggil ulang fetchData untuk data yang paling segar
-            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
-        }
-
     } else {
-        const { error: insertError } = await supabase.from('user_airdrops').insert(dataToSave).select();
-        if (insertError) {
-            error = insertError;
-        } else {
-            await fetchData(); // Panggil ulang fetchData
-            setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
-        }
+        ({ error } = await supabase.from('user_airdrops').insert(dataToSave).select());
     }
 
     if (error) {
-      console.error("Error saving airdrop:", error);
-      setNotification({ message: pageMyWorkT.notificationSaveAirdropError + error.message, type: "error" });
+        console.error("Error saving airdrop:", error);
+        setNotification({ message: pageMyWorkT.notificationSaveAirdropError + error.message, type: "error" });
+    } else {
+        await fetchData();
+        setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
     }
 
     setShowManageAirdropModal(false);
@@ -318,41 +299,20 @@ export default function PageMyWork({ currentUser }) {
     let targetCategoryIndex;
 
     if (direction === 'up') {
-      if (categoryToMoveIndex === 0) {
-        setNotification({ message: pageMyWorkT.categoryAlreadyTop, type: "info" });
-        return;
-      }
+      if (categoryToMoveIndex === 0) return;
       targetCategoryIndex = categoryToMoveIndex - 1;
     } else {
-      if (categoryToMoveIndex === currentCategories.length - 1) {
-        setNotification({ message: pageMyWorkT.categoryAlreadyBottom, type: "info" });
-        return;
-      }
+      if (categoryToMoveIndex === currentCategories.length - 1) return;
       targetCategoryIndex = categoryToMoveIndex + 1;
     }
 
     const targetCategory = currentCategories[targetCategoryIndex];
-
     const newOrderCategoryToMove = targetCategory.display_order;
     const newOrderTargetCategory = categoryToMove.display_order;
 
     try {
-      const { error: error1 } = await supabase
-        .from('user_categories')
-        .update({ display_order: newOrderCategoryToMove })
-        .eq('id', categoryToMove.id)
-        .eq('user_id', currentUser.id);
-
-      if (error1) throw error1;
-
-      const { error: error2 } = await supabase
-        .from('user_categories')
-        .update({ display_order: newOrderTargetCategory })
-        .eq('id', targetCategory.id)
-        .eq('user_id', currentUser.id);
-
-      if (error2) throw error2;
-
+      await supabase.from('user_categories').update({ display_order: newOrderCategoryToMove }).eq('id', categoryToMove.id);
+      await supabase.from('user_categories').update({ display_order: newOrderTargetCategory }).eq('id', targetCategory.id);
       await fetchData(); 
       setOpenDropdownKey(null);
       setNotification({ message: pageMyWorkT.categoryMoved, type: "success" });
@@ -360,7 +320,7 @@ export default function PageMyWork({ currentUser }) {
       console.error("Error moving category:", err);
       setNotification({ message: "Failed to move category: " + err.message, type: "error" });
     }
-  }, [categories, currentUser, setNotification, pageMyWorkT, fetchData]);
+  }, [categories, currentUser, pageMyWorkT, fetchData]);
 
   const handleToggleCategory = useCallback((categoryId) => {
     setExpandedCategories(prev => {
@@ -381,7 +341,6 @@ export default function PageMyWork({ currentUser }) {
   const openNewAirdropModal = useCallback((catId) => { setCategoryForNewAirdrop(catId); setEditingAirdrop(null); setShowManageAirdropModal(true); setOpenDropdownKey(null); }, []);
   const openEditAirdropModal = useCallback((item) => { setEditingAirdrop(item); setCategoryForNewAirdrop(item.category_id); setShowManageAirdropModal(true); }, []);
   const confirmDeleteAirdropItem = useCallback((item) => { setDeleteTarget({ type: 'item', id: item.id, name: item.name }); setShowConfirmDeleteModal(true); }, []);
-
 
   if (loading) { return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>; }
   if (error) { return <div className="flex flex-col justify-center items-center h-full text-center text-red-400 pt-20"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>; }
@@ -408,7 +367,6 @@ export default function PageMyWork({ currentUser }) {
               const categoryIsEmpty = itemsInCategory.length === 0;
               const iconObject = getIconObjectFromString(category.icon);
               const isExpanded = expandedCategories.has(category.id);
-
               const categoryColorClass = category.iconColor || 'text-gray-400';
 
               return (
