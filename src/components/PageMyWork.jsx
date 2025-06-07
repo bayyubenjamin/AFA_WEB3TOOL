@@ -78,10 +78,9 @@ const Notification = ({ message, type, onClose }) => {
 
 export default function PageMyWork({ currentUser }) {
   const { language } = useLanguage();
-  const pageMyWorkT = getTranslations(language).myWorkPage;
-  // ====================== PERBAIKAN BUG NOTIFIKASI ======================
-  const modalAirdropT = getTranslations(language).modalManageAirdrop;
-  // ======================================================================
+  const t = getTranslations(language);
+  const pageMyWorkT = t.myWorkPage;
+  const modalAirdropT = t.modalManageAirdrop;
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -232,8 +231,11 @@ export default function PageMyWork({ currentUser }) {
                 ...cat,
                 user_airdrops: cat.user_airdrops.filter(item => item.id !== deleteTarget.id)
             })));
-            // Menggunakan notifikasi hapus yang lebih sesuai jika ada, jika tidak, notifikasi sukses simpan sudah cukup
-            setNotification({ message: `Successfully deleted task "${deleteTarget.name}"!`, type: "success" }); 
+            // PERBAIKAN: Menggunakan string terjemahan agar konsisten dan bisa diterjemahkan.
+            // Anda perlu menambahkan key "notificationDeleteTaskSuccess": "Successfully deleted task \"{name}\"!" di file en.json
+            // dan "notificationDeleteTaskSuccess": "Berhasil menghapus garapan \"{name}\"!" di file id.json
+            const message = (pageMyWorkT.notificationDeleteTaskSuccess || "Successfully deleted task \"{name}\"!").replace('{name}', deleteTarget.name);
+            setNotification({ message, type: "success" }); 
         }
     }
 
@@ -247,12 +249,10 @@ export default function PageMyWork({ currentUser }) {
   };
 
   const handleSaveAirdrop = async (airdropData) => {
-    // ====================== PERBAIKAN BUG NOTIFIKASI ======================
     if (!airdropData.name || !airdropData.category_id || !currentUser) {
         setNotification({ message: modalAirdropT.requiredFieldsAlert, type: "error" }); 
         return;
     }
-    // ======================================================================
 
     const dataToSave = { ...airdropData, user_id: currentUser.id };
     if (!editingAirdrop) { delete dataToSave.id; }
@@ -300,8 +300,6 @@ export default function PageMyWork({ currentUser }) {
                 airdrop.id === item.id ? { ...airdrop, daily_done: newDailyDoneStatus } : airdrop
             )
         })));
-        // Notifikasi untuk aksi kecil ini bisa dihilangkan agar tidak terlalu berisik
-        // setNotification({ message: pageMyWorkT.updateStatusSuccess, type: "success" });
       }
   };
 
@@ -355,7 +353,7 @@ export default function PageMyWork({ currentUser }) {
 
       if (error2) throw error2;
 
-      await fetchData(); // Panggil ulang fetchData untuk memastikan urutan benar
+      await fetchData(); 
       setOpenDropdownKey(null);
       setNotification({ message: pageMyWorkT.categoryMoved, type: "success" });
     } catch (err) {
