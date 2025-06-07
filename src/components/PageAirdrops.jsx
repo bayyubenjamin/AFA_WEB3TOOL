@@ -66,14 +66,14 @@ const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, lan
             <button
               onClick={() => onEdit(airdrop)}
               className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={t.editAirdrop} /* PERBAIKAN: Menghapus komentar dari dalam JSX attribute curly braces */
+              title={t.editAirdrop}
             >
               <FontAwesomeIcon icon={faEdit} />
             </button>
             <button
               onClick={() => onDelete(airdrop.id)}
               className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={t.deleteAirdrop} /* PERBAIKAN: Menghapus komentar dari dalam JSX attribute curly braces */
+              title={t.deleteAirdrop}
             >
               <FontAwesomeIcon icon={faTrashAlt} />
             </button>
@@ -255,6 +255,7 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
 
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
+  // PERBAIKAN UTAMA: Mengubah t = getTranslations(language).pageAirdrops menjadi airdropsPage
   const t = getTranslations(language).airdropsPage; // Menggunakan terjemahan untuk halaman airdrops
 
   const [airdrops, setAirdrops] = useState([
