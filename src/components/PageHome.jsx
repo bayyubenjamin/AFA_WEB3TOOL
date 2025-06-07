@@ -18,7 +18,8 @@ const getTranslations = (lang) => {
 
 export default function PageHome({ onMintNft, navigateTo }) {
   const { language } = useLanguage(); // Dapatkan bahasa saat ini
-  const t = getTranslations(language).home; // Dapatkan objek terjemahan untuk halaman home
+  // PERBAIKAN DI SINI: Mengubah .home menjadi .homePage
+  const t = getTranslations(language).homePage; // Dapatkan objek terjemahan untuk halaman home
 
   const features = [
     {
