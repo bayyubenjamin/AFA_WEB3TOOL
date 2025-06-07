@@ -100,7 +100,7 @@ export default function PageHome({ onMintNft, navigateTo }) {
           Siap Memulai Perjalanan Airdrop Anda?
         </h3>
         <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-          Jangan lewatkan kesempatan emas. Bergabunglah dengan Airdrop For All sekarang!
+          Jangan lewatkan. Bergabunglah dengan Airdrop For All sekarang!
         </p>
         {/* Bisa tambahkan tombol navigasi ke halaman register/login jika ada, atau ulangi CTA mint */}
         <button
