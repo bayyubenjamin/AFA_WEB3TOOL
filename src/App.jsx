@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE
+// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE + MAINTENANCE MODE
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -35,6 +35,18 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
 };
 
 export default function App() {
+  // 💥 MAINTENANCE MODE
+  if (process.env.REACT_APP_MAINTENANCE === 'true') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">🚧 Maintenance Mode</h1>
+          <p className="text-lg">Situs sedang diperbarui. Silakan kembali beberapa saat lagi ya!</p>
+        </div>
+      </div>
+    );
+  }
+
   const [currentPage, setCurrentPage] = useState("home");
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null); 
@@ -84,12 +96,7 @@ export default function App() {
       // Jika ada sesi, onAuthStateChange akan menanganinya
     });
 
-    return () => {
-      // Cleanup subscription
-      // const { data: { subscription } } = supabase.auth.onAuthStateChange...
-      // subscription?.unsubscribe(); // Ini cara lama, di v2 Supabase unsubscribe lebih kompleks.
-      // Cukup return fungsi kosong jika tidak ada isu memory leak.
-    };
+    return () => {};
   }, []);
 
   useEffect(() => {
