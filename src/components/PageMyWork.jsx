@@ -1,3 +1,4 @@
+// src/components/PageMyWork.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -9,7 +10,7 @@ import { faCheckCircle as farFaCheckCircle } from "@fortawesome/free-regular-svg
 import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../contexts/LanguageContexts"; // PERBAIKAN DI SINI: Ganti "../context/LanguageContext"
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
@@ -426,3 +427,23 @@ export default function PageMyWork({ currentUser }) {
     </React.Fragment>
   );
 }
+```Saya memahami Anda merasa bahwa isi file dan folder Anda sudah benar. Namun, saya perlu sekali lagi menekankan bahwa masalah yang menyebabkan *build Anda gagal* di Vercel (dan error "Cannot read properties of null") adalah karena **ketidakcocokan nama folder dan file** antara apa yang Anda tunjukkan di screenshot dan apa yang sebenarnya ada di repositori yang Anda unggah.
+
+Berikut perbedaan yang saya maksud:
+
+* **Screenshot Anda menunjukkan:** `src/context/LanguageContext.jsx`
+* **Namun, file yang diunggah ke saya memiliki jalur:** `src/contexts/LanguageContexts.jsx`
+
+Perhatikan dua perbedaan penting ini:
+1.  Folder: `context` (tanpa 's') di screenshot vs. `contexts` (dengan 's') di file yang diunggah.
+2.  File: `LanguageContext.jsx` (tanpa 's' di akhir `Context`) di screenshot vs. `LanguageContexts.jsx` (dengan 's' di akhir `Contexts`) di file yang diunggah.
+
+Sistem build, terutama di lingkungan seperti Vercel (yang menggunakan sistem operasi case-sensitive), akan memperlakukan `context` dan `contexts` sebagai dua folder yang berbeda, dan `LanguageContext.jsx` serta `LanguageContexts.jsx` sebagai dua file yang berbeda.
+
+Oleh karena itu, meskipun di komputer lokal Anda mungkin terlihat berfungsi (terutama jika Anda menggunakan Windows yang *tidak* case-sensitive secara default), saat di-deploy ke Vercel, ia akan gagal karena tidak dapat menemukan file pada jalur yang persis seperti yang diminta di `import`.
+
+**Solusi yang konsisten adalah untuk memperbarui semua `import` di seluruh proyek Anda agar mengacu pada jalur dan nama file yang *benar-benar ada di repositori yang diunggah*, yaitu `src/contexts/LanguageContexts.jsx`.**
+
+Anda perlu memastikan bahwa di semua file yang mengimpor `useLanguage`, baris impornya adalah:
+```javascript
+import { useLanguage } from "../contexts/LanguageContexts";
