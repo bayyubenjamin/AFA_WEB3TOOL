@@ -22,7 +22,7 @@ const getTranslations = (lang) => {
 // ====================================================================
 const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, language }) => {
   // PERBAIKAN: Menggunakan pageAirdrops dan optional chaining (?.) untuk keamanan
-  const t = getTranslations(language)?.pageAirdrop;
+  const t = getTranslations(language)?.pageAirdrops;
 
   // Jika terjemahan belum siap, jangan render apa-apa
   if (!t) return null;
