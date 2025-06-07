@@ -71,7 +71,7 @@
     "categoryAlreadyTop": "Category is already at the top.",
     "categoryAlreadyBottom": "Category is already at the bottom."
   },
-  "airdropsPage": {
+  "pageAirdrops": {
     "comingSoonTitle": "COMING SOON!",
     "comingSoonText": "We are working hard to bring you the latest and most curated airdrop list. Prepare yourself for exciting opportunities!",
     "statusInProgress": "STATUS: In Development!",
