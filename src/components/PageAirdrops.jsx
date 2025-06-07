@@ -8,8 +8,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegramPlane, faDiscord, faTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-import translationsId from "../translations/id.json";
-import translationsEn from "../translations/en.json";
+import translationsId from "../translations/id.json"; // Import terjemahan ID
+import translationsEn from "../translations/en.json"; // Import terjemahan EN
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
@@ -17,7 +17,7 @@ const getTranslations = (lang) => {
 
 // Komponen untuk menampilkan satu kartu Airdrop
 const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, language }) => {
-  const t = getTranslations(language).pageAirdrops; // Asumsi ada terjemahan untuk halaman airdrops
+  const t = getTranslations(language).airdropsPage; // Menggunakan terjemahan untuk halaman airdrops
 
   const statusColor = {
     'active': 'bg-green-500/20 text-green-300',
@@ -25,10 +25,11 @@ const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, lan
     'ended': 'bg-red-500/20 text-red-300'
   }[airdrop.status] || 'bg-gray-500/20 text-gray-300';
 
+  // PERBAIKAN: Menggunakan kunci terjemahan dari JSON untuk statusText
   const statusText = {
-    'active': language === 'id' ? 'Aktif' : 'Active',
-    'upcoming': language === 'id' ? 'Mendatang' : 'Upcoming',
-    'ended': language === 'id' ? 'Selesai' : 'Ended'
+    'active': t.cardStatusActive,
+    'upcoming': t.cardStatusUpcoming,
+    'ended': t.cardStatusEnded
   }[airdrop.status] || 'Unknown';
 
   return (
@@ -50,7 +51,7 @@ const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, lan
           </span>
           {airdrop.date && (
             <span className="px-2.5 py-1 rounded-full bg-gray-600/20 text-gray-400">
-              <FontAwesomeIcon icon={faCalendarAlt} className="mr-1" /> {airdrop.date}
+              <FontAwesomeIcon icon={faCalendarAlt} className="mr-1" /> {t.cardDate}: {airdrop.date} {/* PERBAIKAN: Menggunakan t.cardDate */}
             </span>
           )}
         </div>
@@ -58,21 +59,21 @@ const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, lan
           onClick={() => onShowDetail(airdrop)}
           className="btn-primary w-full text-center py-2 rounded-lg font-semibold mt-auto"
         >
-          <FontAwesomeIcon icon={faAngleDoubleRight} className="mr-2" /> {language === 'id' ? 'Detail Airdrop' : 'Airdrop Details'}
+          <FontAwesomeIcon icon={faAngleDoubleRight} className="mr-2" /> {t.cardDetailCta} {/* PERBAIKAN: Menggunakan t.cardDetailCta */}
         </button>
         {isAdminMode && (
           <div className="flex justify-end gap-2 mt-4">
             <button
               onClick={() => onEdit(airdrop)}
               className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={language === 'id' ? 'Edit Airdrop' : 'Edit Airdrop'}
+              title={t.editAirdrop} {/* PERBAIKAN: Menggunakan t.editAirdrop */}
             >
               <FontAwesomeIcon icon={faEdit} />
             </button>
             <button
               onClick={() => onDelete(airdrop.id)}
               className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={language === 'id' ? 'Hapus Airdrop' : 'Delete Airdrop'}
+              title={t.deleteAirdrop} {/* PERBAIKAN: Menggunakan t.deleteAirdrop */}
             >
               <FontAwesomeIcon icon={faTrashAlt} />
             </button>
@@ -85,7 +86,7 @@ const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, lan
 
 // Komponen untuk Form Admin Airdrop (Tambah/Edit)
 const AdminAirdropForm = ({ airdropToEdit, onSave, onCancel, language }) => {
-  const t = getTranslations(language).pageAirdrops;
+  const t = getTranslations(language).airdropsPage; // Menggunakan terjemahan untuk halaman airdrops
 
   const [formData, setFormData] = useState({
     id: airdropToEdit?.id || null,
@@ -126,47 +127,47 @@ const AdminAirdropForm = ({ airdropToEdit, onSave, onCancel, language }) => {
 
   return (
     <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
-      <h3 className="text-xl font-semibold text-white mb-4">{airdropToEdit ? t.modalEditAirdropTitle : t.modalAddAirdropTitle}</h3>
+      <h3 className="text-xl font-semibold text-white mb-4">{airdropToEdit ? t.adminFormTitleEdit : t.adminFormTitleAdd}</h3> {/* PERBAIKAN: Menggunakan kunci adminFormTitleEdit/Add */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropTitle} <span className="text-red-500">*</span></label>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelTitle} <span className="text-red-500">*</span></label> {/* PERBAIKAN: Menggunakan adminFormLabelTitle */}
           <input type="text" id="title" name="title" value={formData.title} onChange={handleChange} required className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white"/>
         </div>
         <div>
-          <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropLink} <span className="text-red-500">*</span></label>
+          <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelLink} <span className="text-red-500">*</span></label> {/* PERBAIKAN: Menggunakan adminFormLabelLink */}
           <input type="url" id="link" name="link" value={formData.link} onChange={handleChange} required className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white"/>
         </div>
         <div>
-          <label htmlFor="type" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropType}</label>
+          <label htmlFor="type" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelType}</label> {/* PERBAIKAN: Menggunakan adminFormLabelType */}
           <select id="type" name="type" value={formData.type} onChange={handleChange} className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-white appearance-none">
-            <option value="free">{t.airdropTypeFree}</option>
-            <option value="premium">{t.airdropTypePremium}</option>
+            <option value="free">{t.adminFormOptionFree}</option> {/* PERBAIKAN: Menggunakan adminFormOptionFree */}
+            <option value="premium">{t.adminFormOptionPremium}</option> {/* PERBAIKAN: Menggunakan adminFormOptionPremium */}
           </select>
         </div>
         <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropStatus}</label>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelStatus}</label> {/* PERBAIKAN: Menggunakan adminFormLabelStatus */}
           <select id="status" name="status" value={formData.status} onChange={handleChange} className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-white appearance-none">
-            <option value="active">{t.airdropStatusActive}</option>
-            <option value="upcoming">{t.airdropStatusUpcoming}</option>
-            <option value="ended">{t.airdropStatusEnded}</option>
+            <option value="active">{t.adminFormOptionActive}</option> {/* PERBAIKAN: Menggunakan adminFormOptionActive */}
+            <option value="upcoming">{t.adminFormOptionUpcoming}</option> {/* PERBAIKAN: Menggunakan adminFormOptionUpcoming */}
+            <option value="ended">{t.adminFormOptionEnded}</option> {/* PERBAIKAN: Menggunakan adminFormOptionEnded */}
           </select>
         </div>
         <div className="col-span-1 md:col-span-2">
-          <label htmlFor="image_url" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropImageUrl}</label>
+          <label htmlFor="image_url" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelImageUrl}</label> {/* PERBAIKAN: Menggunakan adminFormLabelImageUrl */}
           <input type="url" id="image_url" name="image_url" value={formData.image_url} onChange={handleChange} className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white"/>
         </div>
         <div className="col-span-1 md:col-span-2">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropDescription}</label>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelDescription}</label> {/* PERBAIKAN: Menggunakan adminFormLabelDescription */}
           <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows="3" className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white resize-y"></textarea>
         </div>
         <div className="col-span-1 md:col-span-2">
-          <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1">{t.airdropTutorial}</label>
-          <textarea id="tutorial" name="tutorial" value={formData.tutorial} onChange={handleChange} rows="6" className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white resize-y" placeholder={t.airdropTutorialPlaceholder}></textarea>
+          <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelTutorial}</label> {/* PERBAIKAN: Menggunakan adminFormLabelTutorial */}
+          <textarea id="tutorial" name="tutorial" value={formData.tutorial} onChange={handleChange} rows="6" className="form-input w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 focus:ring-purple-500 focus:border-purple-500 placeholder-gray-500 text-white resize-y" placeholder={t.adminFormPlaceholderTutorial}></textarea> {/* PERBAIKAN: Menggunakan adminFormPlaceholderTutorial */}
         </div>
 
         <div className="col-span-1 md:col-span-2 flex justify-end gap-3 mt-4">
-          <button type="button" onClick={onCancel} className="btn-secondary px-5 py-2.5 rounded-md font-semibold">{t.cancel}</button>
-          <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold">{airdropToEdit ? t.saveChanges : t.addAirdrop}</button>
+          <button type="button" onClick={onCancel} className="btn-secondary px-5 py-2.5 rounded-md font-semibold">{t.adminFormBtnCancel}</button> {/* PERBAIKAN: Menggunakan adminFormBtnCancel */}
+          <button type="submit" className="btn-primary px-5 py-2.5 rounded-md font-semibold">{airdropToEdit ? t.adminFormBtnSave : t.adminFormBtnAdd}</button> {/* PERBAIKAN: Menggunakan adminFormBtnSave/Add */}
         </div>
       </form>
     </div>
@@ -175,12 +176,12 @@ const AdminAirdropForm = ({ airdropToEdit, onSave, onCancel, language }) => {
 
 // Komponen Modal Detail Airdrop (Versi Full Layar)
 const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
-  const t = getTranslations(language).pageAirdrops;
+  const t = getTranslations(language).airdropsPage; // Menggunakan terjemahan untuk halaman airdrops
 
   if (!isOpen || !airdrop) return null;
 
   const renderTutorialContent = () => {
-    if (!airdrop.tutorial) return <p className="text-gray-400 italic">{t.noTutorialAvailable}</p>;
+    if (!airdrop.tutorial) return <p className="text-gray-400 italic">{t.modalNoTutorial}</p>; // PERBAIKAN: Menggunakan modalNoTutorial
     return (
       <div
         className="prose prose-invert max-w-none text-gray-200"
@@ -190,9 +191,9 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
   };
 
   const statusText = {
-    'active': t.statusActive,
-    'upcoming': t.statusUpcoming,
-    'ended': t.statusEnded
+    'active': t.cardStatusActive, // Menggunakan terjemahan status kartu
+    'upcoming': t.cardStatusUpcoming,
+    'ended': t.cardStatusEnded
   }[airdrop.status] || 'Unknown';
 
   return (
@@ -214,37 +215,37 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
           )}
 
           <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-300 mb-2">{t.descriptionTitle}</h4>
+            <h4 className="text-lg font-semibold text-gray-300 mb-2">{t.modalDescription}</h4> {/* PERBAIKAN: Menggunakan modalDescription */}
             <p className="text-gray-300 text-base">{airdrop.description || t.noDescription}</p>
           </div>
 
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="text-sm font-medium text-gray-300">
               <FontAwesomeIcon icon={faLink} className="mr-2 text-purple-400" />
-              <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-300">{t.visitAirdropPage}</a>
+              <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-300">{t.modalLink}</a> {/* PERBAIKAN: Menggunakan modalLink */}
             </div>
             {airdrop.date && (
                 <div className="text-sm font-medium text-gray-300">
                     <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-blue-400" />
-                    {t.estimated}: {airdrop.date}
+                    {t.modalEstimated}: {airdrop.date} {/* PERBAIKAN: Menggunakan modalEstimated */}
                 </div>
             )}
             <div className="text-sm font-medium text-gray-300">
                 <FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-green-400" />
-                {t.status}: {statusText}
+                {t.modalStatus}: {statusText} {/* PERBAIKAN: Menggunakan modalStatus */}
             </div>
           </div>
 
           <div className="mb-6">
             <h4 className="text-lg font-semibold text-gray-300 mb-2 flex items-center">
-                <FontAwesomeIcon icon={faCodeBranch} className="mr-2 text-orange-400" /> {t.tutorialTitle}
+                <FontAwesomeIcon icon={faCodeBranch} className="mr-2 text-orange-400" /> {t.modalTutorial} {/* PERBAIKAN: Menggunakan modalTutorial */}
             </h4>
             {renderTutorialContent()}
           </div>
         </div>
 
         <div className="modal-footer flex-shrink-0 flex justify-end p-4 border-t border-gray-700">
-          <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold">{t.close}</button>
+          <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold">{t.modalClose}</button> {/* PERBAIKAN: Menggunakan modalClose */}
         </div>
       </div>
     </div>
@@ -254,7 +255,7 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
 
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).pageAirdrops; // Menggunakan terjemahan untuk halaman airdrops
+  const t = getTranslations(language).airdropsPage; // Menggunakan terjemahan untuk halaman airdrops
 
   const [airdrops, setAirdrops] = useState([
     {
@@ -338,17 +339,17 @@ export default function PageAirdrops({ currentUser }) {
           {t.comingSoonTitle}
         </h2>
         <p className="text-gray-300 text-lg md:text-xl mb-8">
-          {t.comingSoonDescription}
+          {t.comingSoonText} {/* PERBAIKAN: Menggunakan comingSoonText */}
         </p>
 
         <div className="bg-purple-600/20 border border-purple-500 text-purple-300 px-6 py-4 rounded-lg relative mb-8 flex items-center justify-center text-lg w-full">
           <FontAwesomeIcon icon={faHourglassHalf} className="mr-3 text-purple-400" />
-          <strong className="font-bold">{t.statusLabel}:</strong> <span className="ml-2">{t.statusDevelopment}</span>
+          <strong className="font-bold">{t.statusInProgress}:</strong> <span className="ml-2">{t.statusInProgress}</span> {/* PERBAIKAN: Menggunakan statusInProgress */}
         </div>
 
         <div className="mb-8 w-full">
           <p className="text-gray-300 mb-4 text-base">
-            {t.joinCommunityText}
+            {t.getUpdates} {/* PERBAIKAN: Menggunakan getUpdates */}
           </p>
           <a
             href="https://t.me/airdrop4ll"
@@ -357,7 +358,7 @@ export default function PageAirdrops({ currentUser }) {
             className="btn-primary bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg text-xl shadow-lg inline-flex items-center justify-center transition-colors duration-200 w-full"
           >
             <FontAwesomeIcon icon={faTelegramPlane} className="mr-3" />
-            {t.joinTelegramButton}
+            {t.joinTelegram} {/* PERBAIKAN: Menggunakan joinTelegram */}
           </a>
         </div>
 
@@ -370,7 +371,7 @@ export default function PageAirdrops({ currentUser }) {
           </a>
         </div>
         <p className="text-gray-500 text-sm mt-6">
-          {t.stayTunedText}
+          {t.stayTuned} {/* PERBAIKAN: Menggunakan stayTuned */}
         </p>
       </div>
 
@@ -381,7 +382,7 @@ export default function PageAirdrops({ currentUser }) {
             onClick={() => setEditingAirdrop({})}
             className="btn-primary flex items-center px-4 py-2 rounded-lg font-semibold text-lg"
           >
-            <FontAwesomeIcon icon={faPlus} className="mr-2" /> {t.addAirdropButton}
+            <FontAwesomeIcon icon={faPlus} className="mr-2" /> {t.addNewAirdrop} {/* PERBAIKAN: Menggunakan addNewAirdrop */}
           </button>
 
           {editingAirdrop && (
@@ -394,7 +395,7 @@ export default function PageAirdrops({ currentUser }) {
           )}
 
           <div className="mt-8">
-            <h3 className="text-xl font-semibold text-white mb-4">{t.managedAirdropsList}</h3>
+            <h3 className="text-xl font-semibold text-white mb-4">{t.managedAirdrops}</h3> {/* PERBAIKAN: Menggunakan managedAirdrops */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {airdrops.map(airdrop => (
                 <AirdropCard
@@ -415,7 +416,7 @@ export default function PageAirdrops({ currentUser }) {
       <div className="card rounded-xl p-6 md:p-8">
         <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-primary flex items-center justify-center">
           <FontAwesomeIcon icon={faGift} className="mr-3 text-purple-400" />
-          {t.latestAirdropsTitle}
+          {t.allAirdropsTitle} {/* PERBAIKAN: Menggunakan allAirdropsTitle */}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -436,7 +437,7 @@ export default function PageAirdrops({ currentUser }) {
         <div className="bg-blue-600/20 border border-blue-700 text-blue-300 px-6 py-4 rounded-lg mt-8 text-center">
             <h3 className="text-xl font-semibold mb-3">{t.moreInfoTitle}</h3>
             <p className="text-gray-200 mb-4">
-              {t.moreInfoDescription}
+              {t.moreInfoText} {/* PERBAIKAN: Menggunakan moreInfoText */}
             </p>
             <a
               href="https://t.me/airdrop4ll"
@@ -445,7 +446,7 @@ export default function PageAirdrops({ currentUser }) {
               className="btn-primary bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg text-lg shadow-md inline-flex items-center justify-center transition-colors duration-200"
             >
               <FontAwesomeIcon icon={faTelegramPlane} className="mr-2" />
-              {t.visitTelegramChannel}
+              {t.joinTelegram} {/* PERBAIKAN: Menggunakan joinTelegram */}
             </a>
         </div>
       </div>
