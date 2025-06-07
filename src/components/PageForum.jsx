@@ -27,7 +27,8 @@ const formatMessageTimestamp = (isoString) => {
 
 export default function PageForum({ currentUser }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).pageForum || {}; // Asumsi ada terjemahan untuk halaman forum
+  // PERBAIKAN: Mengubah .pageForum menjadi .forumPage untuk akses terjemahan yang benar
+  const t = getTranslations(language).forumPage || {}; 
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -50,7 +51,7 @@ export default function PageForum({ currentUser }) {
 
     if (fetchError) {
       console.error('PageForum - Error fetching messages:', fetchError);
-      setError(t.failedToLoadMessages || "Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar.");
+      setError(t.errorFetch || "Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar."); // PERBAIKAN: Menggunakan errorFetch
     } else {
       setMessages(data);
     }
@@ -79,7 +80,8 @@ export default function PageForum({ currentUser }) {
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             console.error(`PageForum: Realtime subscription failed! Status: ${status}`, err);
-            setError(t.realtimeConnectionFailed || "COMING SOON!"); // Fallback if translation is missing
+            // PERBAIKAN: Menggunakan errorRealtime sesuai kunci di JSON
+            setError(t.errorRealtime || "COMING SOON!"); 
         }
       });
 
@@ -107,7 +109,8 @@ export default function PageForum({ currentUser }) {
       }]);
 
     if (insertError) {
-      alert((t.sendMessageFailed || "Gagal mengirim pesan: ") + insertError.message);
+      // PERBAIKAN: Menggunakan sendMessageError sesuai kunci di JSON
+      alert((t.sendMessageError || "Gagal mengirim pesan: ") + insertError.message); 
     } else {
       setNewMessage("");
     }
@@ -121,26 +124,30 @@ export default function PageForum({ currentUser }) {
           {loading && (
             <div className="flex justify-center items-center h-full">
               <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/>
-              <p className="ml-3 text-gray-300">{t.loadingMessages || "Memuat pesan..."}</p>
+              {/* PERBAIKAN: Menggunakan loading sesuai kunci di JSON */}
+              <p className="ml-3 text-gray-300">{t.loading || "Memuat pesan..."}</p> 
             </div>
           )}
           {error && (
             <div className="flex flex-col justify-center items-center h-full text-center text-red-400">
               <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/>
-              <p className="font-semibold">{t.errorMessageTitle || "Terjadi Kesalahan"}</p>
+              {/* PERBAIKAN: Menggunakan errorTitle sesuai kunci di JSON */}
+              <p className="font-semibold">{t.errorTitle || "Terjadi Kesalahan"}</p> 
               <p className="text-sm max-w-xs">{error}</p>
             </div>
           )}
 
           {!loading && !error && messages.length === 0 && (
              <div className="flex justify-center items-center h-full text-center text-gray-500">
-                <p>{t.noMessagesYet || "Belum ada pesan."}<br/>{t.beTheFirst || "Jadilah yang pertama mengirim pesan!"}</p>
+                {/* PERBAIKAN: Menggunakan noMessages dan beTheFirst sesuai kunci di JSON */}
+                <p>{t.noMessages || "Belum ada pesan."}<br/>{t.beTheFirst || "Jadilah yang pertama mengirim pesan!"}</p> 
              </div>
           )}
 
           {!loading && !error && messages.map(msg => {
             const isCurrentUser = msg.user_id === currentUser?.id;
-            const senderName = isCurrentUser ? (t.youLabel || 'Anda') : (msg.profiles?.username || 'User');
+            // PERBAIKAN: Menggunakan currentUserTag dan guestUserTag sesuai kunci di JSON
+            const senderName = isCurrentUser ? (t.currentUserTag || 'Anda') : (msg.profiles?.username || t.guestUserTag || 'User'); 
             const senderAvatar = isCurrentUser ? currentUser?.avatar_url : (msg.profiles?.avatar_url);
 
             return (
@@ -164,8 +171,15 @@ export default function PageForum({ currentUser }) {
 
         <div className="p-3 md:p-4 border-t border-white/10 flex-shrink-0 bg-card">
           <form onSubmit={handleSendMessage} className="flex items-center gap-2 md:gap-3">
-            <input ref={messageInputRef} type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={!currentUser?.id ? (t.loginToSend || "Anda harus login untuk mengirim pesan") : (t.typeMessage || "Ketik pesan Anda di sini...")} disabled={!currentUser?.id} className="flex-grow p-2.5 px-4 rounded-full bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 disabled:opacity-50" />
-            <button type="submit" className="btn-primary p-0 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0" title={t.sendMessageTitle || "Kirim Pesan"} disabled={newMessage.trim() === "" || !currentUser?.id}> <FontAwesomeIcon icon={faPaperPlane} className="text-base md:text-lg"/> </button>
+            <input ref={messageInputRef} type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} 
+                   placeholder={!currentUser?.id ? (t.inputPlaceholderLoggedOut || "Anda harus login untuk mengirim pesan") : (t.inputPlaceholderLoggedIn || "Ketik pesan Anda di sini...")} // PERBAIKAN: Menggunakan inputPlaceholderLoggedOut dan inputPlaceholderLoggedIn
+                   disabled={!currentUser?.id} 
+                   className="flex-grow p-2.5 px-4 rounded-full bg-white/5 border border-white/20 text-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 disabled:opacity-50" />
+            <button type="submit" className="btn-primary p-0 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0" 
+                    title={t.sendButton || "Kirim Pesan"} // PERBAIKAN: Menggunakan sendButton
+                    disabled={newMessage.trim() === "" || !currentUser?.id}> 
+              <FontAwesomeIcon icon={faPaperPlane} className="text-base md:text-lg"/> 
+            </button>
           </form>
         </div>
       </div>
