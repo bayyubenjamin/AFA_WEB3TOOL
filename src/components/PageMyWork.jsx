@@ -10,7 +10,7 @@ import { faCheckCircle as farFaCheckCircle } from "@fortawesome/free-regular-svg
 import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
-import { useLanguage } from "../contexts/LanguageContexts"; // PERBAIKAN DI SINI: Ganti "../context/LanguageContext"
+import { useLanguage } from "../context/LanguageContext"; // PERBAIKAN DI SINI: Ganti "../context/LanguageContext"
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
