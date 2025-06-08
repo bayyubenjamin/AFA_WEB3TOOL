@@ -1,25 +1,31 @@
-// src/components/PageAirdrops.jsx - VERSI ADMIN + SUPABASE
+// src/components/PageAirdrops.jsx - Versi Final dengan Admin Panel & Data dari Supabase
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faPlus, faEdit, faTrash, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import {
+  faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, 
+  faPlus, faEdit, faTrash, faShieldHalved
+} from "@fortawesome/free-solid-svg-icons";
 
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { supabase } from '../supabaseClient'; // [TAMBAHAN]
-import AirdropAdminForm from './AirdropAdminForm'; // [TAMBAHAN]
+import { supabase } from '../supabaseClient';
+import AirdropAdminForm from './AirdropAdminForm';
 
-// [TAMBAHAN] Ganti dengan ID user-mu yang akan jadi admin
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766'; 
+// GANTI DENGAN USER ID ADMIN KAMU YANG ASLI
+const ADMIN_USER_ID = 'GANTI_DENGAN_USER_ID_ADMIN_KAMU'; 
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
+// Komponen Card Airdrop yang sudah dimodifikasi dengan Link dan Tombol Admin
 const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
-  // ... (Sisa kode AirdropCard tetap sama, tapi kita tambahkan tombol admin)
+
+  if (!t) return null;
+
   const statusInfo = {
     active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' },
     upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' },
@@ -35,11 +41,10 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
   
   return (
     <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
-      {/* Tombol Admin hanya muncul jika user adalah admin */}
       {isAdmin && (
         <div className="absolute top-2 right-2 z-30 flex gap-2">
-          <button onClick={(e) => { e.preventDefault(); onEdit(airdrop); }} className="bg-blue-500/80 hover:bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs"><FontAwesomeIcon icon={faEdit} /></button>
-          <button onClick={(e) => { e.preventDefault(); onDelete(airdrop); }} className="bg-red-500/80 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs"><FontAwesomeIcon icon={faTrash} /></button>
+          <button onClick={(e) => { e.preventDefault(); onEdit(airdrop); }} className="bg-blue-500/80 hover:bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faEdit} /></button>
+          <button onClick={(e) => { e.preventDefault(); onDelete(airdrop); }} className="bg-red-500/80 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faTrash} /></button>
         </div>
       )}
       <Link to={`/airdrops/${airdrop.slug}`} className="block h-full flex flex-col">
@@ -52,7 +57,9 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
         </div>
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
-          <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">{airdrop.description}</p>
+          <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
+            {airdrop.description}
+          </p>
           <div className="flex justify-between items-center text-xs mt-auto">
             <span className={`px-3 py-1 rounded-full font-semibold ${statusInfo.color}`}>{statusInfo.text}</span>
             {airdrop.date && (<span className="text-gray-500 font-medium"><FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />{airdrop.date}</span>)}
@@ -63,7 +70,9 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
   );
 };
 
+// Komponen Modal Detail dihapus dari sini karena sudah menjadi halaman sendiri
 
+// Komponen Utama Halaman Airdrops
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -71,15 +80,18 @@ export default function PageAirdrops({ currentUser }) {
   const [airdrops, setAirdrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-
+  
+  // State untuk fitur admin
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [editingAirdrop, setEditingAirdrop] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
+  // Fungsi untuk mengambil data dari Supabase
   const fetchAirdrops = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -101,24 +113,23 @@ export default function PageAirdrops({ currentUser }) {
     fetchAirdrops();
   }, [fetchAirdrops]);
 
+  // Fungsi untuk menyimpan (tambah/edit) airdrop
   const handleSaveAirdrop = async (formData) => {
     setFormLoading(true);
     try {
+      const { id, created_at, ...dataToSave } = formData; // Hapus id & created_at
       let error;
       if (editingAirdrop) {
-        // Mode Edit
-        ({ error } = await supabase.from('airdrops').update(formData).eq('id', editingAirdrop.id));
+        ({ error } = await supabase.from('airdrops').update(dataToSave).eq('id', editingAirdrop.id));
       } else {
-        // Mode Tambah Baru
-        ({ error } = await supabase.from('airdrops').insert([formData]));
+        ({ error } = await supabase.from('airdrops').insert([dataToSave]));
       }
       if (error) throw error;
       
       setShowAdminForm(false);
       setEditingAirdrop(null);
-      await fetchAirdrops(); // Refresh data
+      await fetchAirdrops();
       alert('Airdrop berhasil disimpan!');
-
     } catch (err) {
       alert('Gagal menyimpan airdrop: ' + err.message);
     } finally {
@@ -126,11 +137,13 @@ export default function PageAirdrops({ currentUser }) {
     }
   };
 
+  // Fungsi untuk membuka form edit
   const handleEdit = (airdrop) => {
     setEditingAirdrop(airdrop);
     setShowAdminForm(true);
   };
   
+  // Fungsi untuk menghapus airdrop
   const handleDelete = async (airdrop) => {
     if (window.confirm(`Apakah kamu yakin ingin menghapus "${airdrop.title}"?`)) {
       try {
@@ -151,7 +164,13 @@ export default function PageAirdrops({ currentUser }) {
   }, [airdrops, activeFilter, searchTerm]);
 
   if (!t) return null;
-  const filterTranslations = { all: 'Semua', active: 'Aktif', upcoming: 'Mendatang', ended: 'Selesai' };
+  
+  const filterTranslations = {
+    all: t.filterAll || 'Semua',
+    active: t.filterActive || 'Aktif',
+    upcoming: t.filterUpcoming || 'Mendatang',
+    ended: t.filterEnded || 'Selesai'
+  };
 
   return (
     <>
@@ -161,7 +180,6 @@ export default function PageAirdrops({ currentUser }) {
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">{t.getUpdates}</p>
         </div>
 
-        {/* [TAMBAHAN] Admin Panel */}
         {isAdmin && (
           <div className="max-w-4xl mx-auto p-4 bg-card border border-primary/50 rounded-lg text-center">
             <h3 className="text-lg font-bold text-primary flex items-center justify-center gap-2"><FontAwesomeIcon icon={faShieldHalved}/> Panel Admin</h3>
@@ -205,7 +223,6 @@ export default function PageAirdrops({ currentUser }) {
         )}
       </section>
 
-      {/* [TAMBAHAN] Render Form Admin */}
       {showAdminForm && (
         <AirdropAdminForm 
           onSave={handleSaveAirdrop}
