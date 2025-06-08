@@ -1,4 +1,4 @@
-// src/components/PageMyWork.jsx
+// src/components/PageMyWork.jsx - VERSI LENGKAP DENGAN PERBAIKAN
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,7 +10,7 @@ import { faCheckCircle as farFaCheckCircle } from "@fortawesome/free-regular-svg
 import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
-import { useLanguage } from "../context/LanguageContext"; // PERBAIKAN DI SINI: Ganti "../context/LanguageContext"
+import { useLanguage } from "../context/LanguageContext"; // <-- [PERBAIKAN 1]: Path impor sudah benar
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
@@ -118,18 +118,21 @@ export default function PageMyWork({ currentUser }) {
 
       if (fetchError) throw fetchError;
 
-      // ========================= PERBAIKAN UTAMA PENYEBAB CRASH =========================
-      const processedData = data.map(cat => {
-          const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
-          validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-          return {
-              ...cat,
-              user_airdrops: validAirdrops
-          };
+      // ========================= BLOK PERBAIKAN LOGIKA DATA =========================
+      // Memastikan tidak ada kategori atau airdrop yang null sebelum diproses lebih lanjut
+      const processedData = (data || [])
+        .filter(cat => cat != null) // <-- [PERBAIKAN 2]: Filter kategori null
+        .map(cat => {
+            const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
+            validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            return {
+                ...cat,
+                user_airdrops: validAirdrops
+            };
       });
       // ==================================================================================
 
-      setCategories(processedData || []);
+      setCategories(processedData);
     } catch (err) {
       console.error("Error fetching my work data:", err);
       setError(pageMyWorkT.errorFetch);
@@ -419,7 +422,7 @@ export default function PageMyWork({ currentUser }) {
           onClose={() => setShowConfirmDeleteModal(false)}
           onConfirm={handleConfirmDelete}
           title={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteTitleCategory : pageMyWorkT.confirmDeleteTitleItem}
-          message={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteMessageCategory.replace('{name}', deleteTarget.name) : pageMyWorkT.confirmDeleteMessageItem.replace('{name}', deleteTarget.name)}
+          message={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteMessageCategory.replace('{name}', deleteTarget?.name || '') : pageMyWorkT.confirmDeleteMessageItem.replace('{name}', deleteTarget?.name || '')}
           cancelText={pageMyWorkT.cancel} 
           confirmText={pageMyWorkT.yesDelete}
         />
