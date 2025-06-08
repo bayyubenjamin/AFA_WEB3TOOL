@@ -1,4 +1,4 @@
-// src/components/PageProfile.jsx - VERSI DENGAN PERBAIKAN LOGIN MOBILE
+// src/components/PageProfile.jsx - VERSI FINAL DENGAN SEMUA PERBAIKAN
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,10 +8,13 @@ import {
 
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
+// [PERBAIKAN]: Impor file terjemahan di level atas menggunakan 'import'
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
 
-const getTranslations = (lang, page) => {
-    const translations = lang === 'id' ? require('../translations/id.json') : require('../translations/en.json');
-    return translations[page] || {};
+// [PERBAIKAN]: Gunakan fungsi getTranslations yang benar
+const getTranslations = (lang) => {
+    return lang === 'id' ? translationsId : translationsEn;
 };
 
 const defaultGuestUserFromProfile = {
@@ -62,7 +65,7 @@ InputField.displayName = 'InputField';
 
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
-  const t = getTranslations(language, 'profilePage');
+  const t = getTranslations(language).profilePage;
 
   const isLoggedIn = !!(currentUser && currentUser.id);
 
@@ -112,12 +115,11 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired); setLoading(false); return; }
     if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch); setLoading(false); return; }
     try {
-      // [PERBAIKAN MOBILE]: Tambahkan `redirectTo` untuk memastikan pengguna kembali ke halaman yang benar.
       const { error } = await supabase.auth.signInWithOtp({
         email: signupEmail,
         options: { 
             shouldCreateUser: true,
-            emailRedirectTo: window.location.origin, // <-- Tambahkan ini
+            emailRedirectTo: window.location.origin, // Ini adalah perbaikan untuk login di HP
         },
       });
       if (error) throw error;
@@ -193,6 +195,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp}</p></section>);
   }
 
+  // Sisa kode dari sini tidak ada perubahan dan sudah benar
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
       {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
