@@ -1,178 +1,111 @@
-// src/components/PageAirdrops.jsx
-
-import React, { useState, useEffect } from "react";
+// src/components/PageAirdrops.jsx - Versi Desain Ulang Profesional
+import React, { useState, useEffect, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faStar, faGift, faPlus, faEdit, faTrashAlt,
-  faCalendarAlt, faLink, faInfoCircle, faCheckCircle, faTimesCircle, faClock, faAngleDoubleRight, faCodeBranch,
-  faTools, faHourglassHalf, faRocket, faBell, faSpinner
+  faGift, faSearch, faAngleDoubleRight, faCodeBranch, faTimes,
+  faCalendarAlt, faLink, faInfoCircle, faSpinner, faExclamationTriangle
 } from "@fortawesome/free-solid-svg-icons";
-import { faTelegramPlane, faDiscord, faTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-// Fungsi untuk mendapatkan objek terjemahan berdasarkan bahasa yang dipilih
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// ====================================================================
-// Komponen untuk menampilkan satu kartu Airdrop
-// ====================================================================
-const AirdropCard = ({ airdrop, isAdminMode, onEdit, onDelete, onShowDetail, language }) => {
-  // PERBAIKAN: Menggunakan pageAirdrops dan optional chaining (?.) untuk keamanan
-  const t = getTranslations(language)?.pageAirdrops;
+// Komponen Card Airdrop Premium
+const AirdropCard = ({ airdrop, onShowDetail }) => {
+  const { language } = useLanguage();
+  const t = getTranslations(language).pageAirdrops;
 
-  // Jika terjemahan belum siap, jangan render apa-apa
   if (!t) return null;
 
-  const statusColor = {
-    'active': 'bg-green-500/20 text-green-300',
-    'upcoming': 'bg-blue-500/20 text-blue-300',
-    'ended': 'bg-red-500/20 text-red-300'
-  }[airdrop.status] || 'bg-gray-500/20 text-gray-300';
-
-  const statusText = {
-    'active': t.cardStatusActive,
-    'upcoming': t.cardStatusUpcoming,
-    'ended': t.cardStatusEnded
-  }[airdrop.status] || 'Unknown';
-
-  // Menggunakan kunci terjemahan dari data airdrop
-  const description = airdrop.descriptionKey ? t[airdrop.descriptionKey] : airdrop.description;
+  const statusInfo = {
+    active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300', glow: 'shadow-green-500/50' },
+    upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300', glow: 'shadow-blue-500/50' },
+    ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300', glow: 'shadow-red-500/50' },
+  }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400', glow: 'shadow-gray-500/50' };
 
   return (
-    <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-full">
-      {airdrop.image_url && (
+    <div
+      onClick={() => onShowDetail(airdrop)}
+      className="bg-card rounded-2xl group relative overflow-hidden cursor-pointer border border-white/10 transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
+    >
+      <div className="absolute top-0 right-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+        {airdrop.type === 'free' ? t.adminFormOptionFree : t.adminFormOptionPremium}
+      </div>
+      <div className="relative w-full h-48">
         <img
           src={airdrop.image_url}
           alt={airdrop.title}
-          className="w-full h-40 object-cover"
-          onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x160/2d2d2d/ffffff?text=Image+Not+Found"; }}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}
         />
-      )}
-      <div className="p-5 flex flex-col flex-grow">
-        <h3 className="text-xl font-semibold text-white mb-2">{airdrop.title}</h3>
-        <p className="text-gray-300 text-sm mb-4 flex-grow">{description}</p>
-        <div className="flex flex-wrap gap-2 text-xs font-medium mb-4">
-          <span className={`px-2.5 py-1 rounded-full ${statusColor}`}>
-            <FontAwesomeIcon icon={faInfoCircle} className="mr-1" /> {statusText}
+        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent"></div>
+      </div>
+      <div className="p-5">
+        <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
+        <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis">
+          {airdrop.descriptionKey ? t[airdrop.descriptionKey] : airdrop.description}
+        </p>
+        <div className="flex justify-between items-center text-xs">
+          <span className={`px-3 py-1 rounded-full font-semibold ${statusInfo.color}`}>
+            {statusInfo.text}
           </span>
           {airdrop.date && (
-            <span className="px-2.5 py-1 rounded-full bg-gray-600/20 text-gray-400">
-              <FontAwesomeIcon icon={faCalendarAlt} className="mr-1" /> {t.cardDate}: {airdrop.date}
+            <span className="text-gray-500 font-medium">
+              <FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" /> {airdrop.date}
             </span>
           )}
         </div>
-        <button
-          onClick={() => onShowDetail(airdrop)}
-          className="btn-primary w-full text-center py-2 rounded-lg font-semibold mt-auto"
-        >
-          <FontAwesomeIcon icon={faAngleDoubleRight} className="mr-2" /> {t.cardDetailCta}
-        </button>
-        {isAdminMode && (
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={() => onEdit(airdrop)}
-              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={t.editAirdrop}
-            >
-              <FontAwesomeIcon icon={faEdit} />
-            </button>
-            <button
-              onClick={() => onDelete(airdrop.id)}
-              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-md transition-colors duration-200"
-              title={t.deleteAirdrop}
-            >
-              <FontAwesomeIcon icon={faTrashAlt} />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-// ====================================================================
-// Komponen Modal Detail Airdrop
-// ====================================================================
-const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
-  // PERBAIKAN: Menggunakan pageAirdrops dan optional chaining (?.) untuk keamanan
-  const t = getTranslations(language)?.pageAirdrops;
-  
+// Komponen Modal Detail yang Didesain Ulang
+const AirdropDetailModal = ({ isOpen, onClose, airdrop }) => {
+  const { language } = useLanguage();
+  const t = getTranslations(language).pageAirdrops;
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => { document.body.style.overflow = 'auto' };
+  }, [isOpen]);
+
   if (!isOpen || !airdrop || !t) return null;
-  
-  // Menggunakan kunci terjemahan dari data airdrop
+
   const description = airdrop.descriptionKey ? t[airdrop.descriptionKey] : airdrop.description;
   const tutorial = airdrop.tutorialKey ? t[airdrop.tutorialKey] : airdrop.tutorial;
 
-  const renderTutorialContent = () => {
-    if (!tutorial) return <p className="text-gray-400 italic">{t.modalNoTutorial}</p>;
-    return (
-      <div
-        className="prose prose-invert max-w-none text-gray-200"
-        dangerouslySetInnerHTML={{ __html: tutorial }}
-      />
-    );
-  };
-
-  const statusText = {
-    'active': t.cardStatusActive,
-    'upcoming': t.cardStatusUpcoming,
-    'ended': t.cardStatusEnded
-  }[airdrop.status] || 'Unknown';
-
   return (
-    <div className="fixed top-0 left-0 w-screen h-screen bg-black bg-opacity-95 flex flex-col justify-center items-center z-[9999]">
-      <div className="relative bg-gray-800 text-gray-100 rounded-lg shadow-2xl w-full h-full max-w-screen-lg max-h-full m-4 overflow-hidden flex flex-col">
-        <div className="modal-header border-b border-gray-700 p-4 flex-shrink-0">
-          <h3 className="modal-title text-2xl font-semibold text-white">{airdrop.title}</h3>
-          <button className="modal-close-btn text-gray-400 hover:text-white transition-colors duration-200" onClick={onClose}>&times;</button>
-        </div>
-
-        <div className="p-4 flex-grow overflow-y-auto">
-          {airdrop.image_url && (
-            <img
-              src={airdrop.image_url}
-              alt={airdrop.title}
-              className="w-full h-auto max-h-56 object-cover rounded-md mb-6"
-              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x200/2d2d2d/ffffff?text=Image+Not+Found"; }}
-            />
-          )}
-
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-300 mb-2">{t.modalDescription}</h4>
-            <p className="text-gray-300 text-base">{description || t.noDescription}</p>
+    <div className="fixed inset-0 bg-dark/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] transition-opacity duration-300 animate-fade-in">
+      <div className="bg-card border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col relative">
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors z-20 bg-dark/50 rounded-full w-8 h-8 flex items-center justify-center">
+            <FontAwesomeIcon icon={faTimes} />
+        </button>
+        <div className="p-6 overflow-y-auto">
+          <h2 className="text-3xl font-bold text-white mb-2">{airdrop.title}</h2>
+          <p className="text-gray-400 mb-6">{description}</p>
+          
+          <div className="flex flex-wrap gap-4 mb-6 text-sm">
+             <span className="flex items-center"><FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-primary"/>{t.modalStatus} <strong className="ml-2 text-white">{t[`cardStatus${airdrop.status.charAt(0).toUpperCase() + airdrop.status.slice(1)}`]}</strong></span>
+             {airdrop.date && <span className="flex items-center"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-primary"/>{t.modalEstimated} <strong className="ml-2 text-white">{airdrop.date}</strong></span>}
           </div>
 
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="text-sm font-medium text-gray-300">
-              <FontAwesomeIcon icon={faLink} className="mr-2 text-purple-400" />
-              <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="hover:underline text-purple-300">{t.modalLink}</a>
-            </div>
-            {airdrop.date && (
-                <div className="text-sm font-medium text-gray-300">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-blue-400" />
-                    {t.modalEstimated}: {airdrop.date}
-                </div>
-            )}
-            <div className="text-sm font-medium text-gray-300">
-                <FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-green-400" />
-                {t.modalStatus}: {statusText}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold text-gray-300 mb-2 flex items-center">
-                <FontAwesomeIcon icon={faCodeBranch} className="mr-2 text-orange-400" /> {t.modalTutorial}
-            </h4>
-            {renderTutorialContent()}
+          <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white">
+            <h3 className="flex items-center"><FontAwesomeIcon icon={faCodeBranch} className="mr-2 text-primary"/> {t.modalTutorial}</h3>
+            {tutorial ? <div dangerouslySetInnerHTML={{ __html: tutorial }} /> : <p className="italic text-gray-500">{t.modalNoTutorial}</p>}
           </div>
         </div>
-
-        <div className="modal-footer flex-shrink-0 flex justify-end p-4 border-t border-gray-700">
-          <button type="button" onClick={onClose} className="btn-secondary px-5 py-2.5 rounded-md font-semibold">{t.modalClose}</button>
+        <div className="p-6 border-t border-white/10 mt-auto">
+            <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary w-full text-center py-3 rounded-lg font-bold flex items-center justify-center">
+                {t.modalLink} <FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" />
+            </a>
         </div>
       </div>
     </div>
@@ -180,203 +113,113 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop, language }) => {
 };
 
 
-// ====================================================================
 // Komponen Utama Halaman Airdrops
-// ====================================================================
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
-  // PERBAIKAN 1: Menggunakan 'pageAirdrops' yang benar dan optional chaining (?.)
-  const t = getTranslations(language)?.pageAirdrops;
+  const t = getTranslations(language).pageAirdrops;
 
   const [airdrops, setAirdrops] = useState([]);
-  const [loading, setLoading] = useState(true); // State untuk loading
-  const [error, setError] = useState(null); // State untuk error
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [selectedAirdrop, setSelectedAirdrop] = useState(null);
 
-  // PENINGKATAN: Simulasi pengambilan data dari API
   useEffect(() => {
     const fetchAirdrops = async () => {
       setLoading(true);
       setError(null);
       try {
-        // --- GANTI BAGIAN INI DENGAN API CALL ANDA (misal: dari Supabase) ---
-        // Simulasi delay 1 detik
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Data dummy (seperti yang Anda punya sebelumnya)
-        // PENINGKATAN: Gunakan kunci terjemahan, bukan hardcode string bahasa
+        await new Promise(resolve => setTimeout(resolve, 500));
         const mockData = [
-          {
-            id: 1,
-            title: "ZK Sync Era Mainnet Airdrop",
-            descriptionKey: "zkSyncDescription", // Kunci untuk file JSON
-            link: "https://zksync.io/",
-            type: "free",
-            status: "active",
-            image_url: "https://www.cryptoblogs.io/wp-content/uploads/2024/06/What-is-zkSync.jpg",
-            date: "Q3 2024",
-            tutorialKey: "zkSyncTutorial" // Kunci untuk file JSON
-          },
-          {
-            id: 2,
-            title: "LayerZero Airdrop",
-            descriptionKey: "layerZeroDescription",
-            link: "https://layerzero.network/",
-            type: "premium",
-            status: "upcoming",
-            image_url: "https://cdn.betakit.com/wp-content/uploads/2023/04/LayerZero-Labs-770x513.jpg",
-            date: "Q4 2024",
-            tutorialKey: "layerZeroTutorial"
-          }
+          { id: 1, title: "ZK Sync Era Mainnet Airdrop", descriptionKey: "zkSyncDescription", link: "https://zksync.io/", type: "free", status: "active", image_url: "https://www.cryptoblogs.io/wp-content/uploads/2024/06/What-is-zkSync.jpg", date: "Q3 2024", tutorialKey: "zkSyncTutorial" },
+          { id: 2, title: "LayerZero Airdrop", descriptionKey: "layerZeroDescription", link: "https://layerzero.network/", type: "premium", status: "upcoming", image_url: "https://cdn.betakit.com/wp-content/uploads/2023/04/LayerZero-Labs-770x513.jpg", date: "Q4 2024", tutorialKey: "layerZeroTutorial" },
+          { id: 3, title: "StarkNet DeFi Expansion", descriptionKey: "zkSyncDescription", link: "https://starknet.io/", type: "free", status: "active", image_url: "https://pbs.twimg.com/profile_images/1762125355938926592/2i3e25da_400x400.jpg", date: "Q3 2024", tutorialKey: "layerZeroTutorial" },
+          { id: 4, title: "Scroll Origins NFT Drop", descriptionKey: "layerZeroDescription", link: "https://scroll.io/", type: "premium", status: "ended", image_url: "https://pbs.twimg.com/profile_images/1696531399317917696/2T3p4N__400x400.jpg", date: "Q2 2024", tutorialKey: "zkSyncTutorial" }
         ];
-        // --- AKHIR BAGIAN YANG PERLU DIGANTI ---
-
         setAirdrops(mockData);
       } catch (err) {
-        console.error("Failed to fetch airdrops:", err);
-        setError("Gagal memuat data airdrop. Silakan coba lagi nanti."); // Pesan error
+        setError("Gagal memuat data airdrop.");
       } finally {
-        setLoading(false); // Selesai loading
+        setLoading(false);
       }
     };
-
     fetchAirdrops();
-  }, []); // Dijalankan sekali saat komponen dimuat
+  }, []);
 
-  // Sisa state tetap sama
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [editingAirdrop, setEditingAirdrop] = useState(null);
-  const [showingDetailAirdrop, setShowingDetailAirdrop] = useState(null);
-
-  useEffect(() => {
-    const isCurrentUserAdmin = currentUser?.id === "admin_user_id_mock";
-    setIsAdminMode(isCurrentUserAdmin);
-  }, [currentUser]);
-
-  const handleShowDetail = (airdrop) => {
-    setShowingDetailAirdrop(airdrop);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const handleCloseDetailModal = () => {
-    setShowingDetailAirdrop(null);
-    document.body.style.overflow = '';
-  };
-
-  // Tampilkan pesan Loading
-  if (loading) {
-    return (
-      <div className="page-content flex justify-center items-center h-64">
-          <FontAwesomeIcon icon={faSpinner} className="text-purple-400 text-4xl animate-spin" />
-          <span className="ml-4 text-xl text-gray-300">{t?.loadingText || "Memuat..."}</span>
-      </div>
-    );
-  }
-
-  // Tampilkan pesan Error
-  if (error) {
-      return (
-          <div className="page-content flex justify-center items-center h-64 text-center text-red-400">
-              <p>{error}</p>
-          </div>
+  const filteredAirdrops = useMemo(() => {
+    return airdrops
+      .filter(airdrop => {
+        if (activeFilter === 'all') return true;
+        return airdrop.status === activeFilter;
+      })
+      .filter(airdrop => 
+        airdrop.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
-  }
+  }, [airdrops, activeFilter, searchTerm]);
 
-  // Jika tidak ada terjemahan (kasus langka), jangan render apa-apa
-  if (!t) {
-    return null;
-  }
-  
+  if (!t) return null;
+
   return (
-    <section id="airdrops" className="page-content space-y-8 pt-6">
-      {/* Bagian "Coming Soon" */}
-      <div className="card rounded-xl p-6 md:p-10 bg-gray-800 border border-gray-700 shadow-xl max-w-2xl mx-auto flex flex-col items-center justify-center text-center">
-        <FontAwesomeIcon icon={faTools} className="text-primary text-6xl mb-6 animate-pulse" />
-        <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-          {t.comingSoonTitle}
-        </h2>
-        <p className="text-gray-300 text-lg md:text-xl mb-8">
-          {t.comingSoonText}
-        </p>
-        <div className="bg-purple-600/20 border border-purple-500 text-purple-300 px-6 py-4 rounded-lg relative mb-8 flex items-center justify-center text-lg w-full">
-          <FontAwesomeIcon icon={faHourglassHalf} className="mr-3 text-purple-400" />
-          <strong className="font-bold">{t.statusInProgress}:</strong> <span className="ml-2">{t.statusInProgress}</span>
+    <>
+      <section id="airdrops" className="page-content space-y-8 pt-8">
+        {/* Header Halaman */}
+        <div className="text-center">
+          <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-3">{t.allAirdropsTitle}</h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">{t.getUpdates}</p>
         </div>
-        <div className="mb-8 w-full">
-          <p className="text-gray-300 mb-4 text-base">
-            {t.getUpdates}
-          </p>
-          <a
-            href="https://t.me/airdrop4ll"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg text-xl shadow-lg inline-flex items-center justify-center transition-colors duration-200 w-full"
-          >
-            <FontAwesomeIcon icon={faTelegramPlane} className="mr-3" />
-            {t.joinTelegram}
-          </a>
-        </div>
-        <div className="flex space-x-6 text-3xl mb-4">
-          <a href="https://twitter.com/airdrop4ll" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors duration-200" title="Twitter">
-            <FontAwesomeIcon icon={faTwitter} />
-          </a>
-          <a href="https://discord.gg/airdrop4ll" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-purple-400 transition-colors duration-200" title="Discord">
-            <FontAwesomeIcon icon={faDiscord} />
-          </a>
-        </div>
-        <p className="text-gray-500 text-sm mt-6">
-          {t.stayTuned}
-        </p>
-      </div>
 
-      {/* Bagian Daftar Semua Airdrop */}
-      <div className="card rounded-xl p-6 md:p-8">
-        <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-primary flex items-center justify-center">
-          <FontAwesomeIcon icon={faGift} className="mr-3 text-purple-400" />
-          {t.allAirdropsTitle}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {airdrops.map(airdrop => (
-            <AirdropCard
-              key={airdrop.id}
-              airdrop={airdrop}
-              isAdminMode={false} // Selalu false untuk tampilan publik
-              onShowDetail={handleShowDetail}
-              language={language}
-            />
-          ))}
-          {airdrops.length === 0 && (
-              <p className="col-span-full text-gray-400 text-center py-4">{t.noAirdropsAvailable}</p>
-          )}
+        {/* Filter dan Pencarian */}
+        <div className="sticky top-[var(--header-height)] bg-dark/80 backdrop-blur-lg z-30 py-4 px-2 -mx-2">
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
+                <div className="relative flex-grow">
+                    <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500" />
+                    <input
+                        type="text"
+                        placeholder={t.searchPlaceholder || "Cari airdrop..."}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-card border border-white/10 rounded-lg py-2.5 pl-11 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                </div>
+                <div className="bg-card border border-white/10 rounded-lg p-1 flex items-center space-x-1">
+                    {['all', 'active', 'upcoming', 'ended'].map(filter => (
+                        <button
+                            key={filter}
+                            onClick={() => setActiveFilter(filter)}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-gray-300 hover:bg-white/5'}`}
+                        >
+                            {t[`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}`] || filter}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
-        
-        {/* Info Tambahan */}
-        <div className="bg-blue-600/20 border border-blue-700 text-blue-300 px-6 py-4 rounded-lg mt-8 text-center">
-            <h3 className="text-xl font-semibold mb-3">{t.moreInfoTitle}</h3>
-            <p className="text-gray-200 mb-4">
-                {t.moreInfoText}
-            </p>
-            <a
-                href="https://t.me/airdrop4ll"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg text-lg shadow-md inline-flex items-center justify-center transition-colors duration-200"
-            >
-                <FontAwesomeIcon icon={faTelegramPlane} className="mr-2" />
-                {t.joinTelegram}
-            </a>
-        </div>
-      </div>
 
-      {/* Modal Detail */}
-      {showingDetailAirdrop && (
-        <AirdropDetailModal
-          isOpen={!!showingDetailAirdrop}
-          onClose={handleCloseDetailModal}
-          airdrop={showingDetailAirdrop}
-          language={language}
-        />
-      )}
-    </section>
+        {/* Daftar Airdrop */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64"><FontAwesomeIcon icon={faSpinner} className="text-primary text-4xl animate-spin" /></div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-64 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {filteredAirdrops.length > 0 ? (
+              filteredAirdrops.map(airdrop => (
+                <AirdropCard key={airdrop.id} airdrop={airdrop} onShowDetail={setSelectedAirdrop} />
+              ))
+            ) : (
+              <p className="col-span-full text-center text-gray-500 py-16">{t.noAirdropsAvailable}</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <AirdropDetailModal 
+        isOpen={!!selectedAirdrop}
+        onClose={() => setSelectedAirdrop(null)}
+        airdrop={selectedAirdrop}
+      />
+    </>
   );
 }
