@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN ROUTING AKTIF
+// src/App.jsx - VERSI FINAL DENGAN PERBAIKAN BUG RELOAD
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -10,7 +10,6 @@ import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
-// [AKTIFKAN]: Impor halaman detail airdrop yang baru
 import AirdropDetailPage from "./components/AirdropDetailPage"; 
 
 import { supabase } from './supabaseClient';
@@ -120,7 +119,11 @@ function MainAppContent() {
     }
   }, [location, language]);
 
+  // [PERBAIKAN BUG]: Tambahkan 'loadingInitialSession' sebagai dependency
   useEffect(() => {
+    // Jangan jalankan animasi jika masih dalam proses loading awal
+    if (loadingInitialSession) return;
+
     if (pageContentRef.current) {
       const el = pageContentRef.current;
       el.classList.remove("content-enter-active", "content-enter");
@@ -129,7 +132,7 @@ function MainAppContent() {
       const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname]);
+  }, [location.pathname, loadingInitialSession]); // <--- PERUBAHAN DI SINI
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
 
@@ -163,13 +166,9 @@ function MainAppContent() {
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
-          
-          {/* [AKTIFKAN]: Rute dinamis untuk detail airdrop sekarang aktif */}
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage />} />
-
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
-          
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
