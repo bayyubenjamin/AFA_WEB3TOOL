@@ -1,6 +1,8 @@
-// src/components/BottomNav.jsx
+// src/components/BottomNav.jsx - VERSI ROUTING
 
 import React from "react";
+// [TAMBAHAN]: Impor NavLink
+import { NavLink } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
@@ -17,56 +19,56 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-export default function BottomNav({ currentPage, navigateTo, currentUser }) {
+// [DIUBAH]: Hapus props 'currentPage' dan 'navigateTo'
+export default function BottomNav({ currentUser }) {
   const { language } = useLanguage();
-  // PERBAIKAN: Mengambil terjemahan dari objek "bottomNav" yang benar
   const t = getTranslations(language).bottomNav;
 
-  // PERBAIKAN: Menggunakan terjemahan dari 't' untuk label
+  // [DIUBAH]: Tambahkan properti 'path' untuk tujuan routing
   const navItems = [
-    { id: "home", icon: faHome, label: t.home },
-    { id: "myWork", icon: faBriefcase, label: t.myWork },
-    { id: "airdrops", icon: faParachuteBox, label: t.airdrops },
-    { id: "forum", icon: faComments, label: t.forum },
-    { id: "profile", icon: faUserCircle, label: t.profile },
+    { id: "home", path: "/", icon: faHome, label: t.home },
+    { id: "myWork", path: "/my-work", icon: faBriefcase, label: t.myWork },
+    { id: "airdrops", path: "/airdrops", icon: faParachuteBox, label: t.airdrops },
+    { id: "forum", path: "/forum", icon: faComments, label: t.forum },
+    { id: "profile", path: "/profile", icon: faUserCircle, label: t.profile },
   ];
 
   return (
     <nav
       aria-label="Main navigation"
-      className="
-        fixed bottom-0 left-0 w-full
-        h-[var(--bottomnav-height)]
-        pb-[env(safe-area-inset-bottom)]
-        glassmorphism
-        z-50
-        grid grid-cols-5
-      "
+      className="fixed bottom-0 left-0 w-full h-[var(--bottomnav-height)] pb-[env(safe-area-inset-bottom)] glassmorphism z-50 grid grid-cols-5"
     >
       {navItems.map((item) => {
         const isProfileItem = item.id === "profile";
-        const isProfileActive = currentPage === "profile";
-        const isActive = currentPage === item.id;
 
         return (
-          <button
+          // [DIUBAH]: Menggunakan NavLink, bukan button
+          <NavLink
             key={item.id}
-            onClick={() => navigateTo(item.id)}
-            className={`nav-item flex flex-col items-center justify-center h-full text-gray-300 hover:text-primary transition-colors duration-200 ${
-              isActive ? "active" : ""
-            }`}
+            to={item.path}
+            // `end` prop penting untuk root path "/" agar tidak selalu aktif
+            end={item.path === "/"}
+            // className sekarang menerima fungsi untuk mengecek state 'isActive'
+            className={({ isActive }) => 
+              `nav-item flex flex-col items-center justify-center h-full text-gray-300 hover:text-primary transition-colors duration-200 ${isActive ? "active" : ""}`
+            }
           >
-            {isProfileItem && currentUser?.id ? (
-              <img
-                src={currentUser.avatar_url || `https://placehold.co/100x100/7f5af0/FFFFFF?text=${currentUser.name ? currentUser.name.substring(0,1).toUpperCase() : "U"}`}
-                alt={currentUser.name || "User Avatar"}
-                className={`h-6 w-6 rounded-full object-cover mb-1 border-2 transition-all ${isActive ? 'border-primary' : 'border-transparent'}`}
-              />
-            ) : (
-              <FontAwesomeIcon icon={item.icon} className="text-xl mb-1" />
+            {/* NavLink juga bisa menerima fungsi sebagai child untuk mendapatkan state 'isActive' */}
+            {({ isActive }) => (
+              <>
+                {isProfileItem && currentUser?.id ? (
+                  <img
+                    src={currentUser.avatar_url || `https://placehold.co/100x100/7f5af0/FFFFFF?text=${currentUser.name ? currentUser.name.substring(0,1).toUpperCase() : "U"}`}
+                    alt={currentUser.name || "User Avatar"}
+                    className={`h-6 w-6 rounded-full object-cover mb-1 border-2 transition-all ${isActive ? 'border-primary' : 'border-transparent'}`}
+                  />
+                ) : (
+                  <FontAwesomeIcon icon={item.icon} className="text-xl mb-1" />
+                )}
+                <span className="text-xs font-medium">{item.label}</span>
+              </>
             )}
-            <span className="text-xs font-medium">{item.label}</span>
-          </button>
+          </NavLink>
         );
       })}
     </nav>

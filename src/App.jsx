@@ -1,5 +1,8 @@
-// src/App.jsx - VERSI FINAL DENGAN STRUKTUR YANG BENAR
-import React, { useState, useRef, useCallback, useEffect } from "react";
+// src/App.jsx - VERSI FINAL DENGAN ROUTING AKTIF
+
+import React, { useState, useRef, useEffect } from "react";
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -7,6 +10,8 @@ import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
+// [AKTIFKAN]: Impor halaman detail airdrop yang baru
+import AirdropDetailPage from "./components/AirdropDetailPage"; 
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -36,7 +41,6 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
 };
 
 function MainAppContent() {
-  // 💥 MAINTENANCE MODE
   if (import.meta.env.VITE_REACT_APP_MAINTENANCE === 'true') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-6">
@@ -47,14 +51,15 @@ function MainAppContent() {
       </div>
     );
   }
-
-  const [currentPage, setCurrentPage] = useState("home");
+  
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
-  const [userAirdrops, setUserAirdrops] = useState([]); // Dikelola di PageMyWork sekarang
+  const [userAirdrops, setUserAirdrops] = useState([]); 
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoadingInitialSession(true);
@@ -102,15 +107,18 @@ function MainAppContent() {
   }, []);
 
   useEffect(() => {
-    const titles_id = { home: "AFA WEB3TOOL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
-    const titles_en = { home: "AFA WEB3TOOL", myWork: "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
+    const path = location.pathname.split('/')[1] || 'home';
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
+
+    const titleKey = path.startsWith('airdrops') ? 'airdrops' : path;
 
     if (language === 'id') {
-        setHeaderTitle(titles_id[currentPage] || "AFA WEB3TOOL");
+        setHeaderTitle(titles_id[titleKey] || "AFA WEB3TOOL");
     } else {
-        setHeaderTitle(titles_en[currentPage] || "AFA WEB3TOOL");
+        setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL");
     }
-  }, [currentPage, language]);
+  }, [location, language]);
 
   useEffect(() => {
     if (pageContentRef.current) {
@@ -121,63 +129,51 @@ function MainAppContent() {
       const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50);
       return () => clearTimeout(timer);
     }
-  }, [currentPage]);
-
-  const navigateTo = useCallback((pageId) => {
-    setCurrentPage(pageId);
-    window.scrollTo(0, 0);
-  }, []);
+  }, [location.pathname]);
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
 
-  const handleUpdateUserInApp = useCallback((updatedUserData) => {
+  const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
     try {
       localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
-  }, []);
-
-  const renderPage = () => {
-    if (loadingInitialSession) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-white pt-10">
-          <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-          {language === 'id' ? 'Memuat Aplikasi...' : 'Loading Application...'}
-        </div>
-      );
-    }
-
-    const userToPass = currentUser || defaultGuestUserForApp;
-
-    switch (currentPage) {
-      case "home":
-        return <PageHome key="home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
-      case "myWork":
-        return <PageMyWork key="mywork" currentUser={userToPass} />;
-      case "airdrops":
-        return <PageAirdrops key="airdrops" currentUser={userToPass} />;
-      case "forum":
-        return <PageForum key="forum" currentUser={userToPass} />;
-      case "profile":
-        return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
-      default:
-        return <PageHome key="default-home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
-    }
   };
 
-  const mainPaddingBottomClass = currentPage === 'forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
+  const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
+
+  if (loadingInitialSession) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen text-white bg-[#0a0a1a]">
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
+        {language === 'id' ? 'Memuat Aplikasi...' : 'Loading Application...'}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
-      <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigateTo} />
+      <Header title={headerTitle} currentUser={userForHeader} navigate={navigate} />
       <main
         ref={pageContentRef}
         className={`flex-grow pt-[var(--header-height)] px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto`}
       >
-        {renderPage()}
+        <Routes>
+          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+          <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
+          
+          {/* [AKTIFKAN]: Rute dinamis untuk detail airdrop sekarang aktif */}
+          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage />} />
+
+          <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
+          
+          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+        </Routes>
       </main>
-      <BottomNav currentPage={currentPage} navigateTo={navigateTo} currentUser={currentUser} />
+      <BottomNav currentUser={currentUser} />
     </div>
   );
 }

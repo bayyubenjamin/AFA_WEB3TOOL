@@ -1,14 +1,10 @@
-// src/components/PageHome.jsx - VERSI FINAL DENGAN PERBAIKAN TRANSLASI
+// src/components/PageHome.jsx - VERSI ROUTING
+
 import React from "react";
+import { Link } from "react-router-dom"; // [TAMBAHAN]: Impor Link
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faFingerprint,
-  faRocket,
-  faTasks,
-  faComments,
-  faArrowRight,
-  faShieldHalved,
-  faSignInAlt
+  faFingerprint, faRocket, faTasks, faComments, faArrowRight, faShieldHalved, faSignInAlt
 } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -18,8 +14,8 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// Komponen Card Fitur yang Didesain Ulang
-const FeatureCard = ({ icon, title, description, actionText, onAction, color }) => (
+// [DIUBAH]: FeatureCard sekarang menggunakan Link, bukan onAction
+const FeatureCard = ({ icon, title, description, actionText, actionTarget, color }) => (
   <div className="relative bg-card p-6 rounded-2xl overflow-hidden border border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
     <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/20 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500 animate-spin-slow"></div>
@@ -29,21 +25,21 @@ const FeatureCard = ({ icon, title, description, actionText, onAction, color }) 
       </div>
       <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
       <p className="text-gray-400 text-base mb-6 flex-grow">{description}</p>
-      <button
-        onClick={onAction}
+      {/* Mengganti <button> dengan <Link> dan memberikan styling yang sama */}
+      <Link
+        to={actionTarget}
         className="mt-auto font-semibold text-primary hover:text-white transition-colors duration-200 flex items-center group/link"
       >
         {actionText}
         <FontAwesomeIcon icon={faArrowRight} className="ml-2 h-3.5 w-3.5 transform transition-transform duration-300 group-hover/link:translate-x-1" />
-      </button>
+      </Link>
     </div>
   </div>
 );
 
-
-export default function PageHome({ currentUser, onMintNft, navigateTo }) {
+// [DIUBAH]: Props 'navigateTo' diganti dengan 'navigate' dari hook useNavigate
+export default function PageHome({ currentUser, onMintNft, navigate }) {
   const { language } = useLanguage();
-  // [PERBAIKAN]: Ambil objek terjemahan untuk home dan header secara terpisah
   const tHome = getTranslations(language).homePage;
   const tHeader = getTranslations(language).header;
 
@@ -55,7 +51,7 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
       title: tHome.feature1Title,
       description: tHome.feature1Description,
       actionText: tHome.feature1Action,
-      actionTarget: "airdrops",
+      actionTarget: "/airdrops", // [DIUBAH]: Menjadi path URL
       color: "text-primary",
     },
     {
@@ -63,7 +59,7 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
       title: tHome.feature2Title,
       description: tHome.feature2Description,
       actionText: tHome.feature2Action,
-      actionTarget: "myWork",
+      actionTarget: "/my-work", // [DIUBAH]: Menjadi path URL
       color: "text-blue-400",
     },
     {
@@ -71,7 +67,7 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
       title: tHome.feature3Title,
       description: tHome.feature3Description,
       actionText: tHome.feature3Action,
-      actionTarget: "forum",
+      actionTarget: "/forum", // [DIUBAH]: Menjadi path URL
       color: "text-teal-400",
     },
   ];
@@ -80,17 +76,14 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
     if (isLoggedIn) {
       onMintNft();
     } else {
-      navigateTo('profile');
+      navigate('/profile'); // [DIUBAH]: Menggunakan navigate dari hook
     }
   };
 
   return (
     <section id="home" className="page-content space-y-20 md:space-y-28 py-10 md:py-16">
-      
-      {/* Hero Section */}
       <div className="relative text-center max-w-4xl mx-auto px-4 z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-primary/10 via-transparent to-transparent -z-10 rounded-full blur-3xl"></div>
-        
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight">
           {tHome.heroTitle}
         </h1>
@@ -103,13 +96,11 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
             className="btn-primary text-white font-bold py-4 px-10 rounded-xl text-lg shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
           >
             <FontAwesomeIcon icon={isLoggedIn ? faFingerprint : faSignInAlt} className="mr-3 h-5 w-5" />
-            {/* [PERBAIKAN]: Gunakan variabel terjemahan yang benar */}
             {isLoggedIn ? tHome.mintCta : tHeader.login}
           </button>
         </div>
       </div>
 
-      {/* Fitur Utama Section */}
       <div className="space-y-12 px-4">
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 flex items-center justify-center">
@@ -119,7 +110,6 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
             {tHome.featuresSubtitle}
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <FeatureCard
@@ -128,14 +118,13 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
               title={feature.title}
               description={feature.description}
               actionText={feature.actionText}
-              onAction={() => navigateTo(feature.actionTarget)}
+              actionTarget={feature.actionTarget} // Prop ini sekarang berisi path URL
               color={feature.color}
             />
           ))}
         </div>
       </div>
 
-      {/* Final Call-to-Action Section */}
       <div className="text-center pt-8 px-4">
         <div className="relative max-w-3xl mx-auto p-8 md:p-12 bg-card rounded-2xl border border-primary/20 overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent"></div>
