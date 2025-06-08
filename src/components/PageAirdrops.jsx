@@ -15,7 +15,7 @@ import { supabase } from '../supabaseClient';
 import AirdropAdminForm from './AirdropAdminForm';
 
 // GANTI DENGAN USER ID ADMIN KAMU YANG ASLI
-const ADMIN_USER_ID = 'GANTI_DENGAN_USER_ID_ADMIN_KAMU'; 
+const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766'; 
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
