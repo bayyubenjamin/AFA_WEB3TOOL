@@ -1,4 +1,4 @@
-// src/components/PageProfile.jsx - VERSI FINAL LENGKAP + TRANSLATIONS
+// src/components/PageProfile.jsx - VERSI DENGAN PERBAIKAN LOGIN MOBILE
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -7,12 +7,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import { supabase } from "../supabaseClient";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-import translationsId from "../translations/id.json";
-import translationsEn from "../translations/en.json";
+import { useLanguage } from "../context/LanguageContext";
 
-const getTranslations = (lang) => {
-    return lang === 'id' ? translationsId : translationsEn;
+const getTranslations = (lang, page) => {
+    const translations = lang === 'id' ? require('../translations/id.json') : require('../translations/en.json');
+    return translations[page] || {};
 };
 
 const defaultGuestUserFromProfile = {
@@ -35,9 +34,8 @@ const mapSupabaseDataToAppUser = (authUser, profileData) => {
 };
 
 const InputField = React.memo(({
-  id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading, language
+  id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading
 }) => {
-  const t = getTranslations(language).pageProfile;
   return (
     <div className="mb-4">
       <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1"> {label} </label>
@@ -64,8 +62,7 @@ InputField.displayName = 'InputField';
 
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).profilePage; // Menggunakan .profilePage yang benar dari JSON
-  // const commonT = getTranslations(language).common; // Baris ini dihapus karena 'common' tidak ada di root JSON
+  const t = getTranslations(language, 'profilePage');
 
   const isLoggedIn = !!(currentUser && currentUser.id);
 
@@ -106,39 +103,43 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       if (signInError) throw signInError;
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
     } catch (err) {
-      setError(err.message || (t.loginError || "Gagal login.")); // Menggunakan t.loginError
+      setError(err.message || t.loginError);
     } finally { setLoading(false); }
   };
 
   const handleSignupRequestOtp = async (e) => {
     e.preventDefault(); clearMessages(); setLoading(true);
-    if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired || "Username, Email, dan Password harus diisi!"); setLoading(false); return; } // Menggunakan t.signupUsernameEmailPasswordRequired
-    if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch || "Password tidak cocok!"); setLoading(false); return; } // Menggunakan t.signupPasswordMismatch
+    if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired); setLoading(false); return; }
+    if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch); setLoading(false); return; }
     try {
+      // [PERBAIKAN MOBILE]: Tambahkan `redirectTo` untuk memastikan pengguna kembali ke halaman yang benar.
       const { error } = await supabase.auth.signInWithOtp({
         email: signupEmail,
-        options: { shouldCreateUser: true },
+        options: { 
+            shouldCreateUser: true,
+            emailRedirectTo: window.location.origin, // <-- Tambahkan ini
+        },
       });
       if (error) throw error;
-      setSuccessMessage((t.otpSent || `Kode OTP telah dikirim ke`) + ` ${signupEmail}.`); // Menggunakan t.otpSent
+      setSuccessMessage((t.otpSent?.replace('{email}', signupEmail)) || `Kode OTP telah dikirim ke ${signupEmail}.`);
       setSignupStage('awaitingOtp');
-    } catch (err) { setError(err.message || (t.sendOtpFailed || "Gagal mengirim OTP.")); } // Menggunakan t.sendOtpFailed
+    } catch (err) { setError(err.message || t.sendOtpFailed); }
     finally { setLoading(false); }
   };
 
   const handleVerifyOtpAndCompleteSignup = async (e) => {
     e.preventDefault(); clearMessages(); setLoading(true);
-    if (!otpCode) { setError(t.otpRequired || "Kode OTP harus diisi!"); setLoading(false); return; } // Menggunakan t.otpRequired
+    if (!otpCode) { setError(t.otpRequired); setLoading(false); return; }
     try {
       const { data: { session }, error: otpError } = await supabase.auth.verifyOtp({
         email: signupEmail, token: otpCode, type: 'signup',
       });
       if (otpError) throw otpError;
-      if (!session?.user) throw new Error(t.sessionNotFound || "Sesi tidak ditemukan setelah verifikasi OTP."); // Menggunakan t.sessionNotFound
+      if (!session?.user) throw new Error(t.sessionNotFound);
 
       const defaultAvatar = `https://placehold.co/100x100/7f5af0/FFFFFF?text=${signupUsername.substring(0,1).toUpperCase()}`;
 
-      const { data: { user: updatedUser }, error: updateUserError } = await supabase.auth.updateUser({
+      const { error: updateUserError } = await supabase.auth.updateUser({
         password: signupPassword,
         data: { username: signupUsername, name: signupUsername, avatar_url: defaultAvatar }
       });
@@ -150,9 +151,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       });
       if (profileError && profileError.code !== '23505') throw profileError;
 
-      setSuccessMessage(t.signupSuccess || "Pendaftaran berhasil! Anda akan login secara otomatis."); // Menggunakan t.signupSuccess
+      setSuccessMessage(t.signupSuccess);
     } catch (err) {
-      setError(err.message || (t.verifyOtpFailed || "Verifikasi OTP atau pembuatan profil gagal.")); // Menggunakan t.verifyOtpFailed
+      setError(err.message || t.verifyOtpFailed);
     } finally { setLoading(false); }
   };
 
@@ -177,9 +178,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
           const authInfo = { ...currentUser, user_metadata: { ...currentUser.user_metadata, name: data.name, username: data.username, avatar_url: data.avatar_url } };
           onUpdateUser(mapSupabaseDataToAppUser(authInfo, data));
       }
-      setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); // Menggunakan t.profileUpdateSuccess
+      setSuccessMessage(t.profileUpdateSuccess);
       setShowEditProfileModal(false);
-    } catch (err) { setError(err.message || (t.profileUpdateError || "Gagal update profil.")); // Menggunakan t.profileUpdateError
+    } catch (err) { setError(err.message || t.profileUpdateError);
     } finally { setLoading(false); }
   };
 
@@ -189,14 +190,13 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   if (!currentUser) {
-    // PERBAIKAN: Mengganti commonT.loadingApp dengan t.loadingApp
-    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp}</p></section>); // Menggunakan t.loadingApp
+    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp}</p></section>);
   }
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
-      {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{t.errorTitle || "Error"}</div>} {/* Menggunakan t.errorTitle */}
-      {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{t.successTitle || "Sukses"}</div>} {/* Menggunakan t.successTitle */}
+      {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
+      {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
 
       {!isLoggedIn ? (
         <div className="max-w-lg mx-auto">
@@ -204,18 +204,18 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
             <div className="text-center mb-6">
               <FontAwesomeIcon icon={isLoginForm ? faIdBadge : faUserPlus} className="text-6xl text-primary mb-4" />
               <h2 className="text-3xl md:text-4xl font-bold text-white">
-                {isLoginForm ? (t.welcomeBack || "Selamat Datang Kembali!") : (t.createAccount || "Buat Akun Baru")}
+                {isLoginForm ? t.welcomeBack : t.createAccount}
               </h2>
               <p className="text-gray-400 mt-2">
-                {isLoginForm ? (t.loginPrompt || "Login untuk melanjutkan.") : (signupStage === 'collectingDetails' ? (t.signupPromptDetails || "Isi data untuk mendaftar.") : (t.signupPromptVerify || "Verifikasi akun Anda."))}
+                {isLoginForm ? t.loginPrompt : (signupStage === 'collectingDetails' ? t.signupPromptDetails : t.signupPromptVerify)}
               </p>
             </div>
             {isLoginForm ? (
               <form onSubmit={handleLogin} className="space-y-4">
-                <InputField language={language} parentLoading={loading} id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} />
+                <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
                 <div className="relative">
-                    <InputField language={language} parentLoading={loading} id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6 disabled:opacity-50"><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                    <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
                 </div>
                 <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                   {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
@@ -225,15 +225,15 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
               <>
                 {signupStage === 'collectingDetails' ? (
                   <form onSubmit={handleSignupRequestOtp} className="space-y-4">
-                    <InputField language={language} parentLoading={loading} id="signupUsername" label={t.formLabelUsername} value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} icon={faUser} placeholder={t.formPlaceholderUsername} />
-                    <InputField language={language} parentLoading={loading} id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} />
+                    <InputField id="signupUsername" label={t.formLabelUsername} value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} icon={faUser} placeholder={t.formPlaceholderUsername} parentLoading={loading} />
+                    <InputField id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
                     <div className="relative">
-                        <InputField language={language} parentLoading={loading} id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6"><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                        <InputField id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} parentLoading={loading} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
                     </div>
                     <div className="relative">
-                        <InputField language={language} parentLoading={loading} id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6"><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
+                        <InputField id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} parentLoading={loading} />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
                     </div>
                     <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                       {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}
@@ -241,7 +241,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtpAndCompleteSignup} className="space-y-4">
-                    <InputField language={language} parentLoading={loading} id="otpCode" type="text" label={t.otpRequired} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} icon={faKey} placeholder={t.otpRequired} /> {/* Placeholder juga bisa disesuaikan jika ada di JSON */}
+                    <InputField id="otpCode" type="text" label={t.otpRequired} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} icon={faKey} placeholder={t.otpRequired} parentLoading={loading} />
                     <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                       {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.verifyBtn}
                     </button>
@@ -251,9 +251,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
               </>
             )}
             <p className="text-center text-sm text-gray-400 mt-6">
-              {isLoginForm ? (t.noAccountYet) : (t.alreadyHaveAccount)}{" "} {/* Menggunakan t.noAccountYet dan t.alreadyHaveAccount */}
+              {isLoginForm ? t.noAccountYet : t.alreadyHaveAccount}{" "}
               <button disabled={loading} onClick={() => { setIsLoginForm(!isLoginForm); clearMessages(); setSignupStage('collectingDetails'); }} className="font-semibold text-primary hover:underline disabled:opacity-50">
-                {isLoginForm ? (t.signupHere) : (t.loginHere)} {/* Menggunakan t.signupHere dan t.loginHere */}
+                {isLoginForm ? t.signupHere : t.loginHere}
               </button>
             </p>
           </div>
@@ -271,19 +271,19 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                 {currentUser.address && ( <p className="text-sm text-primary/80 font-mono break-all mt-1.5 flex items-center justify-center sm:justify-start"><FontAwesomeIcon icon={faIdBadge} className="mr-2 opacity-70"/>{currentUser.address.substring(0, 6)}...{currentUser.address.substring(currentUser.address.length - 4)}</p> )}
                 {currentUser.email && ( <p className="text-sm text-gray-400 break-all mt-1 flex items-center justify-center sm:justify-start"><FontAwesomeIcon icon={faEnvelope} className="mr-2 opacity-70"/>{currentUser.email}</p> )}
                 <div className="mt-4 space-x-3">
-                    <button disabled={loading} onClick={handleOpenEditProfileModal} className="btn-secondary text-xs px-5 py-2 rounded-lg inline-flex items-center" ><FontAwesomeIcon icon={faEdit} className="mr-1.5"/> {t.editProfileModalTitle}</button> {/* Menggunakan t.editProfileModalTitle */}
+                    <button disabled={loading} onClick={handleOpenEditProfileModal} className="btn-secondary text-xs px-5 py-2 rounded-lg inline-flex items-center" ><FontAwesomeIcon icon={faEdit} className="mr-1.5"/> {t.editProfileModalTitle}</button>
                 </div>
               </div>
             </div>
           </div>
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-primary border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faRobot} className="mr-2.5" /> {t.statsTitle}</h3> {/* Menggunakan t.statsTitle */}
+            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-primary border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faRobot} className="mr-2.5" /> {t.statsTitle}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 text-sm">
               {[
-                { label: t.statPoints, value: currentUser.stats?.points || 0 }, // Menggunakan t.statPoints
-                { label: t.statAirdropsClaimed, value: currentUser.stats?.airdropsClaimed || 0 }, // Menggunakan t.statAirdropsClaimed
-                { label: t.statNftsOwned, value: currentUser.stats?.nftsOwned || 0 }, // Menggunakan t.statNftsOwned
-                { label: t.statActiveTasks, value: activeAirdropsCount } // Menggunakan t.statActiveTasks
+                { label: t.statPoints, value: currentUser.stats?.points || 0 },
+                { label: t.statAirdropsClaimed, value: currentUser.stats?.airdropsClaimed || 0 },
+                { label: t.statNftsOwned, value: currentUser.stats?.nftsOwned || 0 },
+                { label: t.statActiveTasks, value: activeAirdropsCount }
               ].map(stat => (<div key={stat.label} className="bg-card hover:bg-primary/10 p-4 rounded-lg text-center border border-white/10"><p className="text-gray-400 text-xs uppercase tracking-wider mb-1.5">{stat.label}</p><p className="text-white font-bold text-3xl">{stat.value}</p></div>))}
             </div>
           </div>
@@ -301,15 +301,15 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
               <h3 className="text-2xl font-semibold text-white flex items-center"><FontAwesomeIcon icon={faEdit} className="mr-3 text-primary" /> {t.editProfileModalTitle}</h3>
               <button disabled={loading} onClick={handleCloseEditProfileModal} className="text-gray-400 hover:text-white text-2xl"><FontAwesomeIcon icon={faTimes} /></button>
             </div>
-            {error && <div className="p-3 mb-3 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{t.errorTitle}</div>} {/* Menggunakan t.errorTitle */}
-            {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{t.successTitle}</div>} {/* Menggunakan t.successTitle */}
+            {error && <div className="p-3 mb-3 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
+            {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
             <form onSubmit={handleUpdateProfile} className="space-y-5">
-              <InputField language={language} parentLoading={loading} id="editName" label={t.editProfileLabelName} value={editName} onChange={(e) => setEditName(e.target.value)} icon={faUser} />
-              <InputField language={language} parentLoading={loading} id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} />
+              <InputField id="editName" label={t.editProfileLabelName} value={editName} onChange={(e) => setEditName(e.target.value)} icon={faUser} parentLoading={loading} />
+              <InputField id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} parentLoading={loading} />
               <div className="flex justify-end gap-4 pt-4">
-                <button disabled={loading} type="button" onClick={handleCloseEditProfileModal} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.editProfileBtnCancel}</button> {/* Menggunakan t.editProfileBtnCancel */}
+                <button disabled={loading} type="button" onClick={handleCloseEditProfileModal} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.editProfileBtnCancel}</button>
                 <button disabled={loading} type="submit" className="btn-primary text-white px-6 py-2.5 rounded-lg text-sm flex items-center">
-                  {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />} {t.editProfileBtnSave} {/* Menggunakan t.editProfileBtnSave */}
+                  {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />} {t.editProfileBtnSave}
                 </button>
               </div>
             </form>
