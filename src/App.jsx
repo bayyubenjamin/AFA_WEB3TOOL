@@ -150,15 +150,25 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
 
     const userToPass = currentUser || defaultGuestUserForApp;
 
-    switch (currentPage) {
-      case "home": return <PageHome key="home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
-      case "myWork": return <PageMyWork key="mywork" currentUser={userToPass} />;
-      case "airdrops": return <PageAirdrops key="airdrops" currentUser={userToPass} />;
-      case "forum": return <PageForum key="forum" currentUser={userToPass} />;
-      case "profile": return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
-      default: return <PageHome key="default-home" navigateTo={navigateTo} onMintNft={handleMintNft} />;
-    }
-  };
+    // Ganti blok switch Anda dengan yang ini di dalam file src/App.jsx
+
+switch (currentPage) {
+  case "home":
+    return <PageHome key="home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
+  case "myWork":
+    return <PageMyWork key="mywork" currentUser={userToPass} />;
+  case "airdrops":
+    return <PageAirdrops key="airdrops" currentUser={userToPass} />;
+  case "forum":
+    return <PageForum key="forum" currentUser={userToPass} />;
+  case "profile":
+    return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
+
+  // Default case digunakan jika nilai currentPage tidak cocok dengan case manapun
+  // Kita akan menampilkan PageHome sebagai halaman default.
+  default:
+    return <PageHome key="default-home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
+}
 
   const userForHeader = currentUser || defaultGuestUserForApp;
 
