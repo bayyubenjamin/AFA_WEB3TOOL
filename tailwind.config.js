@@ -23,12 +23,22 @@ module.exports = {
           "50%": { backgroundPosition: "200% center" },
           "100%": { backgroundPosition: "0% center" },
         },
+        // [TAMBAHAN]: Keyframe untuk animasi putaran lambat
+        spinSlow: {
+          'from': { transform: 'rotate(0deg)' },
+          'to': { transform: 'rotate(360deg)' },
+        }
       },
       animation: {
         "gradient-shine": "gradientShine 5s linear infinite",
+        // [TAMBAHAN]: Animasi untuk putaran lambat
+        "spin-slow": "spinSlow 10s linear infinite",
       },
+      // [TAMBAHAN]: Utilitas untuk latar belakang gradasi radial
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      }
     },
   },
   plugins: [],
 };
-
