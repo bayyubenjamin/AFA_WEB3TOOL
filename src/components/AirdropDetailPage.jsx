@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN FETCH SUPABASE
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN FETCH SUPABASE & PROSES MARKDOWN
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -8,24 +8,28 @@ import { faArrowLeft, faCalendarAlt, faInfoCircle, faAngleDoubleRight, faSpinner
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-// [TAMBAHAN]: Impor Supabase client
 import { supabase } from '../supabaseClient';
-// [DIHAPUS]: Impor data mock tidak diperlukan lagi
-// import { getAirdropBySlug } from '../utils/airdropData';
+
+// [TAMBAHAN]: Impor library untuk memproses Markdown
+import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
+import remarkHtml from 'remark-html';
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
 export default function AirdropDetailPage() {
-  const { airdropSlug } = useParams(); // Mengambil slug dari URL
+  const { airdropSlug } = useParams();
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
   const [airdrop, setAirdrop] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // [TAMBAHAN]: State untuk menyimpan HTML hasil konversi dari Markdown
+  const [processedTutorial, setProcessedTutorial] = useState('');
 
-  // [DIUBAH]: useEffect sekarang melakukan fetch data langsung ke Supabase
   useEffect(() => {
     const fetchAirdrop = async () => {
         if (!airdropSlug) {
@@ -36,23 +40,36 @@ export default function AirdropDetailPage() {
         setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('airdrops')      // Nama tabel di Supabase
-                .select('*')           // Ambil semua kolom
-                .eq('slug', airdropSlug) // Cari yang slug-nya cocok dengan URL
-                .single();             // Ambil hanya satu hasil (bukan array)
+                .from('airdrops')
+                .select('*')
+                .eq('slug', airdropSlug)
+                .single();
 
             if (error) {
-                // Jika error bukan karena tidak ada hasil (misal: masalah koneksi), lempar error
                 if (error.code !== 'PGRST116') { 
                     throw error;
                 }
             }
             
-            setAirdrop(data); // `data` akan `null` jika tidak ditemukan, atau berisi objek airdrop
+            if (data) {
+              // [DIUBAH]: Proses konten tutorial dari Markdown ke HTML
+              if (data.tutorial) {
+                const file = await remark()
+                  .use(remarkGfm)       // Mengaktifkan fitur GitHub Flavored Markdown (tabel, dll.)
+                  .use(remarkHtml)      // Mengkonversi hasilnya ke HTML
+                  .process(data.tutorial);
+                
+                setProcessedTutorial(String(file)); // Simpan HTML yang sudah jadi ke state
+              } else {
+                setProcessedTutorial(''); // Kosongkan jika tidak ada tutorial
+              }
+              setAirdrop(data);
+            } else {
+              setAirdrop(null);
+            }
 
         } catch (err) {
-            console.error("Error fetching airdrop detail:", err);
-            // Set airdrop ke null jika ada error
+            console.error("Error fetching or processing airdrop detail:", err);
             setAirdrop(null);
         } finally {
             setLoading(false);
@@ -60,7 +77,7 @@ export default function AirdropDetailPage() {
     }
 
     fetchAirdrop();
-  }, [airdropSlug]); // Dependency tetap airdropSlug
+  }, [airdropSlug]);
 
   if (loading) {
     return (
@@ -122,10 +139,11 @@ export default function AirdropDetailPage() {
               )}
           </div>
 
-          <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white prose-li:my-1">
+          <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white prose-ul:list-disc prose-ol:list-decimal prose-li:my-1">
             <h3 className="text-xl font-semibold text-white mb-3">Tutorial</h3>
             {airdrop.tutorial ? (
-                <div dangerouslySetInnerHTML={{ __html: airdrop.tutorial }} />
+                // [DIUBAH]: Tampilkan HTML yang sudah diproses dari state
+                <div dangerouslySetInnerHTML={{ __html: processedTutorial }} />
             ) : (
                 <p className="italic text-gray-500">{t.modalNoTutorial}</p>
             )}
