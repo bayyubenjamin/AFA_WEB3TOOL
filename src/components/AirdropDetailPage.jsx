@@ -139,7 +139,7 @@ export default function AirdropDetailPage() {
               )}
           </div>
 
-          <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white prose-ul:list-disc prose-ol:list-decimal prose-li:my-1">
+        <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white prose-li:my-1 whitespace-pre-wrap">
             <h3 className="text-xl font-semibold text-white mb-3">Tutorial</h3>
             {airdrop.tutorial ? (
                 // [DIUBAH]: Tampilkan HTML yang sudah diproses dari state
