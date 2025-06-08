@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN FETCH SUPABASE
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -8,30 +8,59 @@ import { faArrowLeft, faCalendarAlt, faInfoCircle, faAngleDoubleRight, faSpinner
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { getAirdropBySlug } from '../utils/airdropData'; // Impor fungsi dari file data
+// [TAMBAHAN]: Impor Supabase client
+import { supabase } from '../supabaseClient';
+// [DIHAPUS]: Impor data mock tidak diperlukan lagi
+// import { getAirdropBySlug } from '../utils/airdropData';
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
 export default function AirdropDetailPage() {
-  const { airdropSlug } = useParams(); // Mengambil slug dari URL, misal: "zksync-era-mainnet-airdrop"
+  const { airdropSlug } = useParams(); // Mengambil slug dari URL
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
   const [airdrop, setAirdrop] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // [DIUBAH]: useEffect sekarang melakukan fetch data langsung ke Supabase
   useEffect(() => {
-    // Simulasi fetching data
-    const timer = setTimeout(() => {
-      const data = getAirdropBySlug(airdropSlug);
-      setAirdrop(data);
-      setLoading(false);
-    }, 300); // Delay kecil untuk simulasi loading
+    const fetchAirdrop = async () => {
+        if (!airdropSlug) {
+            setLoading(false);
+            return;
+        };
 
-    return () => clearTimeout(timer);
-  }, [airdropSlug]);
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('airdrops')      // Nama tabel di Supabase
+                .select('*')           // Ambil semua kolom
+                .eq('slug', airdropSlug) // Cari yang slug-nya cocok dengan URL
+                .single();             // Ambil hanya satu hasil (bukan array)
+
+            if (error) {
+                // Jika error bukan karena tidak ada hasil (misal: masalah koneksi), lempar error
+                if (error.code !== 'PGRST116') { 
+                    throw error;
+                }
+            }
+            
+            setAirdrop(data); // `data` akan `null` jika tidak ditemukan, atau berisi objek airdrop
+
+        } catch (err) {
+            console.error("Error fetching airdrop detail:", err);
+            // Set airdrop ke null jika ada error
+            setAirdrop(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    fetchAirdrop();
+  }, [airdropSlug]); // Dependency tetap airdropSlug
 
   if (loading) {
     return (
