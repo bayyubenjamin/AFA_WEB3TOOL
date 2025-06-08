@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN MANAJEMEN SESI SUPABASE + MAINTENANCE MODE + LANGUAGE CONTEXT
+// src/App.jsx - VERSI FINAL DENGAN STRUKTUR YANG BENAR
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -11,7 +11,7 @@ import PageProfile from "./components/PageProfile";
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { LanguageProvider, useLanguage } from "./context/LanguageContext"; // PERBAIKAN DI SINI: ganti "./context/LanguageContext" menjadi "./contexts/LanguageContexts"
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
@@ -35,7 +35,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-function MainAppContent() { // Pisahkan logika utama App ke komponen baru
+function MainAppContent() {
   // 💥 MAINTENANCE MODE
   if (import.meta.env.VITE_REACT_APP_MAINTENANCE === 'true') {
     return (
@@ -54,7 +54,7 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
   const [userAirdrops, setUserAirdrops] = useState([]); // Dikelola di PageMyWork sekarang
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const pageContentRef = useRef(null);
-  const { language } = useLanguage(); // Gunakan hook useLanguage untuk mendapatkan bahasa aktif
+  const { language } = useLanguage();
 
   useEffect(() => {
     setLoadingInitialSession(true);
@@ -85,7 +85,7 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
       }
     };
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
 
@@ -96,10 +96,11 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
       }
     });
 
-    return () => {};
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  // Update header title based on current page and language
   useEffect(() => {
     const titles_id = { home: "AFA WEB3TOOL", myWork: "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
     const titles_en = { home: "AFA WEB3TOOL", myWork: "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
@@ -109,7 +110,7 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
     } else {
         setHeaderTitle(titles_en[currentPage] || "AFA WEB3TOOL");
     }
-  }, [currentPage, language]); // Tambahkan language sebagai dependency
+  }, [currentPage, language]);
 
   useEffect(() => {
     if (pageContentRef.current) {
@@ -136,8 +137,6 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
   }, []);
 
-  const mainPaddingBottomClass = currentPage === 'forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
-
   const renderPage = () => {
     if (loadingInitialSession) {
       return (
@@ -150,26 +149,23 @@ function MainAppContent() { // Pisahkan logika utama App ke komponen baru
 
     const userToPass = currentUser || defaultGuestUserForApp;
 
-    // Ganti blok switch Anda dengan yang ini di dalam file src/App.jsx
+    switch (currentPage) {
+      case "home":
+        return <PageHome key="home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
+      case "myWork":
+        return <PageMyWork key="mywork" currentUser={userToPass} />;
+      case "airdrops":
+        return <PageAirdrops key="airdrops" currentUser={userToPass} />;
+      case "forum":
+        return <PageForum key="forum" currentUser={userToPass} />;
+      case "profile":
+        return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
+      default:
+        return <PageHome key="default-home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
+    }
+  };
 
-switch (currentPage) {
-  case "home":
-    return <PageHome key="home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
-  case "myWork":
-    return <PageMyWork key="mywork" currentUser={userToPass} />;
-  case "airdrops":
-    return <PageAirdrops key="airdrops" currentUser={userToPass} />;
-  case "forum":
-    return <PageForum key="forum" currentUser={userToPass} />;
-  case "profile":
-    return <PageProfile key="profile" currentUser={userToPass} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigateTo={navigateTo} />;
-
-  // Default case digunakan jika nilai currentPage tidak cocok dengan case manapun
-  // Kita akan menampilkan PageHome sebagai halaman default.
-  default:
-    return <PageHome key="default-home" currentUser={userToPass} navigateTo={navigateTo} onMintNft={handleMintNft} />;
-}
-
+  const mainPaddingBottomClass = currentPage === 'forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
 
   return (
