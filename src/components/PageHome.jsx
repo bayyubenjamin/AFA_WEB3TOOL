@@ -6,29 +6,58 @@ import {
   faRocket,
   faTasks,
   faComments,
-  faArrowRight
+  faArrowRight,
+  faShieldHalved,
+  faSignInAlt
 } from "@fortawesome/free-solid-svg-icons";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-import translationsId from "../translations/id.json"; // Import terjemahan ID
-import translationsEn from "../translations/en.json"; // Import terjemahan EN
+import { useLanguage } from "../context/LanguageContext";
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-export default function PageHome({ onMintNft, navigateTo }) {
-  const { language } = useLanguage(); // Dapatkan bahasa saat ini
-  // PERBAIKAN DI SINI: Mengubah .home menjadi .homePage
-  const t = getTranslations(language).homePage; // Dapatkan objek terjemahan untuk halaman home
+// Komponen Card Fitur yang Didesain Ulang
+const FeatureCard = ({ icon, title, description, actionText, onAction, color }) => (
+  <div className="relative bg-card p-6 rounded-2xl overflow-hidden border border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
+    {/* Efek glow saat di-hover */}
+    <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/20 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500 animate-spin-slow"></div>
+
+    <div className="relative z-10 flex flex-col h-full">
+      <div className={`mb-5 text-4xl ${color}`}>
+        <FontAwesomeIcon icon={icon} />
+      </div>
+      <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
+      <p className="text-gray-400 text-base mb-6 flex-grow">{description}</p>
+      <button
+        onClick={onAction}
+        className="mt-auto font-semibold text-primary hover:text-white transition-colors duration-200 flex items-center group/link"
+      >
+        {actionText}
+        <FontAwesomeIcon icon={faArrowRight} className="ml-2 h-3.5 w-3.5 transform transition-transform duration-300 group-hover/link:translate-x-1" />
+      </button>
+    </div>
+  </div>
+);
+
+
+export default function PageHome({ currentUser, onMintNft, navigateTo }) {
+  const { language } = useLanguage();
+  const t = getTranslations(language).homePage;
+
+  // Cek apakah pengguna sudah login atau belum
+  const isLoggedIn = !!(currentUser && currentUser.id);
 
   const features = [
     {
       icon: faRocket,
-      title: t.feature1Title, // Gunakan terjemahan
-      description: t.feature1Description, // Gunakan terjemahan
-      actionText: t.feature1Action, // Gunakan terjemahan
+      title: t.feature1Title,
+      description: t.feature1Description,
+      actionText: t.feature1Action,
       actionTarget: "airdrops",
-      color: "text-purple-400",
+      color: "text-primary",
     },
     {
       icon: faTasks,
@@ -47,77 +76,87 @@ export default function PageHome({ onMintNft, navigateTo }) {
       color: "text-teal-400",
     },
   ];
+  
+  // Fungsi untuk tombol utama, akan berbeda jika user sudah/belum login
+  const handleMainAction = () => {
+    if (isLoggedIn) {
+      onMintNft();
+    } else {
+      navigateTo('profile'); // Arahkan ke halaman login jika belum masuk
+    }
+  };
 
   return (
-    <section id="home" className="page-content space-y-12 md:space-y-16 py-8 md:py-12">
+    <section id="home" className="page-content space-y-20 md:space-y-28 py-10 md:py-16">
+      
       {/* Hero Section */}
-      <div className="text-center space-y-6 max-w-3xl mx-auto px-4">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-          <span className="futuristic-text-gradient">{t.heroTitlePart1}</span> {t.heroTitlePart2}
-          <span className="text-primary"> {t.heroTitlePart3}</span>
+      <div className="relative text-center max-w-4xl mx-auto px-4 z-10">
+        {/* Latar belakang gradasi elips */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-primary/10 via-transparent to-transparent -z-10 rounded-full blur-3xl"></div>
+        
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight">
+          {t.heroTitle}
         </h1>
-        <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-          {t.heroDescription}
+        <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          {t.heroSubtitle}
         </p>
-        <div className="pt-4">
+        <div className="mt-10">
           <button
-            onClick={onMintNft}
-            className="btn-primary text-white font-semibold py-3 px-8 md:py-4 md:px-10 rounded-lg text-lg md:text-xl shadow-xl transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
+            onClick={handleMainAction}
+            className="btn-primary text-white font-bold py-4 px-10 rounded-xl text-lg shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
           >
-            <FontAwesomeIcon icon={faFingerprint} className="mr-3 h-5 w-5" />
-            {t.mintIdentityButton}
+            <FontAwesomeIcon icon={isLoggedIn ? faFingerprint : faSignInAlt} className="mr-3 h-5 w-5" />
+            {isLoggedIn ? t.mintCta : t.header.login}
           </button>
         </div>
       </div>
 
       {/* Fitur Utama Section */}
-      <div className="space-y-10 px-4">
-        <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold text-white mb-2">
-            {t.featuresSectionTitlePart1} <span className="text-primary">{t.featuresSectionTitlePart2}</span>{t.featuresSectionTitlePart3}
+      <div className="space-y-12 px-4">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 flex items-center justify-center">
+            <FontAwesomeIcon icon={faShieldHalved} className="mr-3 text-primary" /> {t.featuresTitle}
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
-            {t.featuresSectionSubtitle}
+          <p className="text-gray-400 text-lg">
+            {t.featuresSubtitle}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div
+            <FeatureCard
               key={index}
-              className="card rounded-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col"
-            >
-              <div className={`mb-4 text-3xl ${feature.color}`}>
-                <FontAwesomeIcon icon={feature.icon} />
-              </div>
-              <h3 className={`text-xl font-semibold mb-2 text-white`}>{feature.title}</h3>
-              <p className="text-gray-400 text-sm mb-4 flex-grow">{feature.description}</p>
-              <button
-                onClick={() => navigateTo(feature.actionTarget)}
-                className={`mt-auto btn-secondary text-sm py-2 px-4 rounded-md w-full hover:bg-primary/20 hover:text-primary transition-colors duration-200 flex items-center justify-center group`}
-              >
-                {feature.actionText}
-                <FontAwesomeIcon icon={faArrowRight} className="ml-2 h-3 w-3 transform transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-            </div>
+              icon={feature.icon}
+              title={feature.title}
+              description={feature.description}
+              actionText={feature.actionText}
+              onAction={() => navigateTo(feature.actionTarget)}
+              color={feature.color}
+            />
           ))}
         </div>
       </div>
 
-      {/* (Opsional) Ajakan Bergabung atau Info Tambahan */}
+      {/* Final Call-to-Action Section */}
       <div className="text-center pt-8 px-4">
-        <h3 className="text-2xl md:text-3xl font-semibold text-white mb-4">
-          {t.ctaTitle}
-        </h3>
-        <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-          {t.ctaDescription}
-        </p>
-        <button
-          onClick={onMintNft}
-          className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-lg"
-        >
-          {t.ctaButton}
-        </button>
+        <div className="relative max-w-3xl mx-auto p-8 md:p-12 bg-card rounded-2xl border border-primary/20 overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent"></div>
+           <div className="relative z-10">
+              <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                {t.joinCtaTitle}
+              </h3>
+              <p className="text-gray-400 mb-8 text-lg">
+                {t.joinCtaSubtitle}
+              </p>
+              <button
+                onClick={handleMainAction}
+                className="btn-secondary text-white font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
+              >
+                {t.startNow}
+                <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+              </button>
+           </div>
+        </div>
       </div>
     </section>
   );
