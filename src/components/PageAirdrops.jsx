@@ -1,4 +1,4 @@
-// src/components/PageAirdrops.jsx - Versi Desain Ulang Profesional
+// src/components/PageAirdrops.jsx - Versi Desain Ulang Profesional (Diedit)
 import React, { useState, useEffect, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -13,7 +13,7 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// Komponen Card Airdrop Premium
+// Komponen Card Airdrop
 const AirdropCard = ({ airdrop, onShowDetail }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -26,14 +26,26 @@ const AirdropCard = ({ airdrop, onShowDetail }) => {
     ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300', glow: 'shadow-red-500/50' },
   }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400', glow: 'shadow-gray-500/50' };
 
+  // Menentukan warna label kategori berdasarkan jenisnya untuk visualisasi
+  const categoryColor = {
+    'Retroactive': 'bg-purple-500/20 text-purple-300',
+    'Testnet': 'bg-sky-500/20 text-sky-300',
+    'Mainnet': 'bg-emerald-500/20 text-emerald-300',
+    'NFT Drop': 'bg-orange-500/20 text-orange-300'
+  }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
+
   return (
     <div
       onClick={() => onShowDetail(airdrop)}
       className="bg-card rounded-2xl group relative overflow-hidden cursor-pointer border border-white/10 transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
     >
-      <div className="absolute top-0 right-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-        {airdrop.type === 'free' ? t.adminFormOptionFree : t.adminFormOptionPremium}
+      {/* --- PERUBAHAN DI SINI --- */}
+      {/* Label diganti dari type menjadi category */}
+      <div className={`absolute top-0 right-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20 ${categoryColor}`}>
+        {airdrop.category}
       </div>
+      {/* --- AKHIR PERUBAHAN --- */}
+
       <div className="relative w-full h-48">
         <img
           src={airdrop.image_url}
@@ -62,6 +74,7 @@ const AirdropCard = ({ airdrop, onShowDetail }) => {
     </div>
   );
 };
+
 
 // Komponen Modal Detail yang Didesain Ulang
 const AirdropDetailModal = ({ isOpen, onClose, airdrop }) => {
@@ -93,8 +106,8 @@ const AirdropDetailModal = ({ isOpen, onClose, airdrop }) => {
           <p className="text-gray-400 mb-6">{description}</p>
           
           <div className="flex flex-wrap gap-4 mb-6 text-sm">
-             <span className="flex items-center"><FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-primary"/>{t.modalStatus} <strong className="ml-2 text-white">{t[`cardStatus${airdrop.status.charAt(0).toUpperCase() + airdrop.status.slice(1)}`]}</strong></span>
-             {airdrop.date && <span className="flex items-center"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-primary"/>{t.modalEstimated} <strong className="ml-2 text-white">{airdrop.date}</strong></span>}
+              <span className="flex items-center"><FontAwesomeIcon icon={faInfoCircle} className="mr-2 text-primary"/>{t.modalStatus} <strong className="ml-2 text-white">{t[`cardStatus${airdrop.status.charAt(0).toUpperCase() + airdrop.status.slice(1)}`]}</strong></span>
+              {airdrop.date && <span className="flex items-center"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-primary"/>{t.modalEstimated} <strong className="ml-2 text-white">{airdrop.date}</strong></span>}
           </div>
 
           <div className="prose prose-invert max-w-none text-gray-300 prose-p:my-2 prose-headings:text-white prose-strong:text-white">
@@ -132,12 +145,17 @@ export default function PageAirdrops({ currentUser }) {
       setError(null);
       try {
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // --- PERUBAHAN DI SINI ---
+        // Mengganti `type` dengan `category` untuk jenis airdrop spesifik.
         const mockData = [
-          { id: 1, title: "ZK Sync Era Mainnet Airdrop", descriptionKey: "zkSyncDescription", link: "https://zksync.io/", type: "free", status: "active", image_url: "https://www.cryptoblogs.io/wp-content/uploads/2024/06/What-is-zkSync.jpg", date: "Q3 2024", tutorialKey: "zkSyncTutorial" },
-          { id: 2, title: "LayerZero Airdrop", descriptionKey: "layerZeroDescription", link: "https://layerzero.network/", type: "premium", status: "upcoming", image_url: "https://cdn.betakit.com/wp-content/uploads/2023/04/LayerZero-Labs-770x513.jpg", date: "Q4 2024", tutorialKey: "layerZeroTutorial" },
-          { id: 3, title: "StarkNet DeFi Expansion", descriptionKey: "zkSyncDescription", link: "https://starknet.io/", type: "free", status: "active", image_url: "https://pbs.twimg.com/profile_images/1762125355938926592/2i3e25da_400x400.jpg", date: "Q3 2024", tutorialKey: "layerZeroTutorial" },
-          { id: 4, title: "Scroll Origins NFT Drop", descriptionKey: "layerZeroDescription", link: "https://scroll.io/", type: "premium", status: "ended", image_url: "https://pbs.twimg.com/profile_images/1696531399317917696/2T3p4N__400x400.jpg", date: "Q2 2024", tutorialKey: "zkSyncTutorial" }
+          { id: 1, title: "ZK Sync Era Mainnet Airdrop", descriptionKey: "zkSyncDescription", link: "https://zksync.io/", category: "Testnet", status: "active", image_url: "https://www.cryptoblogs.io/wp-content/uploads/2024/06/What-is-zkSync.jpg", date: "Q3 2024", tutorialKey: "zkSyncTutorial" },
+          { id: 2, title: "LayerZero Airdrop", descriptionKey: "layerZeroDescription", link: "https://layerzero.network/", category: "Retroactive", status: "upcoming", image_url: "https://cdn.betakit.com/wp-content/uploads/2023/04/LayerZero-Labs-770x513.jpg", date: "Q4 2024", tutorialKey: "layerZeroTutorial" },
+          { id: 3, title: "StarkNet DeFi Expansion", descriptionKey: "zkSyncDescription", link: "https://starknet.io/", category: "Mainnet", status: "active", image_url: "https://pbs.twimg.com/profile_images/1762125355938926592/2i3e25da_400x400.jpg", date: "Q3 2024", tutorialKey: "layerZeroTutorial" },
+          { id: 4, title: "Scroll Origins NFT Drop", descriptionKey: "layerZeroDescription", link: "https://scroll.io/", category: "NFT Drop", status: "ended", image_url: "https://pbs.twimg.com/profile_images/1696531399317917696/2T3p4N__400x400.jpg", date: "Q2 2024", tutorialKey: "zkSyncTutorial" }
         ];
+        // --- AKHIR PERUBAHAN ---
+
         setAirdrops(mockData);
       } catch (err) {
         setError("Gagal memuat data airdrop.");
