@@ -19,11 +19,11 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen Card Airdrop yang sudah dimodifikasi dengan Link dan Tombol Admin
+// Komponen Card Airdrop yang sudah diperbaiki (di dalam PageAirdrops.jsx)
 const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
-
+  
   if (!t) return null;
 
   const statusInfo = {
@@ -51,10 +51,12 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
         <div className={`absolute top-0 left-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20 ${categoryColor}`}>
           {airdrop.category}
         </div>
-        <div className="relative w-full h-48">
+        {/* ===== PERUBAHAN DI SINI ===== */}
+        <div className="relative w-full h-48 overflow-hidden">
           <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
           <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent"></div>
         </div>
+        {/* ============================= */}
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
           <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
