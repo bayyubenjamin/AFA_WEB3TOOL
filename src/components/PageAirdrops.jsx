@@ -40,7 +40,8 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
   
   return (
-    <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
+    // ===== PERUBAHAN DI SINI: Tambahkan overflow-hidden =====
+    <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
       {isAdmin && (
         <div className="absolute top-2 right-2 z-30 flex gap-2">
           <button onClick={(e) => { e.preventDefault(); onEdit(airdrop); }} className="bg-blue-500/80 hover:bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faEdit} /></button>
@@ -51,12 +52,10 @@ const AirdropCard = ({ airdrop, onEdit, onDelete, isAdmin }) => {
         <div className={`absolute top-0 left-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20 ${categoryColor}`}>
           {airdrop.category}
         </div>
-        {/* ===== PERUBAHAN DI SINI ===== */}
         <div className="relative w-full h-48 overflow-hidden">
           <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
           <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent"></div>
         </div>
-        {/* ============================= */}
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
           <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
