@@ -1,4 +1,4 @@
-// src/components/PageHome.jsx
+// src/components/PageHome.jsx - VERSI FINAL DENGAN PERBAIKAN TRANSLASI
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,10 +21,8 @@ const getTranslations = (lang) => {
 // Komponen Card Fitur yang Didesain Ulang
 const FeatureCard = ({ icon, title, description, actionText, onAction, color }) => (
   <div className="relative bg-card p-6 rounded-2xl overflow-hidden border border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
-    {/* Efek glow saat di-hover */}
     <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/20 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500 animate-spin-slow"></div>
-
     <div className="relative z-10 flex flex-col h-full">
       <div className={`mb-5 text-4xl ${color}`}>
         <FontAwesomeIcon icon={icon} />
@@ -45,44 +43,44 @@ const FeatureCard = ({ icon, title, description, actionText, onAction, color }) 
 
 export default function PageHome({ currentUser, onMintNft, navigateTo }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).homePage;
+  // [PERBAIKAN]: Ambil objek terjemahan untuk home dan header secara terpisah
+  const tHome = getTranslations(language).homePage;
+  const tHeader = getTranslations(language).header;
 
-  // Cek apakah pengguna sudah login atau belum
   const isLoggedIn = !!(currentUser && currentUser.id);
 
   const features = [
     {
       icon: faRocket,
-      title: t.feature1Title,
-      description: t.feature1Description,
-      actionText: t.feature1Action,
+      title: tHome.feature1Title,
+      description: tHome.feature1Description,
+      actionText: tHome.feature1Action,
       actionTarget: "airdrops",
       color: "text-primary",
     },
     {
       icon: faTasks,
-      title: t.feature2Title,
-      description: t.feature2Description,
-      actionText: t.feature2Action,
+      title: tHome.feature2Title,
+      description: tHome.feature2Description,
+      actionText: tHome.feature2Action,
       actionTarget: "myWork",
       color: "text-blue-400",
     },
     {
       icon: faComments,
-      title: t.feature3Title,
-      description: t.feature3Description,
-      actionText: t.feature3Action,
+      title: tHome.feature3Title,
+      description: tHome.feature3Description,
+      actionText: tHome.feature3Action,
       actionTarget: "forum",
       color: "text-teal-400",
     },
   ];
   
-  // Fungsi untuk tombol utama, akan berbeda jika user sudah/belum login
   const handleMainAction = () => {
     if (isLoggedIn) {
       onMintNft();
     } else {
-      navigateTo('profile'); // Arahkan ke halaman login jika belum masuk
+      navigateTo('profile');
     }
   };
 
@@ -91,14 +89,13 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
       
       {/* Hero Section */}
       <div className="relative text-center max-w-4xl mx-auto px-4 z-10">
-        {/* Latar belakang gradasi elips */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-primary/10 via-transparent to-transparent -z-10 rounded-full blur-3xl"></div>
         
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight">
-          {t.heroTitle}
+          {tHome.heroTitle}
         </h1>
         <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-          {t.heroSubtitle}
+          {tHome.heroSubtitle}
         </p>
         <div className="mt-10">
           <button
@@ -106,7 +103,8 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
             className="btn-primary text-white font-bold py-4 px-10 rounded-xl text-lg shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
           >
             <FontAwesomeIcon icon={isLoggedIn ? faFingerprint : faSignInAlt} className="mr-3 h-5 w-5" />
-            {isLoggedIn ? t.mintCta : t.header.login}
+            {/* [PERBAIKAN]: Gunakan variabel terjemahan yang benar */}
+            {isLoggedIn ? tHome.mintCta : tHeader.login}
           </button>
         </div>
       </div>
@@ -115,10 +113,10 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
       <div className="space-y-12 px-4">
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 flex items-center justify-center">
-            <FontAwesomeIcon icon={faShieldHalved} className="mr-3 text-primary" /> {t.featuresTitle}
+            <FontAwesomeIcon icon={faShieldHalved} className="mr-3 text-primary" /> {tHome.featuresTitle}
           </h2>
           <p className="text-gray-400 text-lg">
-            {t.featuresSubtitle}
+            {tHome.featuresSubtitle}
           </p>
         </div>
 
@@ -143,16 +141,16 @@ export default function PageHome({ currentUser, onMintNft, navigateTo }) {
            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent"></div>
            <div className="relative z-10">
               <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                {t.joinCtaTitle}
+                {tHome.joinCtaTitle}
               </h3>
               <p className="text-gray-400 mb-8 text-lg">
-                {t.joinCtaSubtitle}
+                {tHome.joinCtaSubtitle}
               </p>
               <button
                 onClick={handleMainAction}
                 className="btn-secondary text-white font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
               >
-                {t.startNow}
+                {tHome.startNow}
                 <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
               </button>
            </div>
