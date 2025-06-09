@@ -1,7 +1,7 @@
-// src/components/PageAdminAirdrops.jsx
+// src/components/PageAdminAirdrops.jsx - VERSI BARU DENGAN KONTROL TAMPILAN
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch, faSpinner, faExclamationTriangle, faCalendarAlt,
@@ -12,7 +12,7 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
-import AirdropAdminForm from './AirdropAdminForm';
+import AirdropAdminForm from './AirdropAdminForm'; // <-- Form yang sudah dimodifikasi
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
@@ -67,7 +67,6 @@ const AirdropCard = ({ airdrop, onEdit, onDelete }) => {
   );
 };
 
-
 export default function PageAdminAirdrops({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -86,9 +85,8 @@ export default function PageAdminAirdrops({ currentUser }) {
 
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
-  // Redirect if not admin
   useEffect(() => {
-    if (currentUser === null) return; // Wait for user data to load
+    if (currentUser === null) return;
     if (!isAdmin) {
       navigate('/airdrops');
     }
@@ -112,8 +110,10 @@ export default function PageAdminAirdrops({ currentUser }) {
   }, []);
 
   useEffect(() => {
-    fetchAirdrops();
-  }, [fetchAirdrops]);
+    if (!showAdminForm) { // Hanya fetch data jika form tidak ditampilkan
+        fetchAirdrops();
+    }
+  }, [fetchAirdrops, showAdminForm]);
 
   const handleSaveAirdrop = async (formData) => {
     setFormLoading(true);
@@ -129,7 +129,7 @@ export default function PageAdminAirdrops({ currentUser }) {
 
       setShowAdminForm(false);
       setEditingAirdrop(null);
-      await fetchAirdrops();
+      // Data akan di-fetch ulang oleh useEffect di atas
       alert('Airdrop berhasil disimpan!');
     } catch (err) {
       alert('Gagal menyimpan airdrop: ' + err.message);
@@ -148,13 +148,18 @@ export default function PageAdminAirdrops({ currentUser }) {
       try {
         const { error } = await supabase.from('airdrops').delete().eq('id', airdrop.id);
         if (error) throw error;
-        await fetchAirdrops();
+        fetchAirdrops(); // Langsung fetch ulang setelah hapus
         alert('Airdrop berhasil dihapus!');
       } catch (err) {
         alert('Gagal menghapus airdrop: ' + err.message);
       }
     }
   };
+  
+  const handleCloseForm = () => {
+    setShowAdminForm(false);
+    setEditingAirdrop(null);
+  }
 
   const filteredAirdrops = useMemo(() => {
     return airdrops
@@ -173,7 +178,7 @@ export default function PageAdminAirdrops({ currentUser }) {
       </div>
     );
   }
-
+  
   if (!t) return null;
 
   const filterTranslations = {
@@ -184,66 +189,66 @@ export default function PageAdminAirdrops({ currentUser }) {
   };
 
   return (
-    <>
-      <section id="admin-airdrops" className="page-content space-y-8 pt-8">
-         <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-            Back to Airdrop List
-        </Link>
-        <div className="text-center">
-          <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-3 flex items-center justify-center gap-3">
-             <FontAwesomeIcon icon={faShieldHalved}/> Admin Panel
-          </h1>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">Manage airdrop posts here.</p>
-        </div>
-
-        <div className="text-center">
-            <button onClick={() => { setEditingAirdrop(null); setShowAdminForm(true); }} className="btn-primary px-6 py-3 text-base">
-              <FontAwesomeIcon icon={faPlus} className="mr-2"/> {t.addNewAirdrop}
-            </button>
-        </div>
-
-        <div className="py-4 px-2 -mx-2">
-            <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
-                <div className="relative flex-grow">
-                    <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500" />
-                    <input type="text" placeholder={t.searchPlaceholder || "Cari airdrop..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-card border border-white/10 rounded-lg py-2.5 pl-11 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                </div>
-                <div className="bg-card border border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
-                    {['all', 'active', 'upcoming', 'ended'].map(filter => (
-                        <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-gray-300 hover:bg-white/5'}`}>
-                            {filterTranslations[filter]}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64"><FontAwesomeIcon icon={faSpinner} className="text-primary text-4xl animate-spin" /></div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-64 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {filteredAirdrops.length > 0 ? (
-              filteredAirdrops.map(airdrop => (
-                <AirdropCard key={airdrop.id} airdrop={airdrop} onEdit={handleEdit} onDelete={handleDelete} />
-              ))
-            ) : (
-              <p className="col-span-full text-center text-gray-500 py-16">{t.noAirdropsAvailable}</p>
-            )}
-          </div>
-        )}
-      </section>
-
-      {showAdminForm && (
+    <section id="admin-airdrops" className="page-content space-y-8 pt-8">
+      {showAdminForm ? (
         <AirdropAdminForm
           onSave={handleSaveAirdrop}
-          onClose={() => { setShowAdminForm(false); setEditingAirdrop(null); }}
+          onClose={handleCloseForm}
           initialData={editingAirdrop}
           loading={formLoading}
         />
+      ) : (
+        <>
+          <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+              Back to Airdrop List
+          </Link>
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-3 flex items-center justify-center gap-3">
+               <FontAwesomeIcon icon={faShieldHalved}/> Admin Panel
+            </h1>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">Manage airdrop posts here.</p>
+          </div>
+
+          <div className="text-center">
+              <button onClick={() => { setEditingAirdrop(null); setShowAdminForm(true); }} className="btn-primary px-6 py-3 text-base">
+                <FontAwesomeIcon icon={faPlus} className="mr-2"/> {t.addNewAirdrop}
+              </button>
+          </div>
+
+          <div className="py-4 px-2 -mx-2">
+              <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-grow">
+                      <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500" />
+                      <input type="text" placeholder={t.searchPlaceholder || "Cari airdrop..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-card border border-white/10 rounded-lg py-2.5 pl-11 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                  </div>
+                  <div className="bg-card border border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
+                      {['all', 'active', 'upcoming', 'ended'].map(filter => (
+                          <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-gray-300 hover:bg-white/5'}`}>
+                              {filterTranslations[filter]}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64"><FontAwesomeIcon icon={faSpinner} className="text-primary text-4xl animate-spin" /></div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-64 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {filteredAirdrops.length > 0 ? (
+                filteredAirdrops.map(airdrop => (
+                  <AirdropCard key={airdrop.id} airdrop={airdrop} onEdit={handleEdit} onDelete={handleDelete} />
+                ))
+              ) : (
+                <p className="col-span-full text-center text-gray-500 py-16">{t.noAirdropsAvailable}</p>
+              )}
+            </div>
+          )}
+        </>
       )}
-    </>
+    </section>
   );
 }
