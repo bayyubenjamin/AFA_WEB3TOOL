@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN PERBAIKAN BUG RELOAD
+// src/App.jsx - VERSI FINAL DENGAN RUTE ADMIN
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -8,9 +8,10 @@ import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
+import PageAdminAirdrops from "./components/PageAdminAirdrops"; // <-- IMPORT BARU
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
-import AirdropDetailPage from "./components/AirdropDetailPage"; 
+import AirdropDetailPage from "./components/AirdropDetailPage";
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -50,10 +51,10 @@ function MainAppContent() {
       </div>
     );
   }
-  
+
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
-  const [userAirdrops, setUserAirdrops] = useState([]); 
+  const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
@@ -106,6 +107,11 @@ function MainAppContent() {
   }, []);
 
   useEffect(() => {
+    if (location.pathname === '/airdrops/postairdrops') {
+        setHeaderTitle('Admin Panel');
+        return;
+    }
+
     const path = location.pathname.split('/')[1] || 'home';
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
@@ -119,9 +125,7 @@ function MainAppContent() {
     }
   }, [location, language]);
 
-  // [PERBAIKAN BUG]: Tambahkan 'loadingInitialSession' sebagai dependency
   useEffect(() => {
-    // Jangan jalankan animasi jika masih dalam proses loading awal
     if (loadingInitialSession) return;
 
     if (pageContentRef.current) {
@@ -132,7 +136,7 @@ function MainAppContent() {
       const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname, loadingInitialSession]); // <--- PERUBAHAN DI SINI
+  }, [location.pathname, loadingInitialSession]);
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
 
@@ -145,6 +149,8 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
+  const showNav = location.pathname !== '/airdrops/postairdrops';
+
 
   if (loadingInitialSession) {
     return (
@@ -157,22 +163,24 @@ function MainAppContent() {
 
   return (
     <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
-      <Header title={headerTitle} currentUser={userForHeader} navigate={navigate} />
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigate={navigate} />}
       <main
         ref={pageContentRef}
-        className={`flex-grow pt-[var(--header-height)] px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto`}
+        className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
       >
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
+          {/* // <-- RUTE BARU DITAMBAHKAN DI SINI --> */}
+          <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
-      <BottomNav currentUser={currentUser} />
+      {showNav && <BottomNav currentUser={currentUser} />}
     </div>
   );
 }
