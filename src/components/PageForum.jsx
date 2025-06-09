@@ -147,7 +147,7 @@ export default function PageForum({ currentUser }) {
           {!loading && !error && messages.map(msg => {
             const isCurrentUser = msg.user_id === currentUser?.id;
             // PERBAIKAN: Menggunakan currentUserTag dan guestUserTag sesuai kunci di JSON
-            const senderName = isCurrentUser ? (t.currentUserTag || 'Anda') : (msg.profiles?.username || t.guestUserTag || 'User'); 
+            const senderName = isCurrentUser ? (t.currentUserTag || 'Anda') : (msg.profiles?.username || t.guestUserTag || 'Anonim'); 
             const senderAvatar = isCurrentUser ? currentUser?.avatar_url : (msg.profiles?.avatar_url);
 
             return (
