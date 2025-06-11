@@ -1,10 +1,11 @@
-// src/components/PageAirdrops.jsx - VERSI FINAL DENGAN SORTING OTOMATIS DAN NOTIFIKASI LENGKAP
+// src/components/PageAirdrops.jsx - VERSI BARU DENGAN DETAIL RAISE & POTENTIAL
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faShieldHalved, faBullhorn
+  faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faShieldHalved, faBullhorn,
+  faCoins, faClipboardQuestion // Ikon baru
 } from "@fortawesome/free-solid-svg-icons";
 
 import { useLanguage } from "../context/LanguageContext";
@@ -16,7 +17,7 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// AirdropCard dengan semua notifikasi baru
+// AirdropCard dengan semua notifikasi dan detail baru
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -35,6 +36,14 @@ const AirdropCard = ({ airdrop }) => {
     'Mainnet': 'bg-emerald-500/20 text-emerald-300',
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
+  
+  // Gaya untuk status Potential/Confirmed
+  const confirmationStyles = {
+    'Potential': 'bg-yellow-500/20 text-yellow-300',
+    'Confirmed': 'bg-green-500/20 text-green-300'
+  };
+  const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'bg-gray-500/20 text-gray-300';
+
 
   const postDate = new Date(airdrop.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'short', year: 'numeric'
@@ -43,7 +52,6 @@ const AirdropCard = ({ airdrop }) => {
   return (
     <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
       
-      {/* ===== Notifikasi Update (Prioritas) ===== */}
       {airdrop.hasNewUpdate && (
         <div className="absolute top-3 right-3 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Ada update baru!">
           <span className="relative flex h-2 w-2 mr-1.5">
@@ -54,7 +62,6 @@ const AirdropCard = ({ airdrop }) => {
         </div>
       )}
 
-      {/* ===== Notifikasi Postingan Baru (Jika tidak ada update baru) ===== */}
       {!airdrop.hasNewUpdate && airdrop.isNewlyPosted && (
         <div className="absolute top-3 right-3 z-20 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Airdrop Baru!">
           <FontAwesomeIcon icon={faBullhorn} className="mr-1.5" />
@@ -72,12 +79,29 @@ const AirdropCard = ({ airdrop }) => {
         </div>
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
+          
+          {/* ====== AREA BARU UNTUK RAISE & STATUS ====== */}
+          <div className="flex items-center gap-3 mb-3 text-xs">
+            {airdrop.raise_amount && (
+                <div className="flex items-center bg-white/5 px-2 py-1 rounded-full text-gray-300" title="Total Pendanaan">
+                    <FontAwesomeIcon icon={faCoins} className="text-yellow-400 mr-1.5"/>
+                    <span className="font-semibold">Raise:</span>&nbsp;<span>{airdrop.raise_amount}</span>
+                </div>
+            )}
+            {airdrop.confirmation_status && (
+                <div className={`flex items-center px-2 py-1 rounded-full font-semibold ${confirmationStyle}`} title="Status Konfirmasi Airdrop">
+                    <FontAwesomeIcon icon={faClipboardQuestion} className="mr-1.5"/>
+                    {airdrop.confirmation_status}
+                </div>
+            )}
+          </div>
+          {/* ============================================== */}
+          
           <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
             {airdrop.description}
           </p>
           <div className="flex justify-between items-center text-xs mt-auto">
             <span className={`px-3 py-1 rounded-full font-semibold ${statusInfo.color}`}>{statusInfo.text}</span>
-            {/* Menampilkan tanggal posting */}
             <span className="text-gray-500 font-medium">
                 <FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />
                 {postDate}
@@ -89,7 +113,7 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-// Komponen Utama Halaman Airdrops
+// Komponen Utama Halaman Airdrops (Fungsi fetch tidak berubah, karena select('*') sudah mencakup kolom baru)
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -108,6 +132,7 @@ export default function PageAirdrops({ currentUser }) {
     setError(null);
     try {
       // Ambil data airdrop beserta tanggal update terkait
+      // SELECT * sudah otomatis mengambil semua kolom termasuk yang baru
       const { data, error } = await supabase
         .from('airdrops')
         .select('*, AirdropUpdates(created_at)');
@@ -122,10 +147,8 @@ export default function PageAirdrops({ currentUser }) {
         let lastActivityAt = new Date(airdrop.created_at);
         let hasNewUpdate = false;
         
-        // Cek apakah airdrop baru diposting
         const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
 
-        // Cek apakah ada update baru
         if (updates && updates.length > 0) {
           const mostRecentUpdateDate = new Date(
             Math.max(...updates.map(u => new Date(u.created_at)))
@@ -144,7 +167,6 @@ export default function PageAirdrops({ currentUser }) {
         return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt };
       });
       
-      // Urutkan berdasarkan tanggal aktivitas terakhir
       processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
       
       setAirdrops(processedData);
@@ -174,7 +196,8 @@ export default function PageAirdrops({ currentUser }) {
     upcoming: t.filterUpcoming || 'Mendatang',
     ended: t.filterEnded || 'Selesai'
   };
-
+  
+  // Sisa JSX dari komponen PageAirdrops tetap sama
   return (
     <>
       <section id="airdrops" className="page-content space-y-8 pt-8">
