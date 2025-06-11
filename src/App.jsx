@@ -8,7 +8,7 @@ import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
-import PageAdminAirdrops from "./components/PageAdminAirdrops"; // <-- IMPORT BARU
+import PageAdminAirdrops from "./components/PageAdminAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
@@ -163,7 +163,7 @@ function MainAppContent() {
 
   return (
     <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigate={navigate} />}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} />}
       <main
         ref={pageContentRef}
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
@@ -172,9 +172,8 @@ function MainAppContent() {
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
-          {/* // <-- RUTE BARU DITAMBAHKAN DI SINI --> */}
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage />} />
+          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
@@ -192,3 +191,4 @@ export default function App() {
     </LanguageProvider>
   );
 }
+
