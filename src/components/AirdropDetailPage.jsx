@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN TOMBOL CHECK UPDATE
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN FORM UPDATE UNTUK ADMIN
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,6 +12,10 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
 
+// Import form update
+import AirdropUpdateForm from './AirdropUpdateForm';
+
+const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
 export default function AirdropDetailPage({ currentUser }) {
@@ -26,8 +30,10 @@ export default function AirdropDetailPage({ currentUser }) {
   const [error, setError] = useState(null);
   const [processedTutorial, setProcessedTutorial] = useState('');
   
-  // Ref untuk menunjuk ke bagian update
   const updatesSectionRef = useRef(null);
+
+  // Cek apakah user saat ini adalah admin
+  const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   const fetchAirdropAndUpdates = useCallback(async () => {
     if (!airdropSlug) {
@@ -72,7 +78,6 @@ export default function AirdropDetailPage({ currentUser }) {
     fetchAirdropAndUpdates();
   }, [fetchAirdropAndUpdates]);
   
-  // Fungsi untuk scroll ke bagian update
   const handleScrollToUpdates = () => {
     updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -131,7 +136,6 @@ export default function AirdropDetailPage({ currentUser }) {
               {airdrop.category}
             </div>
             
-            {/* ===== Perubahan di sini: Judul dan Tombol dalam satu baris ===== */}
             <div className="flex justify-between items-start gap-4 mb-3">
                 <h1 className="text-3xl md:text-4xl font-bold text-white">{airdrop.title}</h1>
                 <button 
@@ -159,7 +163,6 @@ export default function AirdropDetailPage({ currentUser }) {
                 )}
             </div>
 
-            {/* Bagian Tutorial */}
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
               {processedTutorial ? (
@@ -172,7 +175,6 @@ export default function AirdropDetailPage({ currentUser }) {
               )}
             </div>
 
-            {/* Tombol Visit Airdrop Page */}
             {airdrop.link && (
               <div className="my-8 text-center">
                 <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">
@@ -182,9 +184,17 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             )}
             
-            {/* Bagian Aktivitas & Updates dengan ref */}
             <div ref={updatesSectionRef} className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
+              
+              {/* ===== Form Tambah Update (Hanya untuk Admin) ===== */}
+              {isAdmin && (
+                <AirdropUpdateForm
+                  airdropId={airdrop.id}
+                  onUpdateAdded={fetchAirdropAndUpdates}
+                />
+              )}
+
               {updates.length > 0 ? (
                 <div className="space-y-4">
                   {updates.map(update => (
