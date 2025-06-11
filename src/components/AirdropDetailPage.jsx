@@ -1,8 +1,8 @@
-// src/components/AirdropDetailPage.jsx - DENGAN PERBAIKAN
+// src/components/AirdropDetailPage.jsx - VERSI PUBLIK (FORM DIHAPUS)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faCalendarAlt, faInfoCircle, faAngleDoubleRight, faSpinner, faExclamationTriangle, faClock } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, faClock, faAngleDoubleRight } from '@fortawesome/free-solid-svg-icons';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
@@ -11,9 +11,6 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
-import AirdropUpdateForm from './AirdropUpdateForm';
-
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -26,10 +23,8 @@ export default function AirdropDetailPage({ currentUser }) {
   const [airdrop, setAirdrop] = useState(null);
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // State untuk pesan error
+  const [error, setError] = useState(null);
   const [processedTutorial, setProcessedTutorial] = useState('');
-
-  const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   const fetchAirdropAndUpdates = useCallback(async () => {
     if (!airdropSlug) {
@@ -38,10 +33,6 @@ export default function AirdropDetailPage({ currentUser }) {
       return;
     }
     setLoading(true);
-    setAirdrop(null);
-    setUpdates([]);
-    setError(null);
-
     try {
       const { data: airdropData, error: airdropError } = await supabase
         .from('airdrops')
@@ -49,37 +40,26 @@ export default function AirdropDetailPage({ currentUser }) {
         .eq('slug', airdropSlug)
         .single();
 
-      if (airdropError) {
-        if (airdropError.code === 'PGRST116') { // Kode error PostgREST untuk "no rows returned"
-          throw new Error("Airdrop tidak ditemukan. Periksa kembali URL Anda.");
-        }
-        throw airdropError;
-      }
+      if (airdropError) throw airdropError;
       
       setAirdrop(airdropData);
 
       if (airdropData.tutorial) {
         const file = await remark().use(remarkGfm).use(remarkHtml).process(airdropData.tutorial);
         setProcessedTutorial(String(file));
-      } else {
-        setProcessedTutorial('');
       }
 
-      if (airdropData) {
-        const { data: updatesData, error: updatesError } = await supabase
-          .from('AirdropUpdates')
-          .select('*')
-          .eq('airdrop_id', airdropData.id)
-          .order('created_at', { ascending: false });
+      const { data: updatesData, error: updatesError } = await supabase
+        .from('AirdropUpdates')
+        .select('*')
+        .eq('airdrop_id', airdropData.id)
+        .order('created_at', { ascending: false });
 
-        if (updatesError) throw updatesError;
-        setUpdates(updatesData || []);
-      }
+      if (updatesError) throw updatesError;
+      setUpdates(updatesData || []);
 
     } catch (err) {
-      console.error("Error fetching airdrop detail:", err);
       setError(err.message || "Terjadi kesalahan saat mengambil data.");
-      setAirdrop(null);
     } finally {
       setLoading(false);
     }
@@ -89,7 +69,6 @@ export default function AirdropDetailPage({ currentUser }) {
     fetchAirdropAndUpdates();
   }, [fetchAirdropAndUpdates]);
 
-  // ====================== BLOK PERBAIKAN UTAMA ======================
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-white pt-20">
@@ -104,7 +83,7 @@ export default function AirdropDetailPage({ currentUser }) {
       <div className="flex flex-col items-center justify-center h-full text-center text-red-400 pt-20">
         <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/>
         <p className="font-semibold">Gagal Memuat Airdrop</p>
-        <p className="text-sm max-w-xs">{error || "Data airdrop tidak dapat ditemukan."}</p>
+        <p className="text-sm max-w-xs">{error}</p>
         <button onClick={() => navigate('/airdrops')} className="btn-secondary mt-6 px-6 py-2">
           <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
           Kembali ke Daftar Airdrop
@@ -112,21 +91,19 @@ export default function AirdropDetailPage({ currentUser }) {
       </div>
     );
   }
-  // =================================================================
 
   const statusInfo = {
     active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' },
     upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' },
     ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' },
   }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
-  
+
   const categoryColor = {
     'Retroactive': 'bg-purple-500/20 text-purple-300',
     'Testnet': 'bg-sky-500/20 text-sky-300',
     'Mainnet': 'bg-emerald-500/20 text-emerald-300',
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
-
 
   return (
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
@@ -137,8 +114,8 @@ export default function AirdropDetailPage({ currentUser }) {
 
       <div className="bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
         <div className="relative w-full h-48 md:h-64 overflow-hidden">
-            <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}/>
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
+          <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}/>
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
         </div>
         
         <div className="p-6 md:p-8">
@@ -160,13 +137,6 @@ export default function AirdropDetailPage({ currentUser }) {
                     </div>
                 )}
             </div>
-
-            {isAdmin && (
-              <AirdropUpdateForm 
-                airdropId={airdrop.id} 
-                onUpdateAdded={fetchAirdropAndUpdates}
-              />
-            )}
 
             <div className="mt-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
