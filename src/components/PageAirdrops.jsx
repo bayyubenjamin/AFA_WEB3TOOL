@@ -1,4 +1,4 @@
-// src/components/PageAirdrops.jsx - Public Facing Version
+// src/components/PageAirdrops.jsx - VERSI FINAL DENGAN NOTIFIKASI UPDATE
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
@@ -16,7 +16,7 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// AirdropCard versi publik (tanpa tombol admin)
+// AirdropCard dengan logika notifikasi update
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -38,8 +38,19 @@ const AirdropCard = ({ airdrop }) => {
 
   return (
     <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
+      
+      {/* ===== Indikator Notifikasi Update Baru ===== */}
+      {airdrop.hasNewUpdate && (
+        <div className="absolute top-4 right-4 z-20" title="Ada update baru!">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-dark"></span>
+          </span>
+        </div>
+      )}
+
       <Link to={`/airdrops/${airdrop.slug}`} className="block h-full flex flex-col">
-        <div className={`absolute top-0 left-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-20 ${categoryColor}`}>
+        <div className={`absolute top-0 left-0 text-xs font-bold py-1 px-3 m-3 rounded-full z-10 ${categoryColor}`}>
           {airdrop.category}
         </div>
         <div className="relative w-full h-48 overflow-hidden">
@@ -61,7 +72,7 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-// Komponen Utama Halaman Airdrops (versi publik)
+// Komponen Utama Halaman Airdrops
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -79,12 +90,39 @@ export default function PageAirdrops({ currentUser }) {
     setLoading(true);
     setError(null);
     try {
+      // Ambil data airdrop beserta tanggal update terkait
       const { data, error } = await supabase
         .from('airdrops')
-        .select('*')
+        .select('*, AirdropUpdates(created_at)')
         .order('created_at', { ascending: false });
+
       if (error) throw error;
-      setAirdrops(data || []);
+
+      // Proses data untuk menambahkan flag 'hasNewUpdate'
+      const processedData = (data || []).map(airdrop => {
+        const updates = airdrop.AirdropUpdates;
+        let hasNewUpdate = false;
+
+        if (updates && updates.length > 0) {
+          // Cari tanggal update terbaru
+          const mostRecentDate = new Date(
+            Math.max(...updates.map(u => new Date(u.created_at)))
+          );
+          
+          // Cek apakah update terjadi dalam 48 jam terakhir
+          const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+          if (mostRecentDate > fortyEightHoursAgo) {
+            hasNewUpdate = true;
+          }
+        }
+        
+        // Hapus data updates yang sudah diproses agar tidak mengganggu komponen lain
+        const { AirdropUpdates, ...rest } = airdrop;
+        return { ...rest, hasNewUpdate };
+      });
+      
+      setAirdrops(processedData);
+
     } catch (err) {
       setError(err.message || "Gagal memuat data airdrop.");
     } finally {
