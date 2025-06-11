@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI BARU DENGAN LINK AKTIF DI DESKRIPSI
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN PERBAIKAN PLUGIN
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,22 +18,14 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-/**
- * [KOMPONEN BARU]
- * Komponen ini dibuat untuk menangani render setiap item update secara terpisah.
- * Ini memungkinkan kita memproses konten Markdown (termasuk link) untuk setiap update.
- */
+// Komponen untuk merender setiap item update (sudah diperbaiki)
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const [processedContent, setProcessedContent] = useState('');
 
   useEffect(() => {
-    // Proses konten update menjadi HTML jika ada
     if (update.content) {
-      remark()
-        .use(remarkGfm)
-        .use(remarkHtml)
-        .process(update.content)
+      remark().use(remarkGfm).use(remarkHtml).process(update.content)
         .then(file => {
           setProcessedContent(String(file));
         });
@@ -64,10 +56,10 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       </p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
       
-      {/* ===== PERUBAHAN DI SINI: Gunakan dangerouslySetInnerHTML untuk merender konten ===== */}
+      {/* PERBAIKAN: Menggunakan class 'prose' untuk styling otomatis dari plugin typography */}
       {processedContent && (
         <div
-          className="prose prose-invert prose-sm max-w-none prose-a:text-primary mt-2 text-gray-300"
+          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
           dangerouslySetInnerHTML={{ __html: processedContent }}
         />
       )}
@@ -81,7 +73,6 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
   const { language } = useLanguage();
-  const navigate = useNavigate();
   const t = getTranslations(language).pageAirdrops;
 
   const [airdrop, setAirdrop] = useState(null);
@@ -89,7 +80,6 @@ export default function AirdropDetailPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processedTutorial, setProcessedTutorial] = useState('');
-  // ===== TAMBAHAN: State untuk deskripsi yang sudah diproses =====
   const [processedDescription, setProcessedDescription] = useState('');
 
   const updatesSectionRef = useRef(null);
@@ -98,21 +88,20 @@ export default function AirdropDetailPage({ currentUser }) {
   const fetchAirdropAndUpdates = useCallback(async () => {
     if (!airdropSlug) { setLoading(false); setError("Airdrop slug tidak ditemukan di URL."); return; }
     setLoading(true);
+    setError(null);
     try {
       const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
       
-      // Proses tutorial dan deskripsi menjadi HTML
-      if (airdropData.tutorial) {
-        const file = await remark().use(remarkGfm).use(remarkHtml).process(airdropData.tutorial);
-        setProcessedTutorial(String(file));
-      }
-      // ===== TAMBAHAN: Proses deskripsi utama airdrop =====
-      if (airdropData.description) {
-        const file = await remark().use(remarkGfm).use(remarkHtml).process(airdropData.description);
-        setProcessedDescription(String(file));
-      }
+      const processMarkdown = async (markdown) => {
+        if (!markdown) return '';
+        const file = await remark().use(remarkGfm).use(remarkHtml).process(markdown);
+        return String(file);
+      };
+
+      setProcessedTutorial(await processMarkdown(airdropData.tutorial));
+      setProcessedDescription(await processMarkdown(airdropData.description));
 
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
@@ -157,9 +146,8 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
           
-          {/* ===== PERUBAHAN DI SINI: Render deskripsi dengan dangerouslySetInnerHTML ===== */}
           <div
-            className="prose prose-invert prose-sm md:prose-base max-w-none prose-a:text-primary text-gray-400 leading-relaxed"
+            className="prose prose-invert prose-base max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400"
             dangerouslySetInnerHTML={{ __html: processedDescription }}
           />
 
@@ -169,7 +157,7 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            {processedTutorial ? (<div className="prose prose-invert prose-sm md:prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary" dangerouslySetInnerHTML={{ __html: processedTutorial }} />) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
+            {processedTutorial ? (<div className="prose prose-invert prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline" dangerouslySetInnerHTML={{ __html: processedTutorial }} />) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
           </div>
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
@@ -185,7 +173,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
             {updates.length > 0 ? (
               <div className="space-y-4">
-                {/* ===== PERUBAHAN DI SINI: Gunakan komponen AirdropUpdateItem ===== */}
                 {updates.map(update => (
                   <AirdropUpdateItem
                     key={update.id}

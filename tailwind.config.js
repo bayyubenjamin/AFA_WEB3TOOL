@@ -40,5 +40,8 @@ module.exports = {
       }
     },
   },
-  plugins: [],
+  // PERBARUI BAGIAN INI
+  plugins: [
+    require('@tailwindcss/typography'), // <-- TAMBAHKAN BARIS INI
+  ],
 };
