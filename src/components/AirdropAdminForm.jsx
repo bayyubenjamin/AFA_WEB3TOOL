@@ -1,12 +1,12 @@
-// src/components/AirdropAdminForm.jsx - DENGAN MANAJEMEN UPDATE
+// src/components/AirdropAdminForm.jsx - VERSI PERBAIKAN FINAL
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faSpinner, faTimes, faSave, faClock, faTrash, faPlusCircle } from '@fortawesome/free-solid-svg-icons';
-import AirdropUpdateForm from './AirdropUpdateForm'; // Import form untuk update
+import { faUpload, faSpinner, faTimes, faSave, faClock, faTrash } from '@fortawesome/free-solid-svg-icons';
+import AirdropUpdateForm from './AirdropUpdateForm';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -28,7 +28,7 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
   const isEditing = !!initialData;
 
   const fetchUpdates = useCallback(async () => {
-    if (!isEditing || !initialData.id) return;
+    if (!initialData?.id) return;
     setLoadingUpdates(true);
     const { data, error } = await supabase
       .from('AirdropUpdates')
@@ -43,7 +43,7 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
       setUpdates(data || []);
     }
     setLoadingUpdates(false);
-  }, [isEditing, initialData]);
+  }, [initialData?.id]);
 
   useEffect(() => {
     if (initialData) {
@@ -64,7 +64,7 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
       alert("Gagal menghapus update: " + error.message);
     } else {
       alert("Update berhasil dihapus.");
-      fetchUpdates(); // Refresh list
+      fetchUpdates();
     }
   };
 
@@ -92,14 +92,12 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
       setUploadError(null);
 
       const file = event.target.files[0];
-      if (!file) {
-        throw new Error("Kamu tidak memilih file untuk di-upload.");
-      }
-
+      if (!file) throw new Error("Kamu tidak memilih file untuk di-upload.");
+      
       const fileName = `${Date.now()}-${file.name}`;
       const filePath = `public/${fileName}`;
 
-      let { error: uploadError } = await supabase.storage.from('tutorial-images').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('tutorial-images').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('tutorial-images').getPublicUrl(filePath);
@@ -109,7 +107,6 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
       setFormData(prev => ({ ...prev, tutorial: newTutorialText }));
       
     } catch (error) {
-      console.error('Error uploading image:', error);
       setUploadError(error.message);
     } finally {
       setUploading(false);
@@ -127,10 +124,13 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
             <FontAwesomeIcon icon={faTimes} size="lg" />
         </button>
       </div>
-
-      <div className="p-6 space-y-4 overflow-y-auto">
+      
+      {/* ======================= PERBAIKAN DI SINI ======================= */}
+      {/* class 'overflow-y-auto' telah dihapus dari div di bawah ini */}
+      <div className="p-6 space-y-4">
+      {/* ================================================================= */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Form utama untuk detail airdrop (tidak berubah) */}
+          {/* Form utama untuk detail airdrop */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">{t.adminFormLabelTitle}</label>
             <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/20 rounded-md p-2" required />
@@ -202,15 +202,10 @@ export default function AirdropAdminForm({ onSave, onClose, initialData = null, 
           </div>
         </form>
 
-        {/* --- BLOK BARU: MANAJEMEN UPDATE --- */}
         {isEditing && (
           <div className="mt-8 border-t border-primary/20 pt-8">
             <h4 className="text-xl font-bold text-white mb-4">Kelola Update untuk Airdrop Ini</h4>
-            
-            {/* Form untuk menambah update baru */}
             <AirdropUpdateForm airdropId={initialData.id} onUpdateAdded={fetchUpdates} />
-
-            {/* Daftar update yang sudah ada */}
             <h5 className="text-lg font-semibold text-gray-300 mt-8 mb-4">Daftar Update Tersimpan</h5>
             {loadingUpdates ? (
               <div className="text-center text-gray-400"><FontAwesomeIcon icon={faSpinner} spin /> Memuat...</div>
