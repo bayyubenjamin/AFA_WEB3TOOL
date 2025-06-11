@@ -1,10 +1,10 @@
-// src/components/PageAirdrops.jsx - VERSI FINAL DENGAN NOTIFIKASI UPDATE
+// src/components/PageAirdrops.jsx - VERSI FINAL DENGAN SORTING OTOMATIS DAN NOTIFIKASI LENGKAP
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faShieldHalved
+  faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faShieldHalved, faBullhorn
 } from "@fortawesome/free-solid-svg-icons";
 
 import { useLanguage } from "../context/LanguageContext";
@@ -16,7 +16,7 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// AirdropCard dengan logika notifikasi update
+// AirdropCard dengan semua notifikasi baru
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -36,16 +36,29 @@ const AirdropCard = ({ airdrop }) => {
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
 
+  const postDate = new Date(airdrop.created_at).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  });
+
   return (
     <div className="bg-card rounded-2xl group relative h-full flex flex-col border border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
       
-      {/* ===== Indikator Notifikasi Update Baru ===== */}
+      {/* ===== Notifikasi Update (Prioritas) ===== */}
       {airdrop.hasNewUpdate && (
-        <div className="absolute top-4 right-4 z-20" title="Ada update baru!">
-          <span className="relative flex h-3 w-3">
+        <div className="absolute top-3 right-3 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Ada update baru!">
+          <span className="relative flex h-2 w-2 mr-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-dark"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span>
           </span>
+          UPDATE
+        </div>
+      )}
+
+      {/* ===== Notifikasi Postingan Baru (Jika tidak ada update baru) ===== */}
+      {!airdrop.hasNewUpdate && airdrop.isNewlyPosted && (
+        <div className="absolute top-3 right-3 z-20 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Airdrop Baru!">
+          <FontAwesomeIcon icon={faBullhorn} className="mr-1.5" />
+          NEW
         </div>
       )}
 
@@ -64,7 +77,11 @@ const AirdropCard = ({ airdrop }) => {
           </p>
           <div className="flex justify-between items-center text-xs mt-auto">
             <span className={`px-3 py-1 rounded-full font-semibold ${statusInfo.color}`}>{statusInfo.text}</span>
-            {airdrop.date && (<span className="text-gray-500 font-medium"><FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />{airdrop.date}</span>)}
+            {/* Menampilkan tanggal posting */}
+            <span className="text-gray-500 font-medium">
+                <FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />
+                {postDate}
+            </span>
           </div>
         </div>
       </Link>
@@ -93,33 +110,42 @@ export default function PageAirdrops({ currentUser }) {
       // Ambil data airdrop beserta tanggal update terkait
       const { data, error } = await supabase
         .from('airdrops')
-        .select('*, AirdropUpdates(created_at)')
-        .order('created_at', { ascending: false });
+        .select('*, AirdropUpdates(created_at)');
 
       if (error) throw error;
 
-      // Proses data untuk menambahkan flag 'hasNewUpdate'
+      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+      // Proses data untuk menambahkan flag notifikasi dan tanggal aktivitas terakhir
       const processedData = (data || []).map(airdrop => {
         const updates = airdrop.AirdropUpdates;
+        let lastActivityAt = new Date(airdrop.created_at);
         let hasNewUpdate = false;
+        
+        // Cek apakah airdrop baru diposting
+        const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
 
+        // Cek apakah ada update baru
         if (updates && updates.length > 0) {
-          // Cari tanggal update terbaru
-          const mostRecentDate = new Date(
+          const mostRecentUpdateDate = new Date(
             Math.max(...updates.map(u => new Date(u.created_at)))
           );
           
-          // Cek apakah update terjadi dalam 48 jam terakhir
-          const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-          if (mostRecentDate > fortyEightHoursAgo) {
+          if (mostRecentUpdateDate > lastActivityAt) {
+            lastActivityAt = mostRecentUpdateDate;
+          }
+
+          if (mostRecentUpdateDate > fortyEightHoursAgo) {
             hasNewUpdate = true;
           }
         }
         
-        // Hapus data updates yang sudah diproses agar tidak mengganggu komponen lain
         const { AirdropUpdates, ...rest } = airdrop;
-        return { ...rest, hasNewUpdate };
+        return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt };
       });
+      
+      // Urutkan berdasarkan tanggal aktivitas terakhir
+      processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
       
       setAirdrops(processedData);
 
