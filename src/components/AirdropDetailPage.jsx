@@ -1,8 +1,11 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN LINK KE HALAMAN UPDATE
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN PERBAIKAN ERROR
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
+} from '@fortawesome/free-solid-svg-icons';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
@@ -10,13 +13,22 @@ import remarkHtml from 'remark-html';
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
 
+// Impor file terjemahan dengan benar di sini
+import translationsId from "../translations/id.json";
+import translationsEn from "../translations/en.json";
+
+import AirdropUpdateForm from './AirdropUpdateForm';
+
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
   const { language } = useLanguage();
-  const t = (language === 'id' ? require('../translations/id.json') : require('../translations/en.json')).pageAirdrops;
   const navigate = useNavigate();
+  
+  // Ambil terjemahan dengan cara yang benar
+  const t = getTranslations(language).pageAirdrops;
 
   const [airdrop, setAirdrop] = useState(null);
   const [updates, setUpdates] = useState([]);
@@ -28,7 +40,6 @@ export default function AirdropDetailPage({ currentUser }) {
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   const fetchAirdropAndUpdates = useCallback(async () => {
-    // ... (Fungsi ini tidak berubah)
     if (!airdropSlug) { setLoading(false); setError("Airdrop slug tidak ditemukan di URL."); return; }
     setLoading(true);
     try {
@@ -67,7 +78,6 @@ export default function AirdropDetailPage({ currentUser }) {
         {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
       </Link>
       <div className="bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-        {/* ... (Bagian header gambar, judul, deskripsi, tutorial, dll TIDAK BERUBAH) ... */}
         <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}/>
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
         </div>
@@ -93,7 +103,6 @@ export default function AirdropDetailPage({ currentUser }) {
             <div ref={updatesSectionRef} className="my-8">
               <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                 <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
-                {/* Tombol baru untuk menuju halaman tambah update */}
                 {isAdmin && (
                   <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
                     <FontAwesomeIcon icon={faPlus} className="mr-1.5"/> Tambah Update
@@ -107,7 +116,6 @@ export default function AirdropDetailPage({ currentUser }) {
                     <div key={update.id} className="p-4 bg-dark rounded-lg relative group">
                       {isAdmin && (
                         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Tombol Edit yang mengarah ke halaman baru */}
                           <Link to={`/airdrops/${airdrop.slug}/update/${update.id}`} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update"><FontAwesomeIcon icon={faEdit}/></Link>
                           <button onClick={() => handleDeleteUpdate(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt}/></button>
                         </div>
