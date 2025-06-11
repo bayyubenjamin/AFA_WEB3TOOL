@@ -1,4 +1,5 @@
-// src/components/AirdropAdminForm.jsx - KODE FORM YANG SUDAH DIPERBAIKI
+// src/components/AirdropAdminForm.jsx - KODE FORM DENGAN FIELD BARU
+
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -8,15 +9,14 @@ import translationsEn from "../translations/en.json";
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Helper untuk membuat slug dari judul
 const generateSlug = (title) => {
   if (!title) return '';
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Hapus karakter non-alphanumeric kecuali spasi dan strip
+    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/\s+/g, '-') // Ganti spasi dengan strip
-    .replace(/-+/g, '-'); // Hapus strip berlebih
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 };
 
 
@@ -33,7 +33,9 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     image_url: '',
     description: '',
     date: '',
-    tutorial: ''
+    tutorial: '',
+    raise_amount: '', // <-- Field baru
+    confirmation_status: 'Potential' // <-- Field baru, default 'Potential'
   });
 
   const isEditing = !!initialData;
@@ -48,7 +50,6 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     const { name, value } = e.target;
     setFormData(prev => {
       const newState = { ...prev, [name]: value };
-      // Update slug secara otomatis saat judul diubah (hanya jika membuat baru)
       if (name === 'title' && !isEditing) {
         newState.slug = generateSlug(value);
       }
@@ -80,20 +81,16 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Judul Airdrop */}
           <div className="form-group">
             <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTitle}</label>
             <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="form-input" required />
           </div>
-
-          {/* Slug */}
           <div className="form-group">
             <label htmlFor="slug" className="block text-sm font-medium text-gray-300 mb-1.5">Slug (URL)</label>
             <input type="text" name="slug" id="slug" value={formData.slug} onChange={handleChange} className="form-input" placeholder="otomatis-terisi-dari-judul" required />
           </div>
         </div>
 
-        {/* Link & Image URL */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="form-group">
             <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelLink}</label>
@@ -105,7 +102,22 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
           </div>
         </div>
         
-        {/* Kategori, Status, Tanggal */}
+        {/* ====== BARIS BARU UNTUK RAISE & CONFIRMATION ====== */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="form-group">
+                <label htmlFor="raise_amount" className="block text-sm font-medium text-gray-300 mb-1.5">Raise Amount</label>
+                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
+            </div>
+            <div className="form-group">
+                <label htmlFor="confirmation_status" className="block text-sm font-medium text-gray-300 mb-1.5">Confirmation Status</label>
+                <select name="confirmation_status" id="confirmation_status" value={formData.confirmation_status} onChange={handleChange} className="form-input">
+                    <option value="Potential">Potential</option>
+                    <option value="Confirmed">Confirmed</option>
+                </select>
+            </div>
+        </div>
+        {/* ======================================================= */}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="form-group">
                 <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelType}</label>
@@ -130,19 +142,16 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
             </div>
         </div>
 
-        {/* Deskripsi */}
         <div className="form-group">
           <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelDescription}</label>
           <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows="4" className="form-input"></textarea>
         </div>
 
-        {/* Tutorial */}
         <div className="form-group">
           <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTutorial} (Mendukung Markdown)</label>
           <textarea name="tutorial" id="tutorial" value={formData.tutorial} onChange={handleChange} rows="10" className="form-input font-mono text-sm" placeholder={t.adminFormPlaceholderTutorial}></textarea>
         </div>
         
-        {/* Tombol Aksi */}
         <div className="flex justify-end gap-4 pt-4">
           <button type="button" onClick={onClose} disabled={loading} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.adminFormBtnCancel}</button>
           <button type="submit" disabled={loading} className="btn-primary px-6 py-2.5 rounded-lg text-sm flex items-center">
