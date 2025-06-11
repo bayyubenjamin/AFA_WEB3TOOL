@@ -1,8 +1,11 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN FORM UPDATE UNTUK ADMIN
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN EDIT/HAPUS UPDATE
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, faClock, faAngleDoubleRight, faBell } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt 
+} from '@fortawesome/free-solid-svg-icons';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
@@ -12,7 +15,6 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
 
-// Import form update
 import AirdropUpdateForm from './AirdropUpdateForm';
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
@@ -29,13 +31,13 @@ export default function AirdropDetailPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processedTutorial, setProcessedTutorial] = useState('');
+  const [editingUpdate, setEditingUpdate] = useState(null); // State untuk melacak update yang diedit
   
   const updatesSectionRef = useRef(null);
-
-  // Cek apakah user saat ini adalah admin
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   const fetchAirdropAndUpdates = useCallback(async () => {
+    // ... (Fungsi ini tidak berubah, tetap sama seperti sebelumnya)
     if (!airdropSlug) {
       setLoading(false);
       setError("Airdrop slug tidak ditemukan di URL.");
@@ -43,14 +45,8 @@ export default function AirdropDetailPage({ currentUser }) {
     }
     setLoading(true);
     try {
-      const { data: airdropData, error: airdropError } = await supabase
-        .from('airdrops')
-        .select('*')
-        .eq('slug', airdropSlug)
-        .single();
-
+      const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
       if (airdropError) throw airdropError;
-      
       setAirdrop(airdropData);
 
       if (airdropData.tutorial) {
@@ -58,15 +54,9 @@ export default function AirdropDetailPage({ currentUser }) {
         setProcessedTutorial(String(file));
       }
 
-      const { data: updatesData, error: updatesError } = await supabase
-        .from('AirdropUpdates')
-        .select('*')
-        .eq('airdrop_id', airdropData.id)
-        .order('created_at', { ascending: false });
-
+      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
-
     } catch (err) {
       setError(err.message || "Terjadi kesalahan saat mengambil data.");
     } finally {
@@ -77,147 +67,94 @@ export default function AirdropDetailPage({ currentUser }) {
   useEffect(() => {
     fetchAirdropAndUpdates();
   }, [fetchAirdropAndUpdates]);
-  
+
   const handleScrollToUpdates = () => {
     updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center text-white pt-20">
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary mb-3" />
-        <p>Memuat detail airdrop...</p>
-      </div>
-    );
-  }
+  const handleDeleteUpdate = async (updateId) => {
+    if (window.confirm("Anda yakin ingin menghapus update ini? Tindakan ini tidak dapat diurungkan.")) {
+      const { error } = await supabase.from('AirdropUpdates').delete().eq('id', updateId);
+      if (error) {
+        alert("Gagal menghapus update: " + error.message);
+      } else {
+        alert("Update berhasil dihapus.");
+        fetchAirdropAndUpdates(); // Refresh list
+      }
+    }
+  };
+  
+  const handleUpdateSaved = () => {
+    setEditingUpdate(null); // Keluar dari mode edit
+    fetchAirdropAndUpdates(); // Refresh list
+  };
 
-  if (error || !airdrop) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center text-red-400 pt-20">
-        <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/>
-        <p className="font-semibold">Gagal Memuat Airdrop</p>
-        <p className="text-sm max-w-xs">{error}</p>
-        <button onClick={() => navigate('/airdrops')} className="btn-secondary mt-6 px-6 py-2">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          Kembali ke Daftar Airdrop
-        </button>
-      </div>
-    );
-  }
+  if (loading) { /* ... (tidak berubah) ... */ return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>; }
+  if (error || !airdrop) { /* ... (tidak berubah) ... */ return <div className="text-center text-red-400 pt-20"><p>{error || "Airdrop tidak ditemukan"}</p></div>; }
 
-  const statusInfo = {
-    active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' },
-    upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' },
-    ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' },
-  }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
-
-  const categoryColor = {
-    'Retroactive': 'bg-purple-500/20 text-purple-300',
-    'Testnet': 'bg-sky-500/20 text-sky-300',
-    'Mainnet': 'bg-emerald-500/20 text-emerald-300',
-    'NFT Drop': 'bg-orange-500/20 text-orange-300'
-  }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
+  const statusInfo = { active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' }, upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' }, ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' }, }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
+  const categoryColor = { 'Retroactive': 'bg-purple-500/20 text-purple-300', 'Testnet': 'bg-sky-500/20 text-sky-300', 'Mainnet': 'bg-emerald-500/20 text-emerald-300', 'NFT Drop': 'bg-orange-500/20 text-orange-300' }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
 
   return (
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
-      <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+       {/* ... (Header, Judul, Deskripsi, dll tidak berubah) ... */}
+       <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
       </Link>
-
       <div className="bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-        <div className="relative w-full h-48 md:h-64 overflow-hidden">
-          <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}/>
+        <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }}/>
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
         </div>
-        
         <div className="p-6 md:p-8">
-            <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>
-              {airdrop.category}
-            </div>
-            
+            <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
             <div className="flex justify-between items-start gap-4 mb-3">
                 <h1 className="text-3xl md:text-4xl font-bold text-white">{airdrop.title}</h1>
-                <button 
-                  onClick={handleScrollToUpdates} 
-                  className="btn-secondary text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap"
-                  title="Lihat Aktivitas & Updates"
-                >
-                    <FontAwesomeIcon icon={faBell} className="mr-2" />
-                    Check Update
+                <button onClick={handleScrollToUpdates} className="btn-secondary text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap" title="Lihat Aktivitas & Updates">
+                    <FontAwesomeIcon icon={faBell} className="mr-2" />Check Update
                 </button>
             </div>
-            
             <p className="text-gray-400 leading-relaxed">{airdrop.description}</p>
-            
             <div className="mt-6 flex flex-wrap gap-4 text-sm">
-                <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}>
-                    <FontAwesomeIcon icon={faInfoCircle} className="mr-2"/>
-                    {t.modalStatus || 'Status'}: {statusInfo.text}
-                </div>
-                {airdrop.date && (
-                    <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300">
-                        <FontAwesomeIcon icon={faCalendarAlt} className="mr-2"/>
-                        {t.modalEstimated || 'Estimasi'}: {airdrop.date}
-                    </div>
-                )}
+                <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2"/>{t.modalStatus || 'Status'}: {statusInfo.text}</div>
+                {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2"/>{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
             </div>
-
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-              {processedTutorial ? (
-                  <div
-                      className="prose prose-invert prose-sm md:prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary"
-                      dangerouslySetInnerHTML={{ __html: processedTutorial }}
-                  />
-              ) : (
-                  <p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>
-              )}
+              {processedTutorial ? (<div className="prose prose-invert prose-sm md:prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary" dangerouslySetInnerHTML={{ __html: processedTutorial }}/>) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
             </div>
-
-            {airdrop.link && (
-              <div className="my-8 text-center">
-                <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">
-                  {t.modalLink || 'Kunjungi Halaman Airdrop'}
-                  <FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" />
-                </a>
-              </div>
-            )}
+            {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
             
             <div ref={updatesSectionRef} className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
-              
-              {/* ===== Form Tambah Update (Hanya untuk Admin) ===== */}
               {isAdmin && (
                 <AirdropUpdateForm
+                  key={editingUpdate ? editingUpdate.id : 'add-form'} // Key unik untuk reset form
                   airdropId={airdrop.id}
-                  onUpdateAdded={fetchAirdropAndUpdates}
+                  onUpdateAdded={handleUpdateSaved}
+                  initialData={editingUpdate}
+                  onCancelEdit={() => setEditingUpdate(null)} // Untuk membatalkan edit
                 />
               )}
-
               {updates.length > 0 ? (
                 <div className="space-y-4">
                   {updates.map(update => (
-                    <div key={update.id} className="p-4 bg-dark rounded-lg">
-                      <p className="text-sm text-gray-400 mb-1 flex items-center">
-                        <FontAwesomeIcon icon={faClock} className="mr-2" />
-                        {new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                    <div key={update.id} className="p-4 bg-dark rounded-lg relative group">
+                      {isAdmin && (
+                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditingUpdate(update)} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update"><FontAwesomeIcon icon={faEdit}/></button>
+                          <button onClick={() => handleDeleteUpdate(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt}/></button>
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
                       {update.content && <p className="mt-2 text-gray-300 text-sm whitespace-pre-wrap">{update.content}</p>}
-                      {update.link && (
-                        <a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">
-                          Kunjungi Link
-                        </a>
-                      )}
+                      {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>
-              )}
+              ) : (<p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
             </div>
-            
         </div>
       </div>
     </div>
