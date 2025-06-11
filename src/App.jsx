@@ -1,5 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN RUTE ADMIN
-
+// src/App.jsx - VERSI FINAL DENGAN RUTE UPDATE ADMIN
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
@@ -12,6 +11,7 @@ import PageAdminAirdrops from "./components/PageAdminAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
+import PageManageUpdate from "./components/PageManageUpdate"; // <-- IMPORT HALAMAN BARU
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -107,6 +107,11 @@ function MainAppContent() {
   }, []);
 
   useEffect(() => {
+    // Logika untuk judul header
+    if (location.pathname.includes('/update')) {
+        setHeaderTitle('Manage Update');
+        return;
+    }
     if (location.pathname === '/airdrops/postairdrops') {
         setHeaderTitle('Admin Panel');
         return;
@@ -149,8 +154,9 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = location.pathname !== '/airdrops/postairdrops';
-
+  
+  // Logika untuk menampilkan/menyembunyikan nav
+  const showNav = !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
     return (
@@ -173,6 +179,11 @@ function MainAppContent() {
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+          
+          {/* ===== RUTE BARU UNTUK HALAMAN UPDATE ===== */}
+          <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
@@ -191,4 +202,3 @@ export default function App() {
     </LanguageProvider>
   );
 }
-
