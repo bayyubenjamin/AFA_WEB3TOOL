@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN POSISI UPDATE DI BAWAH
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN POSISI TOMBOL DIPERBARUI
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -150,8 +150,18 @@ export default function AirdropDetailPage({ currentUser }) {
                   <p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>
               )}
             </div>
+
+            {/* ===== Tombol Visit Airdrop Page (Posisi Baru) ===== */}
+            {airdrop.link && (
+              <div className="my-8 text-center">
+                <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">
+                  {t.modalLink || 'Kunjungi Halaman Airdrop'}
+                  <FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" />
+                </a>
+              </div>
+            )}
             
-            {/* Bagian Aktivitas & Updates (Sekarang di paling bawah) */}
+            {/* Bagian Aktivitas & Updates */}
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
               {updates.length > 0 ? (
@@ -177,14 +187,6 @@ export default function AirdropDetailPage({ currentUser }) {
               )}
             </div>
             
-            {airdrop.link && (
-              <div className="mt-8 text-center">
-                <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">
-                  {t.modalLink || 'Kunjungi Halaman Airdrop'}
-                  <FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" />
-                </a>
-              </div>
-            )}
         </div>
       </div>
     </div>
