@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI PUBLIK (FORM DIHAPUS)
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN POSISI UPDATE DI BAWAH
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -138,7 +138,21 @@ export default function AirdropDetailPage({ currentUser }) {
                 )}
             </div>
 
-            <div className="mt-8">
+            {/* Bagian Tutorial */}
+            <div className="my-8">
+              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
+              {processedTutorial ? (
+                  <div
+                      className="prose prose-invert prose-sm md:prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary"
+                      dangerouslySetInnerHTML={{ __html: processedTutorial }}
+                  />
+              ) : (
+                  <p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>
+              )}
+            </div>
+            
+            {/* Bagian Aktivitas & Updates (Sekarang di paling bawah) */}
+            <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
               {updates.length > 0 ? (
                 <div className="space-y-4">
@@ -160,18 +174,6 @@ export default function AirdropDetailPage({ currentUser }) {
                 </div>
               ) : (
                 <p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>
-              )}
-            </div>
-
-            <div className="my-8">
-              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-              {processedTutorial ? (
-                  <div
-                      className="prose prose-invert prose-sm md:prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary"
-                      dangerouslySetInnerHTML={{ __html: processedTutorial }}
-                  />
-              ) : (
-                  <p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>
               )}
             </div>
             
