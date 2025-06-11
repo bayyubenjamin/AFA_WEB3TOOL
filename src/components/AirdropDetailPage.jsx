@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - VERSI DENGAN DETAIL RAISE & POTENTIAL
+// src/components/AirdropDetailPage.jsx - VERSI DENGAN UPDATE SECTION YANG BERBEDA
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle,
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus,
-  faCoins, faClipboardQuestion // Ikon baru
+  faCoins, faClipboardQuestion
 } from '@fortawesome/free-solid-svg-icons';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
@@ -20,7 +20,7 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen AirdropUpdateItem tidak berubah
+// Komponen AirdropUpdateItem (tidak ada perubahan)
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const [processedContent, setProcessedContent] = useState('');
@@ -41,7 +41,7 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   };
 
   return (
-    <div className="p-4 bg-dark rounded-lg relative group">
+    <div className="p-4 bg-dark rounded-lg relative group transition-colors hover:bg-black/30">
       {isAdmin && (
         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update">
@@ -91,7 +91,6 @@ export default function AirdropDetailPage({ currentUser }) {
     setLoading(true);
     setError(null);
     try {
-      // select('*') sudah otomatis mengambil semua kolom baru.
       const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
@@ -155,7 +154,6 @@ export default function AirdropDetailPage({ currentUser }) {
             dangerouslySetInnerHTML={{ __html: processedDescription }}
           />
 
-          {/* ====== AREA BARU UNTUK METADATA ====== */}
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
             
@@ -173,7 +171,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
-          {/* ========================================= */}
 
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
@@ -181,8 +178,9 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
-          <div ref={updatesSectionRef} className="my-8">
-            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+          {/* ====== PERUBAHAN DI SINI ====== */}
+          <div ref={updatesSectionRef} className="my-8 p-4 md:p-6 bg-black/20 rounded-2xl border border-white/5">
+            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
               {isAdmin && (
                 <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
@@ -192,7 +190,7 @@ export default function AirdropDetailPage({ currentUser }) {
             </div>
 
             {updates.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-4 mt-4">
                 {updates.map(update => (
                   <AirdropUpdateItem
                     key={update.id}
@@ -205,6 +203,8 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             ) : (<p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
           </div>
+           {/* =============================== */}
+
         </div>
       </div>
     </div>
