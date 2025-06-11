@@ -1,8 +1,8 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN POSISI TOMBOL DIPERBARUI
-import React, { useState, useEffect, useCallback } from 'react';
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN TOMBOL CHECK UPDATE
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, faClock, faAngleDoubleRight } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, faClock, faAngleDoubleRight, faBell } from '@fortawesome/free-solid-svg-icons';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
@@ -25,6 +25,9 @@ export default function AirdropDetailPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processedTutorial, setProcessedTutorial] = useState('');
+  
+  // Ref untuk menunjuk ke bagian update
+  const updatesSectionRef = useRef(null);
 
   const fetchAirdropAndUpdates = useCallback(async () => {
     if (!airdropSlug) {
@@ -68,6 +71,11 @@ export default function AirdropDetailPage({ currentUser }) {
   useEffect(() => {
     fetchAirdropAndUpdates();
   }, [fetchAirdropAndUpdates]);
+  
+  // Fungsi untuk scroll ke bagian update
+  const handleScrollToUpdates = () => {
+    updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   if (loading) {
     return (
@@ -122,7 +130,20 @@ export default function AirdropDetailPage({ currentUser }) {
             <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>
               {airdrop.category}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{airdrop.title}</h1>
+            
+            {/* ===== Perubahan di sini: Judul dan Tombol dalam satu baris ===== */}
+            <div className="flex justify-between items-start gap-4 mb-3">
+                <h1 className="text-3xl md:text-4xl font-bold text-white">{airdrop.title}</h1>
+                <button 
+                  onClick={handleScrollToUpdates} 
+                  className="btn-secondary text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap"
+                  title="Lihat Aktivitas & Updates"
+                >
+                    <FontAwesomeIcon icon={faBell} className="mr-2" />
+                    Check Update
+                </button>
+            </div>
+            
             <p className="text-gray-400 leading-relaxed">{airdrop.description}</p>
             
             <div className="mt-6 flex flex-wrap gap-4 text-sm">
@@ -151,7 +172,7 @@ export default function AirdropDetailPage({ currentUser }) {
               )}
             </div>
 
-            {/* ===== Tombol Visit Airdrop Page (Posisi Baru) ===== */}
+            {/* Tombol Visit Airdrop Page */}
             {airdrop.link && (
               <div className="my-8 text-center">
                 <a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">
@@ -161,8 +182,8 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             )}
             
-            {/* Bagian Aktivitas & Updates */}
-            <div className="my-8">
+            {/* Bagian Aktivitas & Updates dengan ref */}
+            <div ref={updatesSectionRef} className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">Aktivitas & Updates</h3>
               {updates.length > 0 ? (
                 <div className="space-y-4">
