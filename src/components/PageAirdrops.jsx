@@ -1,11 +1,11 @@
-// src/components/PageAirdrops.jsx - VERSI BARU DENGAN DETAIL RAISE & POTENTIAL
+// src/components/PageAirdrops.jsx - PENYESUAIAN LAYOUT SESUAI GAMBAR
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch, faSpinner, faExclamationTriangle, faCalendarAlt, faShieldHalved, faBullhorn,
-  faCoins, faClipboardQuestion // Ikon baru
+  faCoins, faClipboardQuestion
 } from "@fortawesome/free-solid-svg-icons";
 
 import { useLanguage } from "../context/LanguageContext";
@@ -17,7 +17,7 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// AirdropCard dengan semua notifikasi dan detail baru
+// AirdropCard dengan layout yang disesuaikan
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -37,7 +37,6 @@ const AirdropCard = ({ airdrop }) => {
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
   
-  // Gaya untuk status Potential/Confirmed
   const confirmationStyles = {
     'Potential': 'bg-yellow-500/20 text-yellow-300',
     'Confirmed': 'bg-green-500/20 text-green-300'
@@ -80,14 +79,19 @@ const AirdropCard = ({ airdrop }) => {
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
           
-          {/* ====== AREA BARU UNTUK RAISE & STATUS ====== */}
-          <div className="flex items-center gap-3 mb-3 text-xs">
-            {airdrop.raise_amount && (
+          {/* ====== PERUBAHAN DI SINI ====== */}
+          <div className="flex justify-between items-center mb-3 text-xs">
+            {/* Sisi Kiri: Raise Amount */}
+            {airdrop.raise_amount ? (
                 <div className="flex items-center bg-white/5 px-2 py-1 rounded-full text-gray-300" title="Total Pendanaan">
                     <FontAwesomeIcon icon={faCoins} className="text-yellow-400 mr-1.5"/>
                     <span className="font-semibold">Raise:</span>&nbsp;<span>{airdrop.raise_amount}</span>
                 </div>
+            ) : (
+                <div /> // Placeholder untuk menjaga layout justify-between
             )}
+
+            {/* Sisi Kanan: Status Konfirmasi */}
             {airdrop.confirmation_status && (
                 <div className={`flex items-center px-2 py-1 rounded-full font-semibold ${confirmationStyle}`} title="Status Konfirmasi Airdrop">
                     <FontAwesomeIcon icon={faClipboardQuestion} className="mr-1.5"/>
@@ -95,7 +99,7 @@ const AirdropCard = ({ airdrop }) => {
                 </div>
             )}
           </div>
-          {/* ============================================== */}
+          {/* =============================== */}
           
           <p className="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
             {airdrop.description}
@@ -113,7 +117,7 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-// Komponen Utama Halaman Airdrops (Fungsi fetch tidak berubah, karena select('*') sudah mencakup kolom baru)
+// Fungsi utama komponen PageAirdrops (tidak ada perubahan di sini)
 export default function PageAirdrops({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -131,8 +135,6 @@ export default function PageAirdrops({ currentUser }) {
     setLoading(true);
     setError(null);
     try {
-      // Ambil data airdrop beserta tanggal update terkait
-      // SELECT * sudah otomatis mengambil semua kolom termasuk yang baru
       const { data, error } = await supabase
         .from('airdrops')
         .select('*, AirdropUpdates(created_at)');
@@ -141,7 +143,6 @@ export default function PageAirdrops({ currentUser }) {
 
       const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
-      // Proses data untuk menambahkan flag notifikasi dan tanggal aktivitas terakhir
       const processedData = (data || []).map(airdrop => {
         const updates = airdrop.AirdropUpdates;
         let lastActivityAt = new Date(airdrop.created_at);
@@ -197,7 +198,6 @@ export default function PageAirdrops({ currentUser }) {
     ended: t.filterEnded || 'Selesai'
   };
   
-  // Sisa JSX dari komponen PageAirdrops tetap sama
   return (
     <>
       <section id="airdrops" className="page-content space-y-8 pt-8">
