@@ -1,10 +1,10 @@
-// src/components/PageProfile.jsx - VERSI REDESIGN PREMIUM
+// src/components/PageProfile.jsx - VERSI REDESIGN PREMIUM & PERBAIKAN BUG
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSignInAlt, faSignOutAlt, faEdit, faIdBadge, faRobot, faUserPlus,
   faEnvelope, faLock, faUser, faTimes, faSave, faEye, faEyeSlash, faImage, faSpinner, faKey,
-  faChartBar, faClipboardCheck, faStar, faWallet, faCopy
+  faChartBar, faClipboardCheck, faStar, faWallet, faCopy, faTasks
 } from "@fortawesome/free-solid-svg-icons";
 
 import { supabase } from "../supabaseClient";
@@ -13,6 +13,7 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
 const getTranslations = (lang) => {
+    // Menambahkan fallback ke object kosong jika key tidak ditemukan
     return lang === 'id' ? translationsId : translationsEn;
 };
 
@@ -73,7 +74,8 @@ const StatCard = ({ icon, label, value }) => (
 
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).profilePage;
+  // KUNCI PERBAIKAN: Menambahkan fallback `|| {}` untuk mencegah error jika `profilePage` tidak ditemukan.
+  const t = getTranslations(language).profilePage || {};
 
   const isLoggedIn = !!(currentUser && currentUser.id);
 
@@ -124,14 +126,14 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       if (signInError) throw signInError;
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
     } catch (err) {
-      setError(err.message || t.loginError);
+      setError(err.message || t.loginError || "Login Gagal");
     } finally { setLoading(false); }
   };
 
   const handleSignupRequestOtp = async (e) => {
     e.preventDefault(); clearMessages(); setLoading(true);
-    if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired); setLoading(false); return; }
-    if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch); setLoading(false); return; }
+    if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired || "Username, Email, dan Password harus diisi!"); setLoading(false); return; }
+    if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch || "Password tidak cocok!"); setLoading(false); return; }
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: signupEmail,
@@ -143,19 +145,19 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       if (error) throw error;
       setSuccessMessage((t.otpSent?.replace('{email}', signupEmail)) || `Kode OTP telah dikirim ke ${signupEmail}.`);
       setSignupStage('awaitingOtp');
-    } catch (err) { setError(err.message || t.sendOtpFailed); }
+    } catch (err) { setError(err.message || t.sendOtpFailed || "Gagal mengirim OTP."); }
     finally { setLoading(false); }
   };
 
   const handleVerifyOtpAndCompleteSignup = async (e) => {
     e.preventDefault(); clearMessages(); setLoading(true);
-    if (!otpCode) { setError(t.otpRequired); setLoading(false); return; }
+    if (!otpCode) { setError(t.otpRequired || "Kode OTP harus diisi!"); setLoading(false); return; }
     try {
       const { data: { session }, error: otpError } = await supabase.auth.verifyOtp({
         email: signupEmail, token: otpCode, type: 'signup',
       });
       if (otpError) throw otpError;
-      if (!session?.user) throw new Error(t.sessionNotFound);
+      if (!session?.user) throw new Error(t.sessionNotFound || "Sesi tidak ditemukan setelah verifikasi OTP.");
 
       const defaultAvatar = `https://placehold.co/100x100/7f5af0/FFFFFF?text=${signupUsername.substring(0,1).toUpperCase()}`;
 
@@ -171,9 +173,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       });
       if (profileError && profileError.code !== '23505') throw profileError;
 
-      setSuccessMessage(t.signupSuccess);
+      setSuccessMessage(t.signupSuccess || "Pendaftaran berhasil!");
     } catch (err) {
-      setError(err.message || t.verifyOtpFailed);
+      setError(err.message || t.verifyOtpFailed || "Verifikasi OTP Gagal.");
     } finally { setLoading(false); }
   };
 
@@ -198,9 +200,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
           const authInfo = { ...currentUser, user_metadata: { ...currentUser.user_metadata, name: data.name, username: data.username, avatar_url: data.avatar_url } };
           onUpdateUser(mapSupabaseDataToAppUser(authInfo, data));
       }
-      setSuccessMessage(t.profileUpdateSuccess);
+      setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!");
       setShowEditProfileModal(false);
-    } catch (err) { setError(err.message || t.profileUpdateError);
+    } catch (err) { setError(err.message || t.profileUpdateError || "Gagal update profil.");
     } finally { setLoading(false); }
   };
 
@@ -210,7 +212,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   if (currentUser === undefined) {
-    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp}</p></section>);
+    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp || "Memuat Aplikasi..."}</p></section>);
   }
 
   return (
@@ -280,7 +282,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
         </div>
       ) : (
         <>
-          {/* === START PROFILE HEADER === */}
+          {/* === START PROFILE HEADER (REDESIGNED) === */}
           <div className="card rounded-xl overflow-hidden shadow-2xl shadow-primary/10">
             <div className="h-32 md:h-40 bg-gradient-to-r from-primary/50 to-blue-500/30"></div>
             <div className="px-5 pb-5 sm:px-8 sm:pb-8 -mt-20">
@@ -326,7 +328,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
           </div>
           {/* === END PROFILE HEADER === */}
 
-          {/* === START STATS SECTION === */}
+          {/* === START STATS SECTION (REDESIGNED) === */}
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-white border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-2.5 text-primary" /> {t.statsTitle}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
