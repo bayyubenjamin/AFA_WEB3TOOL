@@ -1,22 +1,19 @@
-// src/components/Header.jsx
+// src/components/Header.jsx - DENGAN PENAMBAHAN FAKE ONLINE USERS
 import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// [EDIT]: Menambahkan ikon faSun dan faMoon
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-// [EDIT]: Menambahkan impor untuk useTheme
+import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 
-export default function Header({ title, currentUser, navigateTo }) {
+// [TAMBAHAN]: Terima prop 'onlineUsers'
+export default function Header({ title, currentUser, navigateTo, onlineUsers }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const { language, changeLanguage } = useLanguage(); // Gunakan hook useLanguage
-  // [EDIT]: Menggunakan hook useTheme untuk mendapatkan state tema dan fungsi toggle
+  const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
-  const toggleOptionsMenu = () => {
-    setIsOptionsMenuOpen(prev => !prev);
-  };
+  // ... (semua fungsi handle... tetap sama) ...
+  const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -24,29 +21,20 @@ export default function Header({ title, currentUser, navigateTo }) {
         setIsOptionsMenuOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
+  
   const handleLanguageChange = (lang) => {
-    changeLanguage(lang); // Panggil fungsi changeLanguage dari context
-    console.log(`Mengganti bahasa ke: ${lang}`);
+    changeLanguage(lang);
     setIsOptionsMenuOpen(false);
   };
-
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: document.title,
-        url: window.location.href,
-      }).then(() => {
-        console.log('Berhasil berbagi!');
-      }).catch((error) => {
-        console.error('Gagal berbagi:', error);
-      });
+      navigator.share({ title: document.title, url: window.location.href, })
+        .catch((error) => console.error('Gagal berbagi:', error));
     } else {
       alert("Fungsi berbagi tidak didukung di browser ini.");
       navigator.clipboard.writeText(window.location.href)
@@ -55,52 +43,55 @@ export default function Header({ title, currentUser, navigateTo }) {
     }
     setIsOptionsMenuOpen(false);
   };
-
   const handleAuthAction = () => {
-    if (currentUser && currentUser.id) {
-      navigateTo('profile');
-    } else {
-      navigateTo('profile');
-    }
+    navigateTo('profile');
     setIsOptionsMenuOpen(false);
   };
-
-  // [EDIT]: Menambahkan fungsi untuk handle toggle tema
   const handleToggleTheme = () => {
     toggleTheme();
     setIsOptionsMenuOpen(false);
   };
 
+
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
-      <div className="flex-none">
+      <div className="flex items-center flex-1 min-w-0">
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
           alt="Logo AFA"
-          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50"
+          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0"
         />
+        {/* [TAMBAHAN]: Tampilkan jumlah online di sebelah kiri (hanya di layar besar) */}
+        {onlineUsers > 0 && (
+          <div className="ml-4 hidden sm:flex items-center">
+             <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+            <span className="ml-2 text-xs font-medium text-green-400">{onlineUsers} Online</span>
+          </div>
+        )}
       </div>
 
       <h1
         id="headerTitle"
-        className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center flex-grow"
+        className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center"
       >
         {title}
       </h1>
 
-      <div className="relative flex-none" ref={menuRef}>
+      <div className="relative flex-1 flex justify-end" ref={menuRef}>
         <button
           onClick={toggleOptionsMenu}
           className="hamburger-menu"
           aria-label="Menu Opsi"
         >
-          {/* [EDIT]: Mengubah class agar mendukung light/dark mode */}
           <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
         </button>
 
         <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
-          <ul>
-            {/* [EDIT]: Menambahkan list item untuk toggle tema */}
+           {/* ... (isi menu tetap sama) ... */}
+           <ul>
             <li onClick={handleToggleTheme}>
               <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
