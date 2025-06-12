@@ -1,5 +1,4 @@
-// src/components/AirdropDetailPage.jsx - FINAL DENGAN REACT-MARKDOWN
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN PERBAIKAN PLUGIN
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,18 +6,9 @@ import {
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle,
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus
 } from '@fortawesome/free-solid-svg-icons';
-<<<<<<< HEAD
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
-=======
-
-// ===== PERUBAHAN: Impor library baru =====
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeVideo from 'rehype-video';
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -28,7 +18,6 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-<<<<<<< HEAD
 // Komponen untuk merender setiap item update (sudah diperbaiki)
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
@@ -48,12 +37,6 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const handleEdit = () => {
     navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
   };
-=======
-// Komponen untuk merender setiap item update
-const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
-  const navigate = useNavigate();
-  const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
 
   return (
     <div className="p-4 bg-dark rounded-lg relative group">
@@ -73,29 +56,19 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       </p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
       
-<<<<<<< HEAD
       {/* PERBAIKAN: Menggunakan class 'prose' untuk styling otomatis dari plugin typography */}
       {processedContent && (
         <div
           className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
           dangerouslySetInnerHTML={{ __html: processedContent }}
         />
-=======
-      {update.content && (
-        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg">
-          <ReactMarkdown
-            children={update.content}
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
-          />
-        </div>
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
       )}
       
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
 };
+
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
@@ -106,7 +79,9 @@ export default function AirdropDetailPage({ currentUser }) {
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+  const [processedTutorial, setProcessedTutorial] = useState('');
+  const [processedDescription, setProcessedDescription] = useState('');
+
   const updatesSectionRef = useRef(null);
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
@@ -118,7 +93,6 @@ export default function AirdropDetailPage({ currentUser }) {
       const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
-<<<<<<< HEAD
       
       const processMarkdown = async (markdown) => {
         if (!markdown) return '';
@@ -128,8 +102,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
       setProcessedTutorial(await processMarkdown(airdropData.tutorial));
       setProcessedDescription(await processMarkdown(airdropData.description));
-=======
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
 
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
@@ -174,20 +146,10 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
           
-<<<<<<< HEAD
           <div
             className="prose prose-invert prose-base max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400"
             dangerouslySetInnerHTML={{ __html: processedDescription }}
           />
-=======
-          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg">
-             <ReactMarkdown
-                children={airdrop.description}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
-             />
-          </div>
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
 
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
@@ -195,17 +157,7 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-<<<<<<< HEAD
             {processedTutorial ? (<div className="prose prose-invert prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline" dangerouslySetInnerHTML={{ __html: processedTutorial }} />) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
-=======
-             <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg">
-                <ReactMarkdown
-                   children={airdrop.tutorial || ''}
-                   remarkPlugins={[remarkGfm]}
-                   rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
-                />
-            </div>
->>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
           </div>
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
