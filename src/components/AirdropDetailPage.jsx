@@ -23,7 +23,7 @@ const getTranslations = (lang) => (lang === 'id' ? translationsId : translations
 
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
-  const handleEdit = () => navigate(`/airdrops/<span class="math-inline">\{airdropSlug\}/update/</span>{update.id}`);
+  const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
 
   return (
     <div className="p-4 bg-dark rounded-lg relative group">
