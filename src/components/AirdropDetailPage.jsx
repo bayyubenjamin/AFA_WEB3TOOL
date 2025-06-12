@@ -20,9 +20,15 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
+// [PERUBAHAN]: Komponen ini sekarang akan menampilkan info author
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
+  
+  // Ambil data author dari relasi 'profiles'
+  const authorName = update.profiles?.username || 'Admin';
+  // Default avatar jika tidak ada
+  const authorAvatar = update.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${authorName.charAt(0)}&background=2a2a3a&color=fff`;
 
   return (
     <div className="p-4 bg-dark rounded-lg relative group">
@@ -32,8 +38,17 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
           <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt} /></button>
         </div>
       )}
-      <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-      <h4 className="font-bold text-lg text-primary">{update.title}</h4>
+      {/* Tampilkan info author di sini */}
+      <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <img src={authorAvatar} alt={authorName} className="w-6 h-6 rounded-full object-cover border-2 border-primary/50" />
+            <span className="text-sm font-semibold text-gray-300">{authorName}</span>
+          </div>
+          <p className="text-xs text-gray-500 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-1.5" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+      </div>
+      
+      <h4 className="font-bold text-lg text-primary mt-1 mb-2">{update.title}</h4>
+      
       {update.content && (
         <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown
@@ -48,7 +63,7 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
             <ReactPlayer url={update.video_url} width="100%" height="100%" controls={true} />
         </div>
       )}
-      {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
+      {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-4 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
 };
@@ -76,6 +91,7 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
+      // [PERUBAHAN]: Query ini sekarang akan berhasil setelah foreign key dibuat
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
@@ -163,9 +179,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
           
-          {/* ==[PERUBAHAN ADA DI SINI]== */}
-          
-          {/* 1. Video Tutorial ditampilkan SEBELUM Aktivitas & Updates */}
           {airdrop.video_url && (
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
@@ -178,7 +191,6 @@ export default function AirdropDetailPage({ currentUser }) {
             </div>
           )}
 
-          {/* 2. Aktivitas & Updates ditampilkan di PALING AKHIR */}
           <div ref={updatesSectionRef} className="my-8">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
