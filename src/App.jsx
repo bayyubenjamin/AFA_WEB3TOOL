@@ -155,7 +155,6 @@ function MainAppContent() {
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
   
-  // Logika untuk menampilkan/menyembunyikan nav
   const showNav = !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
@@ -168,7 +167,8 @@ function MainAppContent() {
   }
 
   return (
-    <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
+    // [EDIT FINAL]: Menghapus bg-[#0a0a1a] dan text-white dari sini
+    <div className="font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} />}
       <main
         ref={pageContentRef}
@@ -180,7 +180,6 @@ function MainAppContent() {
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
           
-          {/* ===== RUTE BARU UNTUK HALAMAN UPDATE ===== */}
           <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
 
