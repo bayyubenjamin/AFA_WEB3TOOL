@@ -1,4 +1,3 @@
-// src/components/AirdropDetailPage.jsx - Koreksi Posisi Video
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -44,6 +43,11 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
           />
         </div>
       )}
+      {update.video_url && (
+        <div className="my-4 aspect-video w-full overflow-hidden rounded-lg shadow-md">
+            <ReactPlayer url={update.video_url} width="100%" height="100%" controls={true} />
+        </div>
+      )}
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
@@ -72,7 +76,7 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
+      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
     } catch (err) { setError(err.message || "Terjadi kesalahan saat mengambil data."); } finally { setLoading(false); }
@@ -159,7 +163,9 @@ export default function AirdropDetailPage({ currentUser }) {
 
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
           
-          {/* [PERUBAHAN]: Urutan dibalik. Video dulu, baru Aktivitas & Updates. */}
+          {/* ==[PERUBAHAN ADA DI SINI]== */}
+          
+          {/* 1. Video Tutorial ditampilkan SEBELUM Aktivitas & Updates */}
           {airdrop.video_url && (
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
@@ -172,6 +178,7 @@ export default function AirdropDetailPage({ currentUser }) {
             </div>
           )}
 
+          {/* 2. Aktivitas & Updates ditampilkan di PALING AKHIR */}
           <div ref={updatesSectionRef} className="my-8">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
