@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - FINAL DENGAN REACT-MARKDOWN
+// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL MENGGUNAKAN REMARK-OEMBED
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,7 +11,8 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import rehypeVideo from 'rehype-video';
+// [LANGKAH 1] Hapus rehype-video dan ganti dengan remark-oembed
+import remarkOembed from 'remark-oembed';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -41,8 +42,10 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
         <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
           <ReactMarkdown
             children={update.content}
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+            // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
+            remarkPlugins={[remarkGfm, remarkOembed]}
+            // [LANGKAH 3] Hapus rehypeVideo dari sini
+            rehypePlugins={[rehypeRaw]}
           />
         </div>
       )}
@@ -120,13 +123,15 @@ export default function AirdropDetailPage({ currentUser }) {
           <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
              <ReactMarkdown
                 children={airdrop.description || ''}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+                // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
+                remarkPlugins={[remarkGfm, remarkOembed]}
+                // [LANGKAH 3] Hapus rehypeVideo dari sini
+                rehypePlugins={[rehypeRaw]}
              />
           </div>
 
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
-            <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {t.modalStatus || 'Status'}: {statusInfo.text}</div>
+            <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
           <div className="my-8">
@@ -134,8 +139,10 @@ export default function AirdropDetailPage({ currentUser }) {
              <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
                 <ReactMarkdown
                    children={airdrop.tutorial || ''}
-                   remarkPlugins={[remarkGfm]}
-                   rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+                   // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
+                   remarkPlugins={[remarkGfm, remarkOembed]}
+                   // [LANGKAH 3] Hapus rehypeVideo dari sini
+                   rehypePlugins={[rehypeRaw]}
                 />
             </div>
           </div>
