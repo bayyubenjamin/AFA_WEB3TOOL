@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN PERBAIKAN PLUGIN
-=======
 // src/components/AirdropDetailPage.jsx - FINAL DENGAN REACT-MARKDOWN
 >>>>>>> 29cff5e (feat: implement react-markdown for video embeds)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
