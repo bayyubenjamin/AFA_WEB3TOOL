@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AFA WEB3TOOL (Beta)</string>
+    <string name="title_activity_main">AFA WEB3TOOL (Beta)</string>
+    <string name="package_name">com.airdrop4ll.app</string>
+    <string name="custom_url_scheme">com.airdrop4ll.app</string>
+</resources>

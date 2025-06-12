@@ -1,16 +1,18 @@
-// src/components/AirdropDetailPage.jsx - VERSI DENGAN UPDATE SECTION YANG BERBEDA
-
+// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL MENGGUNAKAN REHYPE-VIDEO
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle,
-  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus,
-  faCoins, faClipboardQuestion
+import { 
+  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
 } from '@fortawesome/free-solid-svg-icons';
-import { remark } from 'remark';
+
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
-import remarkHtml from 'remark-html';
+import remarkRehype from 'remark-rehype';
+import rehypeVideo from 'rehype-video'; // <-- PLUGIN BARU YANG BENAR
+import rehypeStringify from 'rehype-stringify';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -20,47 +22,44 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen AirdropUpdateItem (tidak ada perubahan)
+// Fungsi helper untuk memproses Markdown menjadi HTML dengan video embed
+const processMarkdown = async (markdown) => {
+  if (!markdown) return '';
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype, { allowDangerousHtml: true }) // Izinkan HTML mentah
+    .use(rehypeVideo, { details: false }) // Gunakan plugin video
+    .use(rehypeStringify)
+    .process(markdown);
+  return String(file);
+};
+
+// Komponen untuk merender setiap item update
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const [processedContent, setProcessedContent] = useState('');
 
   useEffect(() => {
-    if (update.content) {
-      remark().use(remarkGfm).use(remarkHtml).process(update.content)
-        .then(file => {
-          setProcessedContent(String(file));
-        });
-    } else {
-      setProcessedContent('');
-    }
+    processMarkdown(update.content).then(html => setProcessedContent(html));
   }, [update.content]);
 
-  const handleEdit = () => {
-    navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
-  };
+  const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
 
   return (
-    <div className="p-4 bg-dark rounded-lg relative group transition-colors hover:bg-black/30">
+    <div className="p-4 bg-dark rounded-lg relative group">
       {isAdmin && (
         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update">
-            <FontAwesomeIcon icon={faEdit} />
-          </button>
-          <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update">
-            <FontAwesomeIcon icon={faTrashAlt} />
-          </button>
+          <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update"><FontAwesomeIcon icon={faEdit} /></button>
+          <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt} /></button>
         </div>
       )}
-      <p className="text-sm text-gray-400 mb-1 flex items-center">
-        <FontAwesomeIcon icon={faClock} className="mr-2" />
-        {new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-      </p>
+      <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
       
       {processedContent && (
         <div
-          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
           dangerouslySetInnerHTML={{ __html: processedContent }}
         />
       )}
@@ -95,12 +94,6 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
       
-      const processMarkdown = async (markdown) => {
-        if (!markdown) return '';
-        const file = await remark().use(remarkGfm).use(remarkHtml).process(markdown);
-        return String(file);
-      };
-
       setProcessedTutorial(await processMarkdown(airdropData.tutorial));
       setProcessedDescription(await processMarkdown(airdropData.description));
 
@@ -127,8 +120,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
   const statusInfo = { active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' }, upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' }, ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' }, }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
   const categoryColor = { 'Retroactive': 'bg-purple-500/20 text-purple-300', 'Testnet': 'bg-sky-500/20 text-sky-300', 'Mainnet': 'bg-emerald-500/20 text-emerald-300', 'NFT Drop': 'bg-orange-500/20 text-orange-300' }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
-  const confirmationStyles = { 'Potential': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300', 'Confirmed': 'border-green-500/50 bg-green-500/10 text-green-300' };
-  const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-300';
 
   return (
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
@@ -150,37 +141,26 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           
           <div
-            className="prose prose-invert prose-base max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400"
+            className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
             dangerouslySetInnerHTML={{ __html: processedDescription }}
           />
 
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
-            
-            {airdrop.confirmation_status && (
-              <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${confirmationStyle}`}>
-                <FontAwesomeIcon icon={faClipboardQuestion} className="mr-2" />Airdrop: {airdrop.confirmation_status}
-              </div>
-            )}
-            
-            {airdrop.raise_amount && (
-              <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300">
-                <FontAwesomeIcon icon={faCoins} className="mr-2 text-yellow-400" />Raise: {airdrop.raise_amount}
-              </div>
-            )}
-
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
-
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            {processedTutorial ? (<div className="prose prose-invert prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline" dangerouslySetInnerHTML={{ __html: processedTutorial }} />) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
+            {processedTutorial ? (
+              <div 
+                className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
+                dangerouslySetInnerHTML={{ __html: processedTutorial }} />
+            ) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
           </div>
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
-          {/* ====== PERUBAHAN DI SINI ====== */}
-          <div ref={updatesSectionRef} className="my-8 p-4 md:p-6 bg-black/20 rounded-2xl border border-white/5">
-            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
+          <div ref={updatesSectionRef} className="my-8">
+            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
               {isAdmin && (
                 <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
@@ -190,7 +170,7 @@ export default function AirdropDetailPage({ currentUser }) {
             </div>
 
             {updates.length > 0 ? (
-              <div className="space-y-4 mt-4">
+              <div className="space-y-4">
                 {updates.map(update => (
                   <AirdropUpdateItem
                     key={update.id}
@@ -203,8 +183,6 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             ) : (<p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
           </div>
-           {/* =============================== */}
-
         </div>
       </div>
     </div>
