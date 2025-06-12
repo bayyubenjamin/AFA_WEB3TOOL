@@ -13,8 +13,8 @@
     "myWork": "Garapanku",
     "airdrops": "Airdrop",
     "forum": "Forum",
-    "profile": "Profil"
-    "events": "Event" // [TAMBAHAN]
+    "profile": "Profil",
+    "events": "Event"
   },
   "homePage": {
     "heroTitle": "Maksimalkan Potensi Airdrop Anda",
@@ -218,8 +218,7 @@
     "saveButton": "Simpan Garapan",
     "requiredFieldsAlert": "Nama dan Kategori Airdrop wajib diisi."
   },
-  // ... (homePage, myWorkPage, etc)
-  "eventsPage": { // [TAMBAHAN]
+  "eventsPage": {
     "title": "Event & Giveaway Spesial",
     "subtitle": "Ikuti event eksklusif untuk anggota komunitas AFA dan menangkan hadiah menarik!",
     "loginPromptTitle": "Akses Dibatasi",

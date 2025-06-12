@@ -13,8 +13,8 @@
     "myWork": "My Work",
     "airdrops": "Airdrops",
     "forum": "Forum",
-    "profile": "Profile"
-    "events": "Events" // [TAMBAHAN]
+    "profile": "Profile",
+    "events": "Events"
   },
   "homePage": {
     "heroTitle": "Maximize Your Airdrop Potential",
@@ -218,8 +218,7 @@
     "saveButton": "Save Task",
     "requiredFieldsAlert": "Airdrop Name and Category are required."
   },
-  // ... (homePage, myWorkPage, etc)
-  "eventsPage": { // [TAMBAHAN]
+  "eventsPage": {
     "title": "Special Events & Giveaways",
     "subtitle": "Join exclusive events for AFA community members and win exciting prizes!",
     "loginPromptTitle": "Access Restricted",
