@@ -1,4 +1,3 @@
-// src/components/AirdropAdminForm.jsx - DENGAN TAMBAHAN VIDEO URL
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -27,7 +26,6 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     title: '',
     slug: '',
     link: '',
-    // [PERUBAHAN 1]: Tambahkan video_url di sini
     video_url: '', 
     category: 'Retroactive',
     status: 'upcoming',
@@ -43,10 +41,19 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
 
   useEffect(() => {
     if (isEditing) {
-      // Pastikan semua field terisi dari initialData, termasuk yang mungkin null
       setFormData({
-        ...formData, // Ambil default state
-        ...initialData // Timpa dengan data yang ada
+        title: initialData.title || '',
+        slug: initialData.slug || '',
+        link: initialData.link || '',
+        video_url: initialData.video_url || '',
+        category: initialData.category || 'Retroactive',
+        status: initialData.status || 'upcoming',
+        image_url: initialData.image_url || '',
+        description: initialData.description || '',
+        date: initialData.date || '',
+        tutorial: initialData.tutorial || '',
+        raise_amount: initialData.raise_amount || '',
+        confirmation_status: initialData.confirmation_status || 'Potential'
       });
     }
   }, [initialData, isEditing]);
@@ -96,21 +103,21 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
           </div>
         </div>
 
+        {/* [PENYESUAIAN] Mengelompokkan semua link */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="form-group">
-            <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelLink}</label>
-            <input type="url" name="link" id="link" value={formData.link} onChange={handleChange} className="form-input" placeholder="https://" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="image_url" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelImageUrl}</label>
-            <input type="url" name="image_url" id="image_url" value={formData.image_url} onChange={handleChange} className="form-input" placeholder="https://" required />
-          </div>
+            <div className="form-group">
+                <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelLink}</label>
+                <input type="url" name="link" id="link" value={formData.link} onChange={handleChange} className="form-input" placeholder="https://proyek-airdrop.com" />
+            </div>
+            <div className="form-group">
+                <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">Link Video Tutorial (Opsional)</label>
+                <input type="url" name="video_url" id="video_url" value={formData.video_url} onChange={handleChange} className="form-input" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." />
+            </div>
         </div>
         
-        {/* [PERUBAHAN 2]: Tambahkan field untuk Video URL di sini */}
         <div className="form-group">
-            <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">Link Video Tutorial (Opsional)</label>
-            <input type="url" name="video_url" id="video_url" value={formData.video_url || ''} onChange={handleChange} className="form-input" placeholder="https://youtube.com/watch?v=..." />
+            <label htmlFor="image_url" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelImageUrl}</label>
+            <input type="url" name="image_url" id="image_url" value={formData.image_url} onChange={handleChange} className="form-input" placeholder="https://" required />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
