@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL MENGGUNAKAN REMARK-OEMBED
+// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL (KEMBALI KE REHYPE-VIDEO)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,7 +11,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import remarkOembed from 'remark-oembed';
+import rehypeVideo from 'rehype-video'; // Kembali menggunakan rehype-video
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -40,8 +40,8 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
         <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
           <ReactMarkdown
             children={update.content}
-            remarkPlugins={[remarkGfm, remarkOembed]}
-            rehypePlugins={[rehypeRaw]}
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
           />
         </div>
       )}
@@ -119,8 +119,8 @@ export default function AirdropDetailPage({ currentUser }) {
           <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
              <ReactMarkdown
                 children={airdrop.description || ''}
-                remarkPlugins={[remarkGfm, remarkOembed]}
-                rehypePlugins={[rehypeRaw]}
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
              />
           </div>
 
@@ -133,8 +133,8 @@ export default function AirdropDetailPage({ currentUser }) {
              <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
                 <ReactMarkdown
                    children={airdrop.tutorial || ''}
-                   remarkPlugins={[remarkGfm, remarkOembed]}
-                   rehypePlugins={[rehypeRaw]}
+                   remarkPlugins={[remarkGfm]}
+                   rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
                 />
             </div>
           </div>
