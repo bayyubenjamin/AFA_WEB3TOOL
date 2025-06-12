@@ -1,4 +1,4 @@
-// src/components/AirdropUpdateForm.jsx - BISA UNTUK TAMBAH & EDIT
+// src/components/AirdropUpdateForm.jsx - DENGAN TAMBAHAN VIDEO URL
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,6 +8,8 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [link, setLink] = useState('');
+  // [PERUBAHAN 1] Tambahkan state untuk video_url
+  const [videoUrl, setVideoUrl] = useState(''); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -18,11 +20,14 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
       setTitle(initialData.title || '');
       setContent(initialData.content || '');
       setLink(initialData.link || '');
+      // [PERUBAHAN 2] Isi state video_url jika sedang mengedit
+      setVideoUrl(initialData.video_url || ''); 
     } else {
       // Reset form jika beralih dari mode edit ke tambah
       setTitle('');
       setContent('');
       setLink('');
+      setVideoUrl('');
     }
   }, [initialData, isEditing]);
 
@@ -35,16 +40,19 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
     setLoading(true);
     setError(null);
 
+    // [PERUBAHAN 3] Siapkan data untuk dikirim, termasuk video_url
+    const dataToSubmit = { title, content, link, video_url: videoUrl };
+
     let result;
     if (isEditing) {
       result = await supabase
         .from('AirdropUpdates')
-        .update({ title, content, link })
+        .update(dataToSubmit)
         .eq('id', initialData.id);
     } else {
       result = await supabase
         .from('AirdropUpdates')
-        .insert({ airdrop_id: airdropId, title, content, link });
+        .insert({ ...dataToSubmit, airdrop_id: airdropId });
     }
 
     setLoading(false);
@@ -53,7 +61,7 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
       setError(result.error.message);
     } else {
       if (onUpdateAdded) {
-        onUpdateAdded(); // Panggil callback untuk refresh & keluar dari mode edit
+        onUpdateAdded();
       }
     }
   };
@@ -73,8 +81,13 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
           <textarea id="update-content" value={content} onChange={(e) => setContent(e.target.value)} rows="3" className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="Tulis detail atau langkah-langkah di sini..." disabled={loading}/>
         </div>
         <div>
-          <label htmlFor="update-link" className="block text-sm font-medium text-gray-300 mb-1">Link (Opsional)</label>
+          <label htmlFor="update-link" className="block text-sm font-medium text-gray-300 mb-1">Link Eksternal (Opsional)</label>
           <input id="update-link" type="url" value={link} onChange={(e) => setLink(e.target.value)} className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="https://galxe.com/..." disabled={loading}/>
+        </div>
+        {/* [PERUBAHAN 4] Tambahkan field input untuk video_url */}
+        <div>
+          <label htmlFor="update-video-url" className="block text-sm font-medium text-gray-300 mb-1">Link Video (Opsional)</label>
+          <input id="update-video-url" type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." disabled={loading}/>
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <div className="text-right flex justify-end gap-3">
