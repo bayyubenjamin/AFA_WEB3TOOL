@@ -23,12 +23,16 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancel
   if (!isOpen) return null;
   return (
     <div className="modal active">
+      {/* [EDIT] Class .modal-content sudah theme-aware */}
       <div className="modal-content max-w-sm">
         <div className="modal-header">
+          {/* [EDIT] Class .modal-title sudah theme-aware */}
           <h3 className="modal-title">{title}</h3>
+          {/* [EDIT] Class .modal-close-btn sudah theme-aware */}
           <button className="modal-close-btn" onClick={onClose}>&times;</button>
         </div>
-        <p className="text-gray-300 my-4">{message}</p>
+        {/* [EDIT] Tambahkan class untuk warna teks */}
+        <p className="text-light-subtle dark:text-gray-300 my-4">{message}</p>
         <div className="modal-footer">
           <button onClick={onClose} className="btn-secondary">{cancelText}</button>
           <button onClick={onConfirm} className="btn-danger">{confirmText}</button>
@@ -38,7 +42,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancel
   );
 };
 
-// Komponen helper untuk mendapatkan objek ikon FontAwesome
+// ... (sisa helper function tidak perlu diubah) ...
 const getIconObjectFromString = (iconString) => {
   if (!iconString || typeof iconString !== 'string') return faTag;
   const iconName = iconString.replace('fas fa-', '');
@@ -46,7 +50,6 @@ const getIconObjectFromString = (iconString) => {
   return iconMap[iconName] || faTag;
 };
 
-// Definisikan daftar warna Tailwind CSS
 const tailwindColors = [
   'text-blue-400', 'text-purple-400', 'text-green-400', 'text-orange-400',
   'text-red-400', 'text-yellow-400', 'text-pink-400', 'text-teal-400',
@@ -55,13 +58,11 @@ const tailwindColors = [
   'text-lime-500', 'text-emerald-500', 'text-sky-500', 'text-rose-500'
 ];
 
-// Fungsi untuk mendapatkan kelas warna acak
 const getRandomColorClass = () => {
   const randomIndex = Math.floor(Math.random() * tailwindColors.length);
   return tailwindColors[randomIndex];
 };
 
-// Komponen Notifikasi Toast
 const Notification = ({ message, type, onClose }) => {
   if (!message) return null;
   const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -82,13 +83,12 @@ export default function PageMyWork({ currentUser }) {
   const pageMyWorkT = t.myWorkPage;
   const modalAirdropT = t.modalManageAirdrop;
 
+  // ... (semua state dan hooks tidak berubah) ...
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [notification, setNotification] = useState(null);
-
   const [showManageCategoryModal, setShowManageCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [showManageAirdropModal, setShowManageAirdropModal] = useState(false);
@@ -99,39 +99,29 @@ export default function PageMyWork({ currentUser }) {
   const [openDropdownKey, setOpenDropdownKey] = useState(null);
   const dropdownRefs = useRef({});
 
+  // ... (semua fungsi handle... tidak berubah) ...
   const fetchData = useCallback(async () => {
     if (!currentUser || !currentUser.id) {
         setLoading(false);
         setError(pageMyWorkT.errorAuth);
         return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
       const { data, error: fetchError } = await supabase
         .from('user_categories')
         .select(`*, user_airdrops (*)`)
         .eq('user_id', currentUser.id)
         .order('display_order', { ascending: true });
-
       if (fetchError) throw fetchError;
-
-      // ========================= BLOK PERBAIKAN LOGIKA DATA =========================
-      // Memastikan tidak ada kategori atau airdrop yang null sebelum diproses lebih lanjut
       const processedData = (data || [])
-        .filter(cat => cat != null) // <-- [PERBAIKAN 2]: Filter kategori null
+        .filter(cat => cat != null)
         .map(cat => {
             const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
             validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            return {
-                ...cat,
-                user_airdrops: validAirdrops
-            };
+            return { ...cat, user_airdrops: validAirdrops };
       });
-      // ==================================================================================
-
       setCategories(processedData);
     } catch (err) {
       console.error("Error fetching my work data:", err);
@@ -166,18 +156,11 @@ export default function PageMyWork({ currentUser }) {
 
   const handleSaveCategory = async ({ name, icon, iconColor }) => {
     if (!name.trim() || !currentUser) return;
-
-    let categoryData = {
-        name: name,
-        icon: icon,
-        user_id: currentUser.id,
-    };
-
+    let categoryData = { name: name, icon: icon, user_id: currentUser.id };
     let error;
     if (editingCategory) {
         categoryData.iconColor = iconColor;
         ({ error } = await supabase.from('user_categories').update({ name, icon, iconColor }).eq('id', editingCategory.id).eq('user_id', currentUser.id));
-
         if (!error) {
             setCategories(prevCategories => prevCategories.map(cat =>
                 cat.id === editingCategory.id ? { ...cat, name, icon, iconColor } : cat
@@ -188,9 +171,7 @@ export default function PageMyWork({ currentUser }) {
         categoryData.iconColor = getRandomColorClass();
         const { count } = await supabase.from('user_categories').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
         categoryData.display_order = count || 0;
-
         const { data: newCategoryArr, error: insertError } = await supabase.from('user_categories').insert(categoryData).select();
-
         if (insertError) {
             error = insertError;
         } else if (newCategoryArr && newCategoryArr.length > 0) {
@@ -201,19 +182,16 @@ export default function PageMyWork({ currentUser }) {
             error = { message: pageMyWorkT.notificationSaveCategoryError + "Data not found after insert." };
         }
     }
-
     if (error) {
       console.error("Error saving category:", error);
       setNotification({ message: pageMyWorkT.notificationSaveCategoryError + error.message, type: "error" });
     }
-
     setShowManageCategoryModal(false);
     setEditingCategory(null);
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget || !currentUser) return;
-
     let error;
     if (deleteTarget.type === 'category') {
         ({ error } = await supabase.from('user_categories').delete().eq('id', deleteTarget.id).eq('user_id', currentUser.id));
@@ -232,12 +210,10 @@ export default function PageMyWork({ currentUser }) {
             setNotification({ message, type: "success" }); 
         }
     }
-
     if (error) {
       console.error("Error deleting item:", error);
       setNotification({ message: pageMyWorkT.notificationDeleteCategoryError + error.message, type: "error" });
     }
-
     setShowConfirmDeleteModal(false);
     setDeleteTarget(null);
   };
@@ -247,17 +223,14 @@ export default function PageMyWork({ currentUser }) {
         setNotification({ message: modalAirdropT.requiredFieldsAlert, type: "error" }); 
         return;
     }
-
     const dataToSave = { ...airdropData, user_id: currentUser.id };
     if (!editingAirdrop) { delete dataToSave.id; }
-
     let error;
     if (editingAirdrop) {
         ({ error } = await supabase.from('user_airdrops').update(dataToSave).eq('id', editingAirdrop.id).eq('user_id', currentUser.id));
     } else {
         ({ error } = await supabase.from('user_airdrops').insert(dataToSave).select());
     }
-
     if (error) {
         console.error("Error saving airdrop:", error);
         setNotification({ message: pageMyWorkT.notificationSaveAirdropError + error.message, type: "error" });
@@ -265,7 +238,6 @@ export default function PageMyWork({ currentUser }) {
         await fetchData();
         setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
     }
-
     setShowManageAirdropModal(false);
     setEditingAirdrop(null);
     setCategoryForNewAirdrop(null);
@@ -274,7 +246,6 @@ export default function PageMyWork({ currentUser }) {
   const handleToggleDailyDone = async (item) => {
       const newDailyDoneStatus = !item.daily_done;
       const { error } = await supabase.from('user_airdrops').update({ daily_done: newDailyDoneStatus }).eq('id', item.id).eq('user_id', currentUser.id);
-
       if(error) {
         console.error("Error toggling daily done:", error);
         setNotification({ message: "Failed to update daily status: " + error.message, type: "error" });
@@ -293,15 +264,11 @@ export default function PageMyWork({ currentUser }) {
         setNotification({ message: pageMyWorkT.errorAuth, type: "error" });
         return;
     }
-
     const currentCategories = [...categories].sort((a, b) => a.display_order - b.display_order);
-
     const categoryToMoveIndex = currentCategories.findIndex(cat => cat.id === catId);
     if (categoryToMoveIndex === -1) return;
-
     const categoryToMove = currentCategories[categoryToMoveIndex];
     let targetCategoryIndex;
-
     if (direction === 'up') {
       if (categoryToMoveIndex === 0) return;
       targetCategoryIndex = categoryToMoveIndex - 1;
@@ -309,11 +276,9 @@ export default function PageMyWork({ currentUser }) {
       if (categoryToMoveIndex === currentCategories.length - 1) return;
       targetCategoryIndex = categoryToMoveIndex + 1;
     }
-
     const targetCategory = currentCategories[targetCategoryIndex];
     const newOrderCategoryToMove = targetCategory.display_order;
     const newOrderTargetCategory = categoryToMove.display_order;
-
     try {
       await supabase.from('user_categories').update({ display_order: newOrderCategoryToMove }).eq('id', categoryToMove.id);
       await supabase.from('user_categories').update({ display_order: newOrderTargetCategory }).eq('id', targetCategory.id);
@@ -359,12 +324,15 @@ export default function PageMyWork({ currentUser }) {
         />
       )}
       <section className="page-content space-y-6 pt-6">
+        {/* [EDIT] Class .card sudah theme-aware */}
         <div className="card rounded-xl p-4 md:p-6">
           <div className="main-category-header">
-            <h2 className="text-xl font-semibold text-primary flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5" /> {pageMyWorkT.mainHeader} </h2>
+            {/* [EDIT] Ganti warna h2 dari text-primary menjadi text-light-text dark:text-white */}
+            <h2 className="text-xl font-semibold text-light-text dark:text-white flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5 text-primary" /> {pageMyWorkT.mainHeader} </h2>
             <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-xs px-3 py-1.5 rounded-md flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-3 h-3" />{pageMyWorkT.addCategory} </button> </div>
           </div>
-          {categories.length === 0 && ( <p className="text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
+          {/* [EDIT] Tambahkan class warna teks */}
+          {categories.length === 0 && ( <p className="text-light-subtle dark:text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
           <div className="space-y-4">
             {categories.map((category, index) => {
               const itemsInCategory = category.user_airdrops || [];
@@ -381,9 +349,11 @@ export default function PageMyWork({ currentUser }) {
                       tabIndex={0}
                       onClick={() => handleToggleCategory(category.id)}
                   >
-                    <div className={`category-title-container flex items-center ${categoryColorClass}`}>
-                      <FontAwesomeIcon icon={iconObject} className={`mr-2 w-4 h-4`} />
-                      <span className="category-title-text">{category.name}</span>
+                    <div className={`category-title-container flex items-center`}>
+                       {/* [EDIT] Hapus categoryColorClass dari sini agar tidak menimpa warna teks */}
+                      <FontAwesomeIcon icon={iconObject} className={`mr-2 w-4 h-4 ${categoryColorClass}`} />
+                      {/* [EDIT] Tambahkan class warna teks */}
+                      <span className="category-title-text text-light-text dark:text-white">{category.name}</span>
                       <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
                     </div>
                     <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
@@ -398,7 +368,32 @@ export default function PageMyWork({ currentUser }) {
                     </div>
                   </div>
                   <ul className={`airdrop-list-container ${isExpanded ? 'expanded' : 'collapsed'}`}>
-                    {categoryIsEmpty ? ( <p className="empty-category-message">{pageMyWorkT.noTasksInCategory}</p> ) : ( itemsInCategory.map(item => ( <li key={item.id} className="airdrop-list-item"> <div className="airdrop-item-main"> <button onClick={() => handleToggleDailyDone(item)} className={`btn-done-today ${item.daily_done ? 'marked' : ''}`} > <FontAwesomeIcon icon={item.daily_done ? fasFaCheckCircle : farFaCheckCircle} className="w-4 h-4" /> </button> <a href={item.link} target="_blank" rel="noopener noreferrer" className="airdrop-link"> <div className="ml-1"> <span className="name">{item.name}</span> <p className="task-desc">{item.description || pageMyWorkT.descriptionPlaceholder}</p> </div> </a> </div> <span className={`status-badge ${item.status === 'completed' ? 'status-completed' : 'status-inprogress'}`}> {item.status === 'completed' ? pageMyWorkT.statusCompleted : pageMyWorkT.statusInProgress} </span> <div className="airdrop-item-actions"> <button onClick={() => openEditAirdropModal(item)} className="edit-btn" title={pageMyWorkT.editTask}> <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" /> </button> <button onClick={() => confirmDeleteAirdropItem(item)} className="delete-btn" title={pageMyWorkT.deleteTask}> <FontAwesomeIcon icon={faTrashAlt} className="w-3.5 h-3.5" /> </button> </div> </li> )) )}
+                    {categoryIsEmpty ? ( 
+                      // [EDIT] Class empty-category-message sudah di-update di CSS
+                      <p className="empty-category-message">{pageMyWorkT.noTasksInCategory}</p> 
+                    ) : ( itemsInCategory.map(item => ( 
+                      // [EDIT] Class airdrop-list-item sudah di-update di CSS
+                      <li key={item.id} className="airdrop-list-item"> 
+                        <div className="airdrop-item-main"> 
+                          {/* [EDIT] Class btn-done-today sudah di-update di CSS */}
+                          <button onClick={() => handleToggleDailyDone(item)} className={`btn-done-today ${item.daily_done ? 'marked' : ''}`} > 
+                            <FontAwesomeIcon icon={item.daily_done ? fasFaCheckCircle : farFaCheckCircle} className="w-4 h-4" /> 
+                          </button> 
+                          <a href={item.link} target="_blank" rel="noopener noreferrer" className="airdrop-link"> 
+                            <div className="ml-1"> 
+                              {/* [EDIT] Class .name dan .task-desc sudah di-update di CSS */}
+                              <span className="name">{item.name}</span> 
+                              <p className="task-desc">{item.description || pageMyWorkT.descriptionPlaceholder}</p> 
+                            </div> 
+                          </a> 
+                        </div> 
+                        <span className={`status-badge ${item.status === 'completed' ? 'status-completed' : 'status-inprogress'}`}> {item.status === 'completed' ? pageMyWorkT.statusCompleted : pageMyWorkT.statusInProgress} </span> 
+                        <div className="airdrop-item-actions"> 
+                          <button onClick={() => openEditAirdropModal(item)} className="edit-btn" title={pageMyWorkT.editTask}> <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" /> </button> 
+                          <button onClick={() => confirmDeleteAirdropItem(item)} className="delete-btn" title={pageMyWorkT.deleteTask}> <FontAwesomeIcon icon={faTrashAlt} className="w-3.5 h-3.5" /> </button> 
+                        </div> 
+                      </li> 
+                    )))}
                   </ul>
                 </div>
               );
