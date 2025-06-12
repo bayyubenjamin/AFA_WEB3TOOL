@@ -368,3 +368,4 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     </section>
   );
 }
+

@@ -1,13 +1,18 @@
 // src/components/Header.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+// [EDIT]: Menambahkan ikon faSun dan faMoon
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
+// [EDIT]: Menambahkan impor untuk useTheme
+import { useTheme } from "../context/ThemeContext";
 
 export default function Header({ title, currentUser, navigateTo }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage(); // Gunakan hook useLanguage
+  // [EDIT]: Menggunakan hook useTheme untuk mendapatkan state tema dan fungsi toggle
+  const { theme, toggleTheme } = useTheme();
 
   const toggleOptionsMenu = () => {
     setIsOptionsMenuOpen(prev => !prev);
@@ -60,6 +65,12 @@ export default function Header({ title, currentUser, navigateTo }) {
     setIsOptionsMenuOpen(false);
   };
 
+  // [EDIT]: Menambahkan fungsi untuk handle toggle tema
+  const handleToggleTheme = () => {
+    toggleTheme();
+    setIsOptionsMenuOpen(false);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
       <div className="flex-none">
@@ -83,11 +94,17 @@ export default function Header({ title, currentUser, navigateTo }) {
           className="hamburger-menu"
           aria-label="Menu Opsi"
         >
-          <FontAwesomeIcon icon={faBars} className="text-xl text-gray-300 hover:text-white transition-colors duration-200" />
+          {/* [EDIT]: Mengubah class agar mendukung light/dark mode */}
+          <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
         </button>
 
         <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
           <ul>
+            {/* [EDIT]: Menambahkan list item untuk toggle tema */}
+            <li onClick={handleToggleTheme}>
+              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </li>
             <li onClick={() => handleLanguageChange('id')}>
               <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
             </li>

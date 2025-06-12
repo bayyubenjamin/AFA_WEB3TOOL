@@ -1,5 +1,8 @@
 // tailwind.config.js
 module.exports = {
+  // [TAMBAHAN]: Mengaktifkan mode gelap berbasis class
+  darkMode: 'class',
+
   content: [
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
@@ -7,9 +10,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Warna Dark Mode (Asli)
         primary: "#7f5af0",
         dark: "#0a0a1a",
         card: "#101020",
+
+        // [TAMBAHAN]: Warna untuk Light Mode
+        'light-bg': '#f5f5f5',      // Latar belakang utama
+        'light-card': '#ffffff',    // Latar belakang kartu/komponen
+        'light-text': '#1a202c',     // Warna teks utama
+        'light-subtle': '#718096', // Warna teks sekunder/abu-abu
       },
       fontFamily: {
         inter: ["Inter", "sans-serif"],

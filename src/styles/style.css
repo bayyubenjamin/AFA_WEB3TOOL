@@ -14,19 +14,23 @@
 /* Layer kustom Anda didefinisikan SETELAH direktif dasar Tailwind */
 @layer base {
   body {
-    @apply font-inter bg-[#0a0a1a] text-[#e0e0e0];
+    /* [EDIT]: Terapkan warna dasar untuk light & dark mode */
+    @apply font-inter bg-light-bg text-light-text dark:bg-dark dark:text-[#e0e0e0];
   }
 }
 
 @layer components {
   /* Style yang sudah ada sebelumnya dan berfungsi */
-  .glassmorphism { @apply bg-[#101020]/60 backdrop-blur-md border border-white/10; }
-  .nav-item { @apply border-t-2 border-transparent; }
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
+  .glassmorphism { @apply bg-light-card/80 dark:bg-[#101020]/60 backdrop-blur-md border border-black/5 dark:border-white/10; }
+  .nav-item { @apply border-t-2 border-transparent text-light-subtle dark:text-gray-300; }
   .nav-item.active { @apply text-primary border-primary; }
   .btn-primary { @apply bg-gradient-to-r from-primary to-[#a957e0] text-white shadow-lg transition-all duration-300 hover:translate-y-[-2px] hover:shadow-[0_0_25px_rgba(127,90,240,0.8)]; }
-  .btn-secondary { @apply bg-white/10 border border-white/20 text-white transition-all duration-300 hover:bg-white/20 hover:border-white/30; }
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
+  .btn-secondary { @apply bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 text-light-text dark:text-white transition-all duration-300 hover:bg-black/10 dark:hover:bg-white/20 hover:border-black/20 dark:hover:border-white/30; }
   .btn-danger { @apply bg-red-500 border border-red-500 text-white transition-all duration-300 hover:bg-red-600 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]; }
-  .card { @apply bg-card border border-white/10; } /* Pastikan bg-card terdefinisi di tailwind.config.js */
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
+  .card { @apply bg-light-card dark:bg-card border border-black/10 dark:border-white/10; } /* Pastikan bg-card terdefinisi di tailwind.config.js */
   .glowing-border { @apply border border-primary shadow-glow; } /* Pastikan shadow-glow terdefinisi */
   .futuristic-text-gradient { @apply bg-gradient-to-r from-primary via-pink-400 to-primary bg-clip-text text-transparent animate-gradient-shine; } /* Pastikan animate-gradient-shine terdefinisi */
 
@@ -43,7 +47,8 @@
   }
   .options-menu {
     /* Pastikan posisi absolut dan z-index tinggi */
-    @apply absolute top-full right-0 bg-[#2a2a3a] border border-white/10 rounded-md shadow-xl min-w-[150px] z-50;
+    /* [EDIT]: Disesuaikan untuk light/dark mode */
+    @apply absolute top-full right-0 bg-light-card dark:bg-[#2a2a3a] border border-black/10 dark:border-white/10 rounded-md shadow-xl min-w-[150px] z-50;
     
     /* Atur default state tersembunyi */
     @apply opacity-0 invisible pointer-events-none transform translate-y-2;
@@ -57,7 +62,8 @@
     @apply list-none p-0 m-0;
   }
   .options-menu li {
-    @apply flex items-center px-4 py-2.5 text-sm text-gray-200 cursor-pointer hover:bg-white/5 transition-colors duration-150;
+    /* [EDIT]: Disesuaikan untuk light/dark mode */
+    @apply flex items-center px-4 py-2.5 text-sm text-light-text dark:text-gray-200 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150;
   }
   .options-menu li:first-child { @apply rounded-t-md; }
   .options-menu li:last-child { @apply rounded-b-md; }
@@ -68,21 +74,22 @@
 
 
   /* === Style SPESIFIK untuk PageMyWork (Garapanku) dan Modals === */
-  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-500/50; }
-  .category-wrapper { @apply border border-gray-500/40 rounded-lg p-3 mb-4 bg-gray-800/20; }
-  .category-header { @apply flex justify-between items-center cursor-pointer mb-2 pb-2 border-b border-gray-500/30; }
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
+  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-black/10 dark:border-gray-500/50; }
+  .category-wrapper { @apply border border-black/10 dark:border-gray-500/40 rounded-lg p-3 mb-4 bg-transparent dark:bg-gray-800/20; }
+  .category-header { @apply flex justify-between items-center cursor-pointer mb-2 pb-2 border-b border-black/10 dark:border-gray-500/30; }
   .category-header:focus-visible { @apply outline-2 outline-primary outline-offset-2 rounded-sm; }
   .category-title-container { @apply flex items-center flex-grow min-w-0; }
-  .category-title-text { @apply text-lg font-semibold; }
+  .category-title-text { @apply text-lg font-semibold; } /* Warna akan mengikuti dari body */
   .category-title-text.empty { color: #f87171 !important; }
-  .category-count { @apply text-xs text-gray-400 ml-2; }
+  .category-count { @apply text-xs text-light-subtle dark:text-gray-400 ml-2; }
   .category-settings-dropdown { @apply relative; }
-  .category-settings-dropdown-button { @apply bg-transparent border-none text-gray-400 cursor-pointer p-1 text-sm hover:text-white transition-colors duration-200 ease-in-out; }
-  .category-settings-dropdown-content { @apply absolute top-full right-0 bg-[#2a2a3a] border border-white/10 rounded-md shadow-xl min-w-[170px] z-50 opacity-0 invisible pointer-events-none transform translate-y-2 transition-opacity duration-200 ease-out transition-transform duration-200 ease-out; }
+  .category-settings-dropdown-button { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 cursor-pointer p-1 text-sm hover:text-light-text dark:hover:text-white transition-colors duration-200 ease-in-out; }
+  .category-settings-dropdown-content { @apply absolute top-full right-0 bg-light-card dark:bg-[#2a2a3a] border border-black/10 dark:border-white/10 rounded-md shadow-xl min-w-[170px] z-50 opacity-0 invisible pointer-events-none transform translate-y-2 transition-opacity duration-200 ease-out transition-transform duration-200 ease-out; }
   .category-settings-dropdown-content.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
-  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2.5 bg-transparent border-none text-sm text-gray-200 text-left cursor-pointer transition-colors duration-150 ease-in-out; }
+  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2.5 bg-transparent border-none text-sm text-light-text dark:text-gray-200 text-left cursor-pointer transition-colors duration-150 ease-in-out; }
   .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed bg-transparent hover:bg-transparent; }
-  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-white/5; }
+  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-black/5 dark:bg-white/5; }
   .category-settings-dropdown-content button svg { @apply mr-2 w-3.5 h-3.5; }
   .category-settings-dropdown-content button.delete-option:not(:disabled):hover { @apply text-red-400 bg-red-500/10; }
   .category-settings-dropdown-content button.edit-option:not(:disabled):hover { @apply text-primary bg-primary/10; }
@@ -90,37 +97,39 @@
 
   .airdrop-list-container { @apply max-h-0 overflow-hidden transition-[max-height_0.5s_ease-out,_padding-top_0.3s_ease,_padding-bottom_0.3s_ease] pt-0 pb-0 pl-1 mt-2; }
   .airdrop-list-container.expanded { @apply max-h-[1000px] pt-2 pb-1 transition-[max-height_0.5s_ease-in,_padding-top_0.3s_ease,_padding-bottom_0.3s_ease]; }
-  .empty-category-message { @apply italic text-gray-500 text-sm px-1 py-2; }
-  .airdrop-list-item { @apply flex justify-between items-center py-2.5 px-1 border-b border-white/10 transition-colors duration-150; }
+  .empty-category-message { @apply italic text-light-subtle dark:text-gray-500 text-sm px-1 py-2; }
+  .airdrop-list-item { @apply flex justify-between items-center py-2.5 px-1 border-b border-black/10 dark:border-white/10 transition-colors duration-150; }
   .airdrop-list-item:last-child { @apply border-b-0; }
-  .airdrop-list-item:hover { @apply bg-white/5; }
+  .airdrop-list-item:hover { @apply bg-black/5 dark:bg-white/5; }
   .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
   .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
-  .airdrop-list-item .name { @apply font-medium text-purple-300 block whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
-  .airdrop-list-item .task-desc { @apply text-xs text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
-  .airdrop-item-actions button { @apply bg-transparent border-none text-gray-400 cursor-pointer p-1 ml-1 text-xs hover:text-white transition-colors; }
+  .airdrop-list-item .name { @apply font-medium text-purple-500 dark:text-purple-300 block whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
+  .airdrop-list-item .task-desc { @apply text-xs text-light-subtle dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
+  .airdrop-item-actions button { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 cursor-pointer p-1 ml-1 text-xs hover:text-light-text dark:hover:text-white transition-colors; }
   .airdrop-item-actions .edit-btn:hover { @apply text-primary; }
   .airdrop-item-actions .delete-btn:hover { @apply text-red-400; }
   .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
   .status-inprogress { @apply bg-yellow-500/20 text-yellow-400; }
   .status-completed { @apply bg-green-500/20 text-green-400; }
-  .btn-done-today { @apply bg-transparent border-none p-1 mr-2 text-base text-gray-500 cursor-pointer transition-colors duration-200 ease-in-out; }
+  .btn-done-today { @apply bg-transparent border-none p-1 mr-2 text-base text-gray-400 dark:text-gray-500 cursor-pointer transition-colors duration-200 ease-in-out; }
   .btn-done-today.marked { @apply text-green-500; }
-  .btn-done-today:hover:not(.marked) { @apply text-gray-300; }
+  .btn-done-today:hover:not(.marked) { @apply text-gray-500 dark:text-gray-300; }
   .btn-done-today.marked:hover { @apply text-green-400; }
 
   /* Style Modal Umum */
   .modal { @apply fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out; }
   .modal.active { @apply opacity-100 visible; }
-  .modal-content { @apply bg-[#161625] p-5 md:p-6 rounded-lg shadow-xl w-full max-w-md border border-white/10 max-h-[90vh] overflow-y-auto; }
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
+  .modal-content { @apply bg-light-card dark:bg-[#161625] p-5 md:p-6 rounded-lg shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto; }
   .modal-header { @apply flex justify-between items-center mb-4; }
-  .modal-title { @apply text-xl font-semibold text-white; }
-  .modal-close-btn { @apply bg-transparent border-none text-gray-400 text-2xl cursor-pointer hover:text-white transition-colors; }
+  .modal-title { @apply text-xl font-semibold text-light-text dark:text-white; }
+  .modal-close-btn { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 text-2xl cursor-pointer hover:text-light-text dark:hover:text-white transition-colors; }
   .form-group { @apply mb-4; }
-  .form-group label { @apply block text-sm font-medium text-gray-300 mb-1.5; }
+  .form-group label { @apply block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1.5; }
+  /* [EDIT]: Disesuaikan untuk light/dark mode */
   .form-group input,
   .form-group select,
-  .form-group textarea { @apply w-full bg-white/5 border border-white/20 text-gray-200 py-2.5 px-3 rounded-md text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all; }
+  .form-group textarea { @apply w-full bg-black/5 dark:bg-white/5 border border-black/20 dark:border-white/20 text-light-text dark:text-gray-200 py-2.5 px-3 rounded-md text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all; }
   .form-group textarea { @apply min-h-[80px]; }
   .modal-footer { @apply mt-6 flex justify-end gap-3; }
 }

@@ -49,8 +49,9 @@ export default function BottomNav({ currentUser }) {
             // `end` prop penting untuk root path "/" agar tidak selalu aktif
             end={item.path === "/"}
             // className sekarang menerima fungsi untuk mengecek state 'isActive'
+            // [EDIT]: Menghapus 'text-gray-300' agar warna diambil dari class .nav-item di style.css
             className={({ isActive }) => 
-              `nav-item flex flex-col items-center justify-center h-full text-gray-300 hover:text-primary transition-colors duration-200 ${isActive ? "active" : ""}`
+              `nav-item flex flex-col items-center justify-center h-full hover:text-primary transition-colors duration-200 ${isActive ? "active" : ""}`
             }
           >
             {/* NavLink juga bisa menerima fungsi sebagai child untuk mendapatkan state 'isActive' */}
