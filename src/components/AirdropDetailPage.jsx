@@ -1,11 +1,10 @@
-// src/components/AirdropDetailPage.jsx - Menambahkan Info Raise & Confirmation
+// src/components/AirdropDetailPage.jsx - PERUBAHAN LAYOUT VIDEO
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
-  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus, faVideo,
-  faCoins, faClipboardQuestion // <-- [PERUBAHAN 1] Tambahkan ikon baru
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus, faVideo
 } from '@fortawesome/free-solid-svg-icons';
 
 import ReactMarkdown from 'react-markdown';
@@ -95,13 +94,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
   const statusInfo = { active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' }, upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' }, ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' }, }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
   const categoryColor = { 'Retroactive': 'bg-purple-500/20 text-purple-300', 'Testnet': 'bg-sky-500/20 text-sky-300', 'Mainnet': 'bg-emerald-500/20 text-emerald-300', 'NFT Drop': 'bg-orange-500/20 text-orange-300' }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
-  
-  // [PERUBAHAN 2] Tambahkan logika styling untuk badge konfirmasi
-  const confirmationStyles = {
-    'Potential': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300',
-    'Confirmed': 'border-green-500/50 bg-green-500/10 text-green-300'
-  };
-  const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-400';
 
   return (
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
@@ -133,30 +125,12 @@ export default function AirdropDetailPage({ currentUser }) {
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
-            
-            {/* [PERUBAHAN 3] Tambahkan badge Raise & Confirmation di sini */}
-            {airdrop.raise_amount && (
-              <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300">
-                <FontAwesomeIcon icon={faCoins} className="mr-2 text-yellow-400"/>
-                Raise: {airdrop.raise_amount}
-              </div>
-            )}
-            {airdrop.confirmation_status && (
-              <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${confirmationStyle}`}>
-                <FontAwesomeIcon icon={faClipboardQuestion} className="mr-2"/>
-                {airdrop.confirmation_status}
-              </div>
-            )}
           </div>
           
+          {/* Bagian Tutorial (Hanya Teks) */}
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            {airdrop.video_url && (
-              <div className="my-6 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
-                <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
-              </div>
-            )}
-             <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
+            <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
                 <ReactMarkdown
                    children={airdrop.tutorial || ''}
                    remarkPlugins={[remarkGfm]}
@@ -167,6 +141,7 @@ export default function AirdropDetailPage({ currentUser }) {
 
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
           
+          {/* [PERUBAHAN]: Bagian Video dipindahkan ke sini */}
           {airdrop.video_url && (
             <div className="my-8">
               <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
@@ -179,6 +154,7 @@ export default function AirdropDetailPage({ currentUser }) {
             </div>
           )}
 
+          {/* Bagian Aktivitas & Updates */}
           <div ref={updatesSectionRef} className="my-8">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
