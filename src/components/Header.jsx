@@ -1,22 +1,20 @@
 // src/components/Header.jsx
 import React, { useState, useEffect, useRef } from "react";
+// [TAMBAHAN] Impor Link untuk navigasi
+import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// [EDIT]: Menambahkan ikon faSun dan faMoon
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
-import { useLanguage } from "../context/LanguageContext"; // Import useLanguage
-// [EDIT]: Menambahkan impor untuk useTheme
+// [TAMBAHAN] Impor ikon faComments
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments } from "@fortawesome/free-solid-svg-icons";
+import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 
-export default function Header({ title, currentUser, navigateTo }) {
+export default function Header({ title, currentUser, navigateTo, onlineUsers }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const { language, changeLanguage } = useLanguage(); // Gunakan hook useLanguage
-  // [EDIT]: Menggunakan hook useTheme untuk mendapatkan state tema dan fungsi toggle
+  const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
-  const toggleOptionsMenu = () => {
-    setIsOptionsMenuOpen(prev => !prev);
-  };
+  const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -24,29 +22,21 @@ export default function Header({ title, currentUser, navigateTo }) {
         setIsOptionsMenuOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
+  
   const handleLanguageChange = (lang) => {
-    changeLanguage(lang); // Panggil fungsi changeLanguage dari context
-    console.log(`Mengganti bahasa ke: ${lang}`);
+    changeLanguage(lang);
     setIsOptionsMenuOpen(false);
   };
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: document.title,
-        url: window.location.href,
-      }).then(() => {
-        console.log('Berhasil berbagi!');
-      }).catch((error) => {
-        console.error('Gagal berbagi:', error);
-      });
+      navigator.share({ title: document.title, url: window.location.href, })
+        .catch((error) => console.error('Gagal berbagi:', error));
     } else {
       alert("Fungsi berbagi tidak didukung di browser ini.");
       navigator.clipboard.writeText(window.location.href)
@@ -55,77 +45,93 @@ export default function Header({ title, currentUser, navigateTo }) {
     }
     setIsOptionsMenuOpen(false);
   };
-
+  
   const handleAuthAction = () => {
-    if (currentUser && currentUser.id) {
-      navigateTo('profile');
-    } else {
-      navigateTo('profile');
-    }
+    navigateTo('profile');
     setIsOptionsMenuOpen(false);
   };
 
-  // [EDIT]: Menambahkan fungsi untuk handle toggle tema
   const handleToggleTheme = () => {
     toggleTheme();
     setIsOptionsMenuOpen(false);
   };
 
+
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
-      <div className="flex-none">
+      <div className="flex items-center flex-1 min-w-0">
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
           alt="Logo AFA"
-          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50"
+          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0"
         />
+        {onlineUsers > 0 && (
+          <div className="ml-4 hidden sm:flex items-center">
+             <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+            <span className="ml-2 text-xs font-medium text-green-400">{onlineUsers} Online</span>
+          </div>
+        )}
       </div>
 
       <h1
         id="headerTitle"
-        className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center flex-grow"
+        className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center"
       >
         {title}
       </h1>
-
-      <div className="relative flex-none" ref={menuRef}>
-        <button
-          onClick={toggleOptionsMenu}
-          className="hamburger-menu"
-          aria-label="Menu Opsi"
+      
+      {/* [DIUBAH] Bungkus tombol-tombol kanan */}
+      <div className="flex-1 flex justify-end items-center gap-2">
+        {/* [TAMBAHAN] Tombol Forum */}
+        <Link
+          to="/forum"
+          className="p-2 w-10 h-10 flex items-center justify-center"
+          aria-label="Forum"
         >
-          {/* [EDIT]: Mengubah class agar mendukung light/dark mode */}
-          <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
-        </button>
-
-        <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
-          <ul>
-            {/* [EDIT]: Menambahkan list item untuk toggle tema */}
-            <li onClick={handleToggleTheme}>
-              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </li>
-            <li onClick={() => handleLanguageChange('id')}>
-              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
-            </li>
-            <li onClick={() => handleLanguageChange('en')}>
-              <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
-            </li>
-            <li onClick={handleShare}>
-              <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
-            </li>
-            <li onClick={handleAuthAction}>
-              {currentUser && currentUser.id ? (
-                <>
-                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
-                </>
-              )}
-            </li>
-          </ul>
+          <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
+        </Link>
+        
+        {/* Tombol Menu Tiga Titik */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={toggleOptionsMenu}
+            className="p-2 w-10 h-10 flex items-center justify-center"
+            aria-label="Menu Opsi"
+          >
+            <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
+          </button>
+          
+          <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
+             <ul>
+              <li onClick={handleToggleTheme}>
+                <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </li>
+              <li onClick={() => handleLanguageChange('id')}>
+                <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
+              </li>
+              <li onClick={() => handleLanguageChange('en')}>
+                <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
+              </li>
+              <li onClick={handleShare}>
+                <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
+              </li>
+              <li onClick={handleAuthAction}>
+                {currentUser && currentUser.id ? (
+                  <>
+                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
+                  </>
+                )}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </header>

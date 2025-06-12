@@ -1,11 +1,22 @@
+/* src/index.css */
+
+/*
+  Style-style di bawah ini (kecuali 'body { margin: 0; }')
+  dihapus atau dikomentari untuk mencegah konflik dengan sistem
+  theming light/dark mode dari Tailwind CSS yang sudah kita atur
+  di src/styles/style.css.
+*/
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
+  /* Properti di bawah ini dihapus karena sekarang diatur oleh Tailwind di style.css */
+  /*
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
+  */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,10 +35,13 @@ a:hover {
 
 body {
   margin: 0;
+  /* Properti di bawah ini dihapus karena sudah diatur oleh Tailwind di style.css */
+  /*
   display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  */
 }
 
 h1 {
@@ -44,7 +58,7 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color: 0.25s;
 }
 button:hover {
   border-color: #646cff;
@@ -54,6 +68,8 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Media query ini tidak lagi diperlukan karena kita menggunakan sistem class '.dark' dari Tailwind */
+/*
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -66,3 +82,4 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+*/

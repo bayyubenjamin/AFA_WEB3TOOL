@@ -1,14 +1,14 @@
-// src/components/BottomNav.jsx - VERSI ROUTING
+// src/components/BottomNav.jsx
 
 import React from "react";
-// [TAMBAHAN]: Impor NavLink
 import { NavLink } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
   faBriefcase,
   faParachuteBox,
-  faComments,
+  // [DIHAPUS] faComments tidak lagi digunakan di sini
+  faCalendarCheck, // [DIGANTI] Ikon baru untuk Events
   faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
@@ -19,17 +19,16 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// [DIUBAH]: Hapus props 'currentPage' dan 'navigateTo'
 export default function BottomNav({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).bottomNav;
 
-  // [DIUBAH]: Tambahkan properti 'path' untuk tujuan routing
   const navItems = [
     { id: "home", path: "/", icon: faHome, label: t.home },
     { id: "myWork", path: "/my-work", icon: faBriefcase, label: t.myWork },
     { id: "airdrops", path: "/airdrops", icon: faParachuteBox, label: t.airdrops },
-    { id: "forum", path: "/forum", icon: faComments, label: t.forum },
+    // [DIUBAH] Item forum diganti dengan event
+    { id: "events", path: "/events", icon: faCalendarCheck, label: t.events },
     { id: "profile", path: "/profile", icon: faUserCircle, label: t.profile },
   ];
 
@@ -40,21 +39,15 @@ export default function BottomNav({ currentUser }) {
     >
       {navItems.map((item) => {
         const isProfileItem = item.id === "profile";
-
         return (
-          // [DIUBAH]: Menggunakan NavLink, bukan button
           <NavLink
             key={item.id}
             to={item.path}
-            // `end` prop penting untuk root path "/" agar tidak selalu aktif
             end={item.path === "/"}
-            // className sekarang menerima fungsi untuk mengecek state 'isActive'
-            // [EDIT]: Menghapus 'text-gray-300' agar warna diambil dari class .nav-item di style.css
             className={({ isActive }) => 
               `nav-item flex flex-col items-center justify-center h-full hover:text-primary transition-colors duration-200 ${isActive ? "active" : ""}`
             }
           >
-            {/* NavLink juga bisa menerima fungsi sebagai child untuk mendapatkan state 'isActive' */}
             {({ isActive }) => (
               <>
                 {isProfileItem && currentUser?.id ? (

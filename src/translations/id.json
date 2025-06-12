@@ -14,6 +14,7 @@
     "airdrops": "Airdrop",
     "forum": "Forum",
     "profile": "Profil"
+    "events": "Event" // [TAMBAHAN]
   },
   "homePage": {
     "heroTitle": "Maksimalkan Potensi Airdrop Anda",
@@ -216,5 +217,16 @@
     "cancelButton": "Batal",
     "saveButton": "Simpan Garapan",
     "requiredFieldsAlert": "Nama dan Kategori Airdrop wajib diisi."
+  },
+  // ... (homePage, myWorkPage, etc)
+  "eventsPage": { // [TAMBAHAN]
+    "title": "Event & Giveaway Spesial",
+    "subtitle": "Ikuti event eksklusif untuk anggota komunitas AFA dan menangkan hadiah menarik!",
+    "loginPromptTitle": "Akses Dibatasi",
+    "loginPrompt": "Anda harus login untuk dapat berpartisipasi dalam event.",
+    "tasksTitle": "Tugas yang Harus Diselesaikan:",
+    "joinButton": "Ikuti Giveaway",
+    "submitSuccess": "Partisipasi Anda telah dicatat. Terima kasih!",
+    "tasksCompleteMessage": "Anda telah berpartisipasi! Pemenang akan diumumkan di channel resmi kami."
   }
 }

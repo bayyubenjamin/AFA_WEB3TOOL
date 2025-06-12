@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN RUTE UPDATE ADMIN
+// src/App.jsx - VERSI LENGKAP DENGAN ROUTE EVENTS
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
@@ -11,7 +11,8 @@ import PageAdminAirdrops from "./components/PageAdminAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
-import PageManageUpdate from "./components/PageManageUpdate"; // <-- IMPORT HALAMAN BARU
+import PageManageUpdate from "./components/PageManageUpdate";
+import PageEvents from './components/PageEvents'; // [TAMBAHAN]: Impor halaman Events baru
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -41,40 +42,36 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
 };
 
 function MainAppContent() {
-  if (import.meta.env.VITE_REACT_APP_MAINTENANCE === 'true') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">🚧 Maintenance Mode</h1>
-          <p className="text-lg">Situs sedang diperbarui. Silakan kembali beberapa saat lagi ya!</p>
-        </div>
-      </div>
-    );
-  }
-
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoadingInitialSession(true);
+    const updateOnlineCount = () => {
+      const min = 15;
+      const max = 42;
+      const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
+      setOnlineUsers(randomCount);
+    };
+    updateOnlineCount(); 
+    const intervalId = setInterval(updateOnlineCount, 7000);
+    return () => clearInterval(intervalId);
+  }, []);
 
+  useEffect(() => {
+    setLoadingInitialSession(true);
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
+          const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
           if (profileError) throw profileError;
-
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
@@ -89,50 +86,36 @@ function MainAppContent() {
         setLoadingInitialSession(false);
       }
     };
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         setLoadingInitialSession(false);
         setCurrentUser(defaultGuestUserForApp);
       }
     });
-
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    // Logika untuk judul header
-    if (location.pathname.includes('/update')) {
-        setHeaderTitle('Manage Update');
-        return;
-    }
-    if (location.pathname === '/airdrops/postairdrops') {
-        setHeaderTitle('Admin Panel');
-        return;
-    }
-
+    if (location.pathname.includes('/update')) { setHeaderTitle('Manage Update'); return; }
+    if (location.pathname === '/airdrops/postairdrops') { setHeaderTitle('Admin Panel'); return; }
     const path = location.pathname.split('/')[1] || 'home';
-    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
-    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
-
+    
+    // [DIUBAH] Menambahkan judul untuk halaman "events"
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events" };
+    
     const titleKey = path.startsWith('airdrops') ? 'airdrops' : path;
-
-    if (language === 'id') {
-        setHeaderTitle(titles_id[titleKey] || "AFA WEB3TOOL");
-    } else {
-        setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL");
-    }
+    if (language === 'id') { setHeaderTitle(titles_id[titleKey] || "AFA WEB3TOOL"); }
+    else { setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL"); }
   }, [location, language]);
 
   useEffect(() => {
     if (loadingInitialSession) return;
-
     if (pageContentRef.current) {
       const el = pageContentRef.current;
       el.classList.remove("content-enter-active", "content-enter");
@@ -144,7 +127,6 @@ function MainAppContent() {
   }, [location.pathname, loadingInitialSession]);
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
-
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
     try {
@@ -154,8 +136,6 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  
-  // Logika untuk menampilkan/menyembunyikan nav
   const showNav = !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
@@ -168,8 +148,8 @@ function MainAppContent() {
   }
 
   return (
-    <div className="bg-[#0a0a1a] text-white font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} />}
+    <div className="font-sans h-screen flex flex-col overflow-hidden">
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} onlineUsers={onlineUsers} />}
       <main
         ref={pageContentRef}
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
@@ -179,13 +159,14 @@ function MainAppContent() {
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-          
-          {/* ===== RUTE BARU UNTUK HALAMAN UPDATE ===== */}
           <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+          
+          {/* [TAMBAHAN] Route baru untuk halaman Events */}
+          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+          
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>

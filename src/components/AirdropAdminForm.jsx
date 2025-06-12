@@ -1,3 +1,4 @@
+// src/components/AirdropAdminForm.jsx - LENGKAP DENGAN THEME
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -17,44 +18,21 @@ const generateSlug = (title) => {
     .replace(/-+/g, '-');
 };
 
-
 export default function AirdropAdminForm({ onSave, onClose, initialData, loading }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
   const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    link: '',
-    video_url: '', 
-    category: 'Retroactive',
-    status: 'upcoming',
-    image_url: '',
-    description: '',
-    date: '',
-    tutorial: '',
-    raise_amount: '',
-    confirmation_status: 'Potential'
+    title: '', slug: '', link: '', video_url: '', category: 'Retroactive',
+    status: 'upcoming', image_url: '', description: '', date: '',
+    tutorial: '', raise_amount: '', confirmation_status: 'Potential'
   });
 
   const isEditing = !!initialData;
 
   useEffect(() => {
     if (isEditing) {
-      setFormData({
-        title: initialData.title || '',
-        slug: initialData.slug || '',
-        link: initialData.link || '',
-        video_url: initialData.video_url || '',
-        category: initialData.category || 'Retroactive',
-        status: initialData.status || 'upcoming',
-        image_url: initialData.image_url || '',
-        description: initialData.description || '',
-        date: initialData.date || '',
-        tutorial: initialData.tutorial || '',
-        raise_amount: initialData.raise_amount || '',
-        confirmation_status: initialData.confirmation_status || 'Potential'
-      });
+      setFormData(initialData);
     }
   }, [initialData, isEditing]);
 
@@ -77,7 +55,9 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     }
     onSave(formData);
   };
-
+  
+  const formInputClass = "w-full bg-light-bg dark:bg-dark border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
+  const formLabelClass = "block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1.5";
   const formTitle = isEditing ? t.adminFormTitleEdit : t.adminFormTitleAdd;
 
   return (
@@ -87,47 +67,46 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
         Kembali ke Admin Panel
       </button>
 
-      <form onSubmit={handleSubmit} className="bg-card border border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
-        <h2 className="text-2xl font-bold text-white border-b border-white/10 pb-4">
+      <form onSubmit={handleSubmit} className="bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
+        <h2 className="text-2xl font-bold text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-4">
           {formTitle}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="form-group">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTitle}</label>
-            <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className="form-input" required />
+            <label htmlFor="title" className={formLabelClass}>{t.adminFormLabelTitle}</label>
+            <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} className={formInputClass} required />
           </div>
           <div className="form-group">
-            <label htmlFor="slug" className="block text-sm font-medium text-gray-300 mb-1.5">Slug (URL)</label>
-            <input type="text" name="slug" id="slug" value={formData.slug} onChange={handleChange} className="form-input" placeholder="otomatis-terisi-dari-judul" required />
+            <label htmlFor="slug" className={formLabelClass}>Slug (URL)</label>
+            <input type="text" name="slug" id="slug" value={formData.slug} onChange={handleChange} className={formInputClass} placeholder="otomatis-terisi-dari-judul" required />
           </div>
         </div>
-
-        {/* [PENYESUAIAN] Mengelompokkan semua link */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
-                <label htmlFor="link" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelLink}</label>
-                <input type="url" name="link" id="link" value={formData.link} onChange={handleChange} className="form-input" placeholder="https://proyek-airdrop.com" />
+                <label htmlFor="link" className={formLabelClass}>{t.adminFormLabelLink}</label>
+                <input type="url" name="link" id="link" value={formData.link} onChange={handleChange} className={formInputClass} placeholder="https://proyek-airdrop.com" />
             </div>
             <div className="form-group">
-                <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">Link Video Tutorial (Opsional)</label>
-                <input type="url" name="video_url" id="video_url" value={formData.video_url} onChange={handleChange} className="form-input" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." />
+                <label htmlFor="video_url" className={formLabelClass}>Link Video Tutorial (Opsional)</label>
+                <input type="url" name="video_url" id="video_url" value={formData.video_url} onChange={handleChange} className={formInputClass} placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." />
             </div>
         </div>
         
         <div className="form-group">
-            <label htmlFor="image_url" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelImageUrl}</label>
-            <input type="url" name="image_url" id="image_url" value={formData.image_url} onChange={handleChange} className="form-input" placeholder="https://" required />
+            <label htmlFor="image_url" className={formLabelClass}>{t.adminFormLabelImageUrl}</label>
+            <input type="url" name="image_url" id="image_url" value={formData.image_url} onChange={handleChange} className={formInputClass} placeholder="https://" required />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
-                <label htmlFor="raise_amount" className="block text-sm font-medium text-gray-300 mb-1.5">Raise Amount</label>
-                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
+                <label htmlFor="raise_amount" className={formLabelClass}>Raise Amount</label>
+                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount} onChange={handleChange} className={formInputClass} placeholder="Cth: $258M" />
             </div>
             <div className="form-group">
-                <label htmlFor="confirmation_status" className="block text-sm font-medium text-gray-300 mb-1.5">Confirmation Status</label>
-                <select name="confirmation_status" id="confirmation_status" value={formData.confirmation_status} onChange={handleChange} className="form-input">
+                <label htmlFor="confirmation_status" className={formLabelClass}>Confirmation Status</label>
+                <select name="confirmation_status" id="confirmation_status" value={formData.confirmation_status} onChange={handleChange} className={formInputClass}>
                     <option value="Potential">Potential</option>
                     <option value="Confirmed">Confirmed</option>
                 </select>
@@ -136,8 +115,8 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="form-group">
-                <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelType}</label>
-                <select name="category" id="category" value={formData.category} onChange={handleChange} className="form-input">
+                <label htmlFor="category" className={formLabelClass}>{t.adminFormLabelType}</label>
+                <select name="category" id="category" value={formData.category} onChange={handleChange} className={formInputClass}>
                     <option>Retroactive</option>
                     <option>Testnet</option>
                     <option>Mainnet</option>
@@ -145,27 +124,27 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
                 </select>
             </div>
             <div className="form-group">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelStatus}</label>
-                <select name="status" id="status" value={formData.status} onChange={handleChange} className="form-input">
+                <label htmlFor="status" className={formLabelClass}>{t.adminFormLabelStatus}</label>
+                <select name="status" id="status" value={formData.status} onChange={handleChange} className={formInputClass}>
                     <option value="active">{t.adminFormOptionActive}</option>
                     <option value="upcoming">{t.adminFormOptionUpcoming}</option>
                     <option value="ended">{t.adminFormOptionEnded}</option>
                 </select>
             </div>
             <div className="form-group">
-                <label htmlFor="date" className="block text-sm font-medium text-gray-300 mb-1.5">Tanggal/Estimasi</label>
-                <input type="text" name="date" id="date" value={formData.date} onChange={handleChange} className="form-input" placeholder="Cth: Q4 2025 atau Ongoing" />
+                <label htmlFor="date" className={formLabelClass}>Tanggal/Estimasi</label>
+                <input type="text" name="date" id="date" value={formData.date} onChange={handleChange} className={formInputClass} placeholder="Cth: Q4 2025 atau Ongoing" />
             </div>
         </div>
 
         <div className="form-group">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelDescription}</label>
-          <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows="4" className="form-input"></textarea>
+          <label htmlFor="description" className={formLabelClass}>{t.adminFormLabelDescription}</label>
+          <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows="4" className={formInputClass}></textarea>
         </div>
 
         <div className="form-group">
-          <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTutorial} (Mendukung Markdown untuk Teks)</label>
-          <textarea name="tutorial" id="tutorial" value={formData.tutorial} onChange={handleChange} rows="10" className="form-input font-mono text-sm" placeholder="Tuliskan langkah-langkah tutorial berupa teks di sini..."></textarea>
+          <label htmlFor="tutorial" className={formLabelClass}>{t.adminFormLabelTutorial} (Mendukung Markdown untuk Teks)</label>
+          <textarea name="tutorial" id="tutorial" value={formData.tutorial} onChange={handleChange} rows="10" className={`${formInputClass} font-mono`} placeholder="Tuliskan langkah-langkah tutorial berupa teks di sini..."></textarea>
         </div>
         
         <div className="flex justify-end gap-4 pt-4">

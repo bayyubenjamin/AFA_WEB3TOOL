@@ -41,10 +41,12 @@ const InputField = React.memo(({
 }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1"> {label} </label>
+      {/* [EDIT] */}
+      <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <FontAwesomeIcon icon={icon} className="text-gray-400" />
+          {/* [EDIT] */}
+          <FontAwesomeIcon icon={icon} className="text-light-subtle dark:text-gray-400" />
         </div>
         <input
           disabled={parentLoading}
@@ -54,7 +56,8 @@ const InputField = React.memo(({
           onChange={onChange}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full bg-white/5 border border-white/20 text-gray-200 py-2.5 px-3 rounded-md pl-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all disabled:opacity-50"
+          // [EDIT]
+          className="w-full bg-black/5 dark:bg-white/5 border border-black/20 dark:border-white/20 text-light-text dark:text-gray-200 py-2.5 px-3 rounded-md pl-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all disabled:opacity-50"
         />
         {children}
       </div>
@@ -64,28 +67,30 @@ const InputField = React.memo(({
 InputField.displayName = 'InputField';
 
 const StatCard = ({ icon, label, value }) => (
-  <div className="bg-card hover:bg-primary/10 p-5 rounded-xl border border-white/10 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
+  // [EDIT]
+  <div className="bg-light-card dark:bg-card hover:bg-primary/5 dark:hover:bg-primary/10 p-5 rounded-xl border border-black/10 dark:border-white/10 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
     <FontAwesomeIcon icon={icon} className="text-primary text-2xl mb-3" />
-    <p className="text-3xl font-bold text-white">{value}</p>
-    <p className="text-gray-400 text-sm uppercase tracking-wider">{label}</p>
+    {/* [EDIT] */}
+    <p className="text-3xl font-bold text-light-text dark:text-white">{value}</p>
+    {/* [EDIT] */}
+    <p className="text-light-subtle dark:text-gray-400 text-sm uppercase tracking-wider">{label}</p>
   </div>
 );
 
 
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
-  // KUNCI PERBAIKAN: Menambahkan fallback `|| {}` untuk mencegah error jika `profilePage` tidak ditemukan.
   const t = getTranslations(language).profilePage || {};
 
   const isLoggedIn = !!(currentUser && currentUser.id);
 
+  // ... (state hooks tidak berubah) ...
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signupStage, setSignupStage] = useState('collectingDetails');
   const [otpCode, setOtpCode] = useState('');
-
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupUsername, setSignupUsername] = useState("");
@@ -98,7 +103,8 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
-
+  
+  // ... (semua fungsi handle... tetap sama) ...
   useEffect(() => {
     if (isLoggedIn && currentUser) {
       setEditName(currentUser.name || currentUser.username || "");
@@ -212,7 +218,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   if (currentUser === undefined) {
-    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp || "Memuat Aplikasi..."}</p></section>);
+    return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p className="dark:text-white text-light-text">{t.loadingApp || "Memuat Aplikasi..."}</p></section>);
   }
 
   return (
@@ -222,13 +228,16 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
 
       {!isLoggedIn ? (
         <div className="max-w-lg mx-auto">
+          {/* [EDIT] Class .card sudah theme-aware dari style.css */}
           <div className="card rounded-xl p-6 md:p-8 shadow-2xl">
             <div className="text-center mb-6">
               <FontAwesomeIcon icon={isLoginForm ? faIdBadge : faUserPlus} className="text-6xl text-primary mb-4" />
-              <h2 className="text-3xl md:text-4xl font-bold text-white">
+              {/* [EDIT] */}
+              <h2 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">
                 {isLoginForm ? t.welcomeBack : t.createAccount}
               </h2>
-              <p className="text-gray-400 mt-2">
+              {/* [EDIT] */}
+              <p className="text-light-subtle dark:text-gray-400 mt-2">
                 {isLoginForm ? t.loginPrompt : (signupStage === 'collectingDetails' ? t.signupPromptDetails : t.signupPromptVerify)}
               </p>
             </div>
@@ -237,7 +246,8 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                 <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
                 <div className="relative">
                     <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                    {/* [EDIT] */}
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
                 </div>
                 <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                   {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
@@ -251,11 +261,13 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                     <InputField id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
                     <div className="relative">
                         <InputField id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} parentLoading={loading} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                         {/* [EDIT] */}
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
                     </div>
                     <div className="relative">
                         <InputField id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} parentLoading={loading} />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
+                         {/* [EDIT] */}
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
                     </div>
                     <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                       {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}
@@ -267,12 +279,14 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                     <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                       {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.verifyBtn}
                     </button>
-                    <button type="button" onClick={handleBackToDetails} disabled={loading} className="text-center w-full text-sm text-gray-400 hover:text-primary disabled:opacity-50">{t.backToDetails}</button>
+                     {/* [EDIT] */}
+                    <button type="button" onClick={handleBackToDetails} disabled={loading} className="text-center w-full text-sm text-light-subtle dark:text-gray-400 hover:text-primary disabled:opacity-50">{t.backToDetails}</button>
                   </form>
                 )}
               </>
             )}
-            <p className="text-center text-sm text-gray-400 mt-6">
+             {/* [EDIT] */}
+            <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
               {isLoginForm ? t.noAccountYet : t.alreadyHaveAccount}{" "}
               <button disabled={loading} onClick={() => { setIsLoginForm(!isLoginForm); clearMessages(); setSignupStage('collectingDetails'); }} className="font-semibold text-primary hover:underline disabled:opacity-50">
                 {isLoginForm ? t.signupHere : t.loginHere}
@@ -283,6 +297,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       ) : (
         <>
           {/* === START PROFILE HEADER (REDESIGNED) === */}
+          {/* [EDIT] Class .card sudah theme-aware dari style.css */}
           <div className="card rounded-xl overflow-hidden shadow-2xl shadow-primary/10">
             <div className="h-32 md:h-40 bg-gradient-to-r from-primary/50 to-blue-500/30"></div>
             <div className="px-5 pb-5 sm:px-8 sm:pb-8 -mt-20">
@@ -291,7 +306,8 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                   <img 
                     src={currentUser.avatar_url || defaultGuestUserFromProfile.avatar_url} 
                     alt={currentUser.name || currentUser.username || "Avatar"} 
-                    className="w-32 h-32 rounded-full object-cover border-4 border-card ring-4 ring-primary/50"
+                    // [EDIT]
+                    className="w-32 h-32 rounded-full object-cover border-4 border-light-card dark:border-card ring-4 ring-primary/50"
                   />
                    <button 
                       onClick={handleOpenEditProfileModal}
@@ -302,12 +318,15 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                     </button>
                 </div>
                 <div className="mt-4 sm:mt-0 flex-grow text-center sm:text-left">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white break-words futuristic-text-gradient">{currentUser.name || currentUser.username}</h2>
-                  <p className="text-sm text-gray-400 break-all mt-1">
+                  {/* Class futuristic-text-gradient tidak perlu diubah karena itu adalah style aksen */}
+                  <h2 className="text-2xl md:text-3xl font-bold text-light-text dark:text-white break-words futuristic-text-gradient">{currentUser.name || currentUser.username}</h2>
+                  {/* [EDIT] */}
+                  <p className="text-sm text-light-subtle dark:text-gray-400 break-all mt-1">
                     <FontAwesomeIcon icon={faEnvelope} className="mr-2 opacity-70"/>{currentUser.email}
                   </p>
                   {currentUser.address && (
-                    <div className="mt-1.5 inline-flex items-center bg-white/10 text-gray-300 text-xs font-mono rounded-full py-1 pl-3 pr-2" title={currentUser.address}>
+                    // [EDIT]
+                    <div className="mt-1.5 inline-flex items-center bg-black/5 dark:bg-white/10 text-light-subtle dark:text-gray-300 text-xs font-mono rounded-full py-1 pl-3 pr-2" title={currentUser.address}>
                       <FontAwesomeIcon icon={faWallet} className="mr-2"/>
                       {currentUser.address.substring(0, 6)}...{currentUser.address.substring(currentUser.address.length - 4)}
                       <button onClick={() => handleCopyToClipboard(currentUser.address)} className="ml-2 hover:text-primary transition-colors">
@@ -329,8 +348,10 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
           {/* === END PROFILE HEADER === */}
 
           {/* === START STATS SECTION (REDESIGNED) === */}
+          {/* [EDIT] Class .card sudah theme-aware dari style.css */}
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-white border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-2.5 text-primary" /> {t.statsTitle}</h3>
+             {/* [EDIT] */}
+            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-2.5 text-primary" /> {t.statsTitle}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
               <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
@@ -345,10 +366,13 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       {/* === MODAL (UNCHANGED) === */}
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          {/* [EDIT] Class .card sudah theme-aware dari style.css */}
           <div className="modal-content card rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-lg">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-white flex items-center"><FontAwesomeIcon icon={faEdit} className="mr-3 text-primary" /> {t.editProfileModalTitle}</h3>
-              <button disabled={loading} onClick={handleCloseEditProfileModal} className="text-gray-400 hover:text-white text-2xl"><FontAwesomeIcon icon={faTimes} /></button>
+               {/* [EDIT] */}
+              <h3 className="text-2xl font-semibold text-light-text dark:text-white flex items-center"><FontAwesomeIcon icon={faEdit} className="mr-3 text-primary" /> {t.editProfileModalTitle}</h3>
+              {/* [EDIT] */}
+              <button disabled={loading} onClick={handleCloseEditProfileModal} className="text-light-subtle dark:text-gray-400 hover:text-light-text dark:hover:text-white text-2xl"><FontAwesomeIcon icon={faTimes} /></button>
             </div>
             {error && <div className="p-3 mb-3 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
             {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
@@ -368,4 +392,3 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     </section>
   );
 }
-

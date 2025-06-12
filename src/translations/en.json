@@ -14,6 +14,7 @@
     "airdrops": "Airdrops",
     "forum": "Forum",
     "profile": "Profile"
+    "events": "Events" // [TAMBAHAN]
   },
   "homePage": {
     "heroTitle": "Maximize Your Airdrop Potential",
@@ -216,5 +217,16 @@
     "cancelButton": "Cancel",
     "saveButton": "Save Task",
     "requiredFieldsAlert": "Airdrop Name and Category are required."
+  },
+  // ... (homePage, myWorkPage, etc)
+  "eventsPage": { // [TAMBAHAN]
+    "title": "Special Events & Giveaways",
+    "subtitle": "Join exclusive events for AFA community members and win exciting prizes!",
+    "loginPromptTitle": "Access Restricted",
+    "loginPrompt": "You must be logged in to participate in events.",
+    "tasksTitle": "Tasks to Complete:",
+    "joinButton": "Join Giveaway",
+    "submitSuccess": "Your participation has been recorded. Thank you!",
+    "tasksCompleteMessage": "You have participated! Winners will be announced on our official channels."
   }
 }

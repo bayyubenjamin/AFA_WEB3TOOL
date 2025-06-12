@@ -76,7 +76,7 @@
   /* === Style SPESIFIK untuk PageMyWork (Garapanku) dan Modals === */
   /* [EDIT]: Disesuaikan untuk light/dark mode */
   .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-black/10 dark:border-gray-500/50; }
-  .category-wrapper { @apply border border-black/10 dark:border-gray-500/40 rounded-lg p-3 mb-4 bg-transparent dark:bg-gray-800/20; }
+  .category-wrapper { @apply border border-black/10 dark:border-gray-500/40 rounded-lg p-3 mb-4 bg-light-card dark:bg-gray-800/20; }
   .category-header { @apply flex justify-between items-center cursor-pointer mb-2 pb-2 border-b border-black/10 dark:border-gray-500/30; }
   .category-header:focus-visible { @apply outline-2 outline-primary outline-offset-2 rounded-sm; }
   .category-title-container { @apply flex items-center flex-grow min-w-0; }

@@ -28,7 +28,8 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const authorAvatar = update.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${authorName.charAt(0)}&background=2a2a3a&color=fff`;
 
   return (
-    <div className="p-4 bg-dark rounded-lg relative group">
+    // [EDIT]
+    <div className="p-4 bg-black/5 dark:bg-dark rounded-lg relative group border border-black/10 dark:border-transparent">
       {isAdmin && (
         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update"><FontAwesomeIcon icon={faEdit} /></button>
@@ -38,15 +39,18 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <img src={authorAvatar} alt={authorName} className="w-6 h-6 rounded-full object-cover border-2 border-primary/50" />
-            <span className="text-sm font-semibold text-gray-300">{authorName}</span>
+            {/* [EDIT] */}
+            <span className="text-sm font-semibold text-light-text dark:text-gray-300">{authorName}</span>
           </div>
-          <p className="text-xs text-gray-500 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-1.5" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+          {/* [EDIT] */}
+          <p className="text-xs text-light-subtle dark:text-gray-500 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-1.5" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
       </div>
       
       <h4 className="font-bold text-lg text-primary mt-1 mb-2">{update.title}</h4>
       
       {update.content && (
-        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+        // [EDIT] Hapus prose-invert, tambahkan warna teks dasar, dan tambahkan dark:prose-invert
+        <div className="prose prose-sm max-w-none dark:prose-invert text-light-text dark:text-current prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown
             children={update.content}
             remarkPlugins={[remarkGfm]}
@@ -87,8 +91,6 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      // [PERUBAHAN]: Mengubah 'ascending: false' menjadi 'ascending: true'
-      // Ini akan mengurutkan dari yang paling lama ke yang paling baru.
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: true });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
@@ -125,20 +127,24 @@ export default function AirdropDetailPage({ currentUser }) {
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
       </Link>
-      <div className="bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      {/* [EDIT] Menggunakan class .card yang theme-aware */}
+      <div className="card rounded-2xl shadow-2xl overflow-hidden">
         <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
+          {/* [EDIT] */}
+          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
         </div>
         <div className="p-6 md:p-8">
           <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
           <div className="flex justify-between items-start gap-4 mb-3">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">{airdrop.title}</h1>
+            {/* [EDIT] */}
+            <h1 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{airdrop.title}</h1>
             <button onClick={handleScrollToUpdates} className="btn-secondary text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap" title="Lihat Aktivitas & Updates">
               <FontAwesomeIcon icon={faBell} className="mr-2" />Check Update
             </button>
           </div>
 
-          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400">
+          {/* [EDIT] Hapus prose-invert dan text-gray-400, tambahkan dark:prose-invert dan text-light-subtle */}
+          <div className="prose prose-base max-w-none dark:prose-invert text-light-subtle prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
              <ReactMarkdown
                 children={airdrop.description || ''}
                 remarkPlugins={[remarkGfm]}
@@ -148,7 +154,8 @@ export default function AirdropDetailPage({ currentUser }) {
 
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             {airdrop.raise_amount && (
-              <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300">
+              // [EDIT]
+              <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300">
                 <FontAwesomeIcon icon={faCoins} className="mr-2 text-yellow-400"/>
                 Raise: {airdrop.raise_amount}
               </div>
@@ -160,12 +167,15 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             )}
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
-            {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
+            {/* [EDIT] */}
+            {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
           
           <div className="my-8">
-            <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
+            {/* [EDIT] */}
+            <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
+            {/* [EDIT] Hapus prose-invert */}
+            <div className="prose prose-base max-w-none dark:prose-invert prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
                 <ReactMarkdown
                    children={airdrop.tutorial || ''}
                    remarkPlugins={[remarkGfm]}
@@ -178,7 +188,8 @@ export default function AirdropDetailPage({ currentUser }) {
           
           {airdrop.video_url && (
             <div className="my-8">
-              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
+              {/* [EDIT] */}
+              <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2 flex items-center">
                 <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
                 Video Tutorial
               </h3>
@@ -189,8 +200,9 @@ export default function AirdropDetailPage({ currentUser }) {
           )}
 
           <div ref={updatesSectionRef} className="my-8">
-            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-              <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
+            {/* [EDIT] */}
+            <div className="flex justify-between items-center mb-4 border-b border-black/10 dark:border-white/10 pb-2">
+              <h3 className="text-2xl font-bold text-light-text dark:text-white">Aktivitas & Updates</h3>
               {isAdmin && (
                 <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
                   <FontAwesomeIcon icon={faPlus} className="mr-1.5" /> Tambah Update
@@ -210,7 +222,7 @@ export default function AirdropDetailPage({ currentUser }) {
                   />
                 ))}
               </div>
-            ) : (<p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
+            ) : (<p className="text-center text-light-subtle dark:text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
           </div>
         </div>
       </div>
