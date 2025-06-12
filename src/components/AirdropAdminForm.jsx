@@ -1,5 +1,4 @@
-// src/components/AirdropAdminForm.jsx - KODE FORM DENGAN FIELD BARU
-
+// src/components/AirdropAdminForm.jsx - DENGAN TAMBAHAN FIELD VIDEO URL
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -19,7 +18,6 @@ const generateSlug = (title) => {
     .replace(/-+/g, '-');
 };
 
-
 export default function AirdropAdminForm({ onSave, onClose, initialData, loading }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -34,15 +32,17 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     description: '',
     date: '',
     tutorial: '',
-    raise_amount: '', // <-- Field baru
-    confirmation_status: 'Potential' // <-- Field baru, default 'Potential'
+    raise_amount: '',
+    confirmation_status: 'Potential',
+    video_url: '' // <-- [PENAMBAHAN] State untuk video_url
   });
 
   const isEditing = !!initialData;
 
   useEffect(() => {
     if (isEditing) {
-      setFormData(initialData);
+      // Pastikan video_url di-load jika ada, jika tidak, set sebagai string kosong
+      setFormData({ ...initialData, video_url: initialData.video_url || '' });
     }
   }, [initialData, isEditing]);
 
@@ -102,11 +102,16 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
           </div>
         </div>
         
-        {/* ====== BARIS BARU UNTUK RAISE & CONFIRMATION ====== */}
+        {/* [PENAMBAHAN] Input field baru untuk URL Video */}
+        <div className="form-group">
+            <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">URL Video (Opsional)</label>
+            <input type="url" name="video_url" id="video_url" value={formData.video_url} onChange={handleChange} className="form-input" placeholder="https://www.youtube.com/watch?v=..." />
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
                 <label htmlFor="raise_amount" className="block text-sm font-medium text-gray-300 mb-1.5">Raise Amount</label>
-                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
+                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount || ''} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
             </div>
             <div className="form-group">
                 <label htmlFor="confirmation_status" className="block text-sm font-medium text-gray-300 mb-1.5">Confirmation Status</label>
@@ -116,7 +121,6 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
                 </select>
             </div>
         </div>
-        {/* ======================================================= */}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="form-group">
