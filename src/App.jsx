@@ -1,4 +1,4 @@
-// src/App.jsx - VERSI FINAL DENGAN RUTE UPDATE ADMIN
+// src/App.jsx - DENGAN PENAMBAHAN FAKE ONLINE USERS
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
@@ -11,13 +11,14 @@ import PageAdminAirdrops from "./components/PageAdminAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
-import PageManageUpdate from "./components/PageManageUpdate"; // <-- IMPORT HALAMAN BARU
+import PageManageUpdate from "./components/PageManageUpdate";
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
+// ... (const LS_CURRENT_USER_KEY, defaultGuestUserForApp, mapSupabaseDataToAppUserForApp tetap sama)
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
 const defaultGuestUserForApp = {
@@ -40,41 +41,52 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
+
 function MainAppContent() {
-  if (import.meta.env.VITE_REACT_APP_MAINTENANCE === 'true') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">🚧 Maintenance Mode</h1>
-          <p className="text-lg">Situs sedang diperbarui. Silakan kembali beberapa saat lagi ya!</p>
-        </div>
-      </div>
-    );
-  }
+  // ... (if maintenance mode)
 
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
+  
+  // [TAMBAHAN]: State untuk menyimpan jumlah pengguna online
+  const [onlineUsers, setOnlineUsers] = useState(0);
+
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // [TAMBAHAN]: useEffect untuk mengupdate jumlah pengguna online secara acak
+  useEffect(() => {
+    // Fungsi untuk menghasilkan angka acak dengan minimal 15
+    const updateOnlineCount = () => {
+      const min = 15;
+      const max = 42; // Anda bisa sesuaikan angka maksimalnya
+      const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
+      setOnlineUsers(randomCount);
+    };
+
+    // Panggil sekali di awal agar tidak 0
+    updateOnlineCount(); 
+
+    // Atur interval untuk mengupdate setiap 7 detik (7000 ms)
+    const intervalId = setInterval(updateOnlineCount, 7000);
+
+    // Cleanup interval saat komponen dilepas
+    return () => clearInterval(intervalId);
+  }, []);
+
+
+  // ... (useEffect untuk auth dan header title tetap sama)
   useEffect(() => {
     setLoadingInitialSession(true);
-
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
+          const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
           if (profileError) throw profileError;
-
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
@@ -89,50 +101,33 @@ function MainAppContent() {
         setLoadingInitialSession(false);
       }
     };
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         setLoadingInitialSession(false);
         setCurrentUser(defaultGuestUserForApp);
       }
     });
-
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    // Logika untuk judul header
-    if (location.pathname.includes('/update')) {
-        setHeaderTitle('Manage Update');
-        return;
-    }
-    if (location.pathname === '/airdrops/postairdrops') {
-        setHeaderTitle('Admin Panel');
-        return;
-    }
-
+    if (location.pathname.includes('/update')) { setHeaderTitle('Manage Update'); return; }
+    if (location.pathname === '/airdrops/postairdrops') { setHeaderTitle('Admin Panel'); return; }
     const path = location.pathname.split('/')[1] || 'home';
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile" };
-
     const titleKey = path.startsWith('airdrops') ? 'airdrops' : path;
-
-    if (language === 'id') {
-        setHeaderTitle(titles_id[titleKey] || "AFA WEB3TOOL");
-    } else {
-        setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL");
-    }
+    if (language === 'id') { setHeaderTitle(titles_id[titleKey] || "AFA WEB3TOOL"); }
+    else { setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL"); }
   }, [location, language]);
 
   useEffect(() => {
     if (loadingInitialSession) return;
-
     if (pageContentRef.current) {
       const el = pageContentRef.current;
       el.classList.remove("content-enter-active", "content-enter");
@@ -143,8 +138,8 @@ function MainAppContent() {
     }
   }, [location.pathname, loadingInitialSession]);
 
-  const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
 
+  const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
     try {
@@ -154,7 +149,6 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  
   const showNav = !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
@@ -167,22 +161,21 @@ function MainAppContent() {
   }
 
   return (
-    // [EDIT FINAL]: Menghapus bg-[#0a0a1a] dan text-white dari sini
     <div className="font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} />}
+      {/* [TAMBAHAN]: Kirim state onlineUsers sebagai prop ke Header */}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} onlineUsers={onlineUsers} />}
       <main
         ref={pageContentRef}
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
       >
         <Routes>
+          {/* ... (semua route tetap sama) ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-          
           <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
