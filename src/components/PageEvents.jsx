@@ -18,9 +18,9 @@ const giveawayEvent = {
   description: 'Untuk merayakan peluncuran komunitas, kami mengadakan giveaway spesial! Selesaikan semua tugas untuk berpartisipasi.',
   reward: 'Total Hadiah 100 USDT untuk 5 Pemenang',
   tasks: [
-    { name: 'Follow AFA on X (Twitter)', icon: faXTwitter, link: 'https://x.com/airdropforal', id: 'twitter' },
+    { name: 'Follow AFA on X (Twitter)', icon: faXTwitter, link: 'https://x.com/bayybayss', id: 'twitter' },
     { name: 'Join AFA Telegram Channel', icon: faTelegram, link: 'https://t.me/airdrop4ll', id: 'telegram' }, // Changed link to a more common Telegram link format
-    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://www.youtube.com/@AirdropForAll', id: 'youtube' }, // Changed link for demonstration
+    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://youtube.com/@bayyubenjamin4252?si=3v2Xiskq--Ou1Bw0', id: 'youtube' }, // Changed link for demonstration
   ],
 };
 
