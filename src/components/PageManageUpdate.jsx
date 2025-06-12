@@ -71,7 +71,8 @@ export default function PageManageUpdate({ currentUser }) {
   if (!isAdmin) return null;
 
   return (
-    <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
+    // [EDIT] Ubah warna teks utama halaman
+    <div className="page-content py-6 md:py-8 max-w-4xl mx-auto text-light-text dark:text-white">
       <Link to={`/airdrops/${airdropSlug}`} className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Kembali ke Detail Airdrop
@@ -82,7 +83,6 @@ export default function PageManageUpdate({ currentUser }) {
         initialData={initialUpdateData}
         onUpdateAdded={handleSaveComplete}
         onCancelEdit={() => navigate(`/airdrops/${airdropSlug}`)}
-        // [PERUBAIKAN]: Kirim data currentUser ke dalam form
         currentUser={currentUser}
       />
     </div>
