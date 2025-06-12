@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL (KEMBALI KE REHYPE-VIDEO)
+// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL DENGAN PEMISAHAN STYLE
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,7 +11,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import rehypeVideo from 'rehype-video'; // Kembali menggunakan rehype-video
+import rehypeVideo from 'rehype-video';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -37,11 +37,13 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
 
       {update.content && (
-        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+        // [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown
+        <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
           <ReactMarkdown
+            className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
             children={update.content}
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
+            rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
           />
         </div>
       )}
@@ -116,11 +118,13 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
 
-          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+          {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
+          <div className="text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
              <ReactMarkdown
+                className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
                 children={airdrop.description || ''}
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
+                rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
              />
           </div>
 
@@ -130,11 +134,13 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-             <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+             {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
+             <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
                 <ReactMarkdown
+                   className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline"
                    children={airdrop.tutorial || ''}
                    remarkPlugins={[remarkGfm]}
-                   rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]} // Urutan yang benar
+                   rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
                 />
             </div>
           </div>
