@@ -6,16 +6,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGift, faCheckCircle as fasFaCheckCircle, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { faCheckCircle as farFaCheckCircle } from '@fortawesome/free-regular-svg-icons';
 import { faTelegram, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext'; // Correct import
 
-const getTranslations = (lang, key) => {
-  const translations = {
-    id: require('../translations/id.json'),
-    en: require('../translations/en.json'),
-  };
-  const path = key.split('.');
-  return path.reduce((acc, curr) => acc && acc[curr], translations[lang]) || key;
-};
+// REMOVE this entire getTranslations function, as it's now handled by the context
+// const getTranslations = (lang, key) => {
+//   const translations = {
+//     id: require('../translations/id.json'),
+//     en: require('../translations/en.json'),
+//   };
+//   const path = key.split('.');
+//   return path.reduce((acc, curr) => acc && acc[curr], translations[lang]) || key;
+// };
 
 // Data mock untuk event, di aplikasi nyata ini akan dari database
 const giveawayEvent = {
@@ -25,14 +26,13 @@ const giveawayEvent = {
   reward: 'Total Hadiah 100 USDT untuk 5 Pemenang',
   tasks: [
     { name: 'Follow AFA on X (Twitter)', icon: faXTwitter, link: 'https://x.com/airdropforal', id: 'twitter' },
-    { name: 'Join AFA Telegram Channel', icon: faTelegram, link: 'https://t.me/airdropforal', id: 'telegram' },
-    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://youtube.com/@AirdropForAll', id: 'youtube' },
+    { name: 'Join AFA Telegram Channel', icon: faTelegram, link: 'https://t.me/airdrop4ll', id: 'telegram' }, // Changed link to match other files
+    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://www.youtube.com/@AirdropForAll', id: 'youtube' }, // Changed link to a more realistic one
   ],
 };
 
 export default function PageEvents({ currentUser }) {
-  const { language } = useLanguage();
-  const t = (key) => getTranslations(language, key);
+  const { t } = useLanguage(); // Use the t function from context
   
   const [completedTasks, setCompletedTasks] = useState(new Set());
   const [isSubmitted, setIsSubmitted] = useState(false);
