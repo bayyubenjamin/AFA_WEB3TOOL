@@ -1,4 +1,4 @@
-// src/components/AirdropUpdateForm.jsx - DENGAN TAMBAHAN VIDEO URL
+// src/components/AirdropUpdateForm.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,7 +8,6 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [link, setLink] = useState('');
-  // [PERUBAHAN 1] Tambahkan state untuk video_url
   const [videoUrl, setVideoUrl] = useState(''); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,10 +19,8 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
       setTitle(initialData.title || '');
       setContent(initialData.content || '');
       setLink(initialData.link || '');
-      // [PERUBAHAN 2] Isi state video_url jika sedang mengedit
       setVideoUrl(initialData.video_url || ''); 
     } else {
-      // Reset form jika beralih dari mode edit ke tambah
       setTitle('');
       setContent('');
       setLink('');
@@ -40,7 +37,6 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
     setLoading(true);
     setError(null);
 
-    // [PERUBAHAN 3] Siapkan data untuk dikirim, termasuk video_url
     const dataToSubmit = { title, content, link, video_url: videoUrl };
 
     let result;
@@ -65,29 +61,31 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
       }
     }
   };
+  
+  const formInputClass = "w-full bg-light-bg dark:bg-dark border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
+  const formLabelClass = "block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1";
 
   return (
     <div className="my-8 p-6 bg-primary/10 border border-primary/50 rounded-lg">
-      <h3 className="text-xl font-bold text-white mb-4">
+      <h3 className="text-xl font-bold text-light-text dark:text-white mb-4">
         {isEditing ? `Edit Update: "${initialData.title}"` : 'Tambah Update Baru'}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="update-title" className="block text-sm font-medium text-gray-300 mb-1">Judul Update</label>
-          <input id="update-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="Cth: Quest Galxe Minggu ke-3" disabled={loading} required/>
+          <label htmlFor="update-title" className={formLabelClass}>Judul Update</label>
+          <input id="update-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={formInputClass} placeholder="Cth: Quest Galxe Minggu ke-3" disabled={loading} required/>
         </div>
         <div>
-          <label htmlFor="update-content" className="block text-sm font-medium text-gray-300 mb-1">Konten/Deskripsi (Opsional)</label>
-          <textarea id="update-content" value={content} onChange={(e) => setContent(e.target.value)} rows="3" className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="Tulis detail atau langkah-langkah di sini..." disabled={loading}/>
+          <label htmlFor="update-content" className={formLabelClass}>Konten/Deskripsi (Opsional)</label>
+          <textarea id="update-content" value={content} onChange={(e) => setContent(e.target.value)} rows="3" className={formInputClass} placeholder="Tulis detail atau langkah-langkah di sini..." disabled={loading}/>
         </div>
         <div>
-          <label htmlFor="update-link" className="block text-sm font-medium text-gray-300 mb-1">Link Eksternal (Opsional)</label>
-          <input id="update-link" type="url" value={link} onChange={(e) => setLink(e.target.value)} className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="https://galxe.com/..." disabled={loading}/>
+          <label htmlFor="update-link" className={formLabelClass}>Link Eksternal (Opsional)</label>
+          <input id="update-link" type="url" value={link} onChange={(e) => setLink(e.target.value)} className={formInputClass} placeholder="https://galxe.com/..." disabled={loading}/>
         </div>
-        {/* [PERUBAHAN 4] Tambahkan field input untuk video_url */}
         <div>
-          <label htmlFor="update-video-url" className="block text-sm font-medium text-gray-300 mb-1">Link Video (Opsional)</label>
-          <input id="update-video-url" type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="w-full bg-dark border border-white/20 rounded-md p-2 text-sm" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." disabled={loading}/>
+          <label htmlFor="update-video-url" className={formLabelClass}>Link Video (Opsional)</label>
+          <input id="update-video-url" type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className={formInputClass} placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX..." disabled={loading}/>
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <div className="text-right flex justify-end gap-3">
