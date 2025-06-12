@@ -1,4 +1,4 @@
-// src/components/AirdropAdminForm.jsx - DENGAN TAMBAHAN FIELD VIDEO URL
+// src/components/AirdropAdminForm.jsx - DENGAN TAMBAHAN VIDEO URL
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -18,6 +18,7 @@ const generateSlug = (title) => {
     .replace(/-+/g, '-');
 };
 
+
 export default function AirdropAdminForm({ onSave, onClose, initialData, loading }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -26,6 +27,8 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     title: '',
     slug: '',
     link: '',
+    // [PERUBAHAN 1]: Tambahkan video_url di sini
+    video_url: '', 
     category: 'Retroactive',
     status: 'upcoming',
     image_url: '',
@@ -33,16 +36,18 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     date: '',
     tutorial: '',
     raise_amount: '',
-    confirmation_status: 'Potential',
-    video_url: '' // <-- [PENAMBAHAN] State untuk video_url
+    confirmation_status: 'Potential'
   });
 
   const isEditing = !!initialData;
 
   useEffect(() => {
     if (isEditing) {
-      // Pastikan video_url di-load jika ada, jika tidak, set sebagai string kosong
-      setFormData({ ...initialData, video_url: initialData.video_url || '' });
+      // Pastikan semua field terisi dari initialData, termasuk yang mungkin null
+      setFormData({
+        ...formData, // Ambil default state
+        ...initialData // Timpa dengan data yang ada
+      });
     }
   }, [initialData, isEditing]);
 
@@ -102,16 +107,16 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
           </div>
         </div>
         
-        {/* [PENAMBAHAN] Input field baru untuk URL Video */}
+        {/* [PERUBAHAN 2]: Tambahkan field untuk Video URL di sini */}
         <div className="form-group">
-            <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">URL Video (Opsional)</label>
-            <input type="url" name="video_url" id="video_url" value={formData.video_url} onChange={handleChange} className="form-input" placeholder="https://www.youtube.com/watch?v=..." />
+            <label htmlFor="video_url" className="block text-sm font-medium text-gray-300 mb-1.5">Link Video Tutorial (Opsional)</label>
+            <input type="url" name="video_url" id="video_url" value={formData.video_url || ''} onChange={handleChange} className="form-input" placeholder="https://youtube.com/watch?v=..." />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-group">
                 <label htmlFor="raise_amount" className="block text-sm font-medium text-gray-300 mb-1.5">Raise Amount</label>
-                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount || ''} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
+                <input type="text" name="raise_amount" id="raise_amount" value={formData.raise_amount} onChange={handleChange} className="form-input" placeholder="Cth: $258M" />
             </div>
             <div className="form-group">
                 <label htmlFor="confirmation_status" className="block text-sm font-medium text-gray-300 mb-1.5">Confirmation Status</label>
@@ -152,8 +157,8 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
         </div>
 
         <div className="form-group">
-          <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTutorial} (Mendukung Markdown)</label>
-          <textarea name="tutorial" id="tutorial" value={formData.tutorial} onChange={handleChange} rows="10" className="form-input font-mono text-sm" placeholder={t.adminFormPlaceholderTutorial}></textarea>
+          <label htmlFor="tutorial" className="block text-sm font-medium text-gray-300 mb-1.5">{t.adminFormLabelTutorial} (Mendukung Markdown untuk Teks)</label>
+          <textarea name="tutorial" id="tutorial" value={formData.tutorial} onChange={handleChange} rows="10" className="form-input font-mono text-sm" placeholder="Tuliskan langkah-langkah tutorial berupa teks di sini..."></textarea>
         </div>
         
         <div className="flex justify-end gap-4 pt-4">
