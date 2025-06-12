@@ -1,4 +1,4 @@
-// src/components/PageAdminAirdrops.jsx
+// src/components/PageAdminAirdrops.jsx - LENGKAP DENGAN THEME
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -37,6 +37,7 @@ const AirdropCard = ({ airdrop, onEdit, onDelete }) => {
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
 
   return (
+    // [EDIT]
     <div className="bg-light-card dark:bg-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
         <div className="absolute top-2 right-2 z-30 flex gap-2">
           <button onClick={(e) => { e.preventDefault(); onEdit(airdrop); }} className="bg-blue-500/80 hover:bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faEdit} /></button>
@@ -73,19 +74,16 @@ export default function PageAdminAirdrops({ currentUser }) {
   const [airdrops, setAirdrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [editingAirdrop, setEditingAirdrop] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
-
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   useEffect(() => {
-    if (currentUser === null) return;
-    if (!isAdmin) {
+    if (currentUser === undefined) return;
+    if (!isAdmin && currentUser !== null) {
       navigate('/airdrops');
     }
   }, [currentUser, isAdmin, navigate]);
@@ -108,10 +106,10 @@ export default function PageAdminAirdrops({ currentUser }) {
   }, []);
 
   useEffect(() => {
-    if (!showAdminForm) {
+    if (!showAdminForm && isAdmin) {
         fetchAirdrops();
     }
-  }, [fetchAirdrops, showAdminForm]);
+  }, [fetchAirdrops, showAdminForm, isAdmin]);
 
   const handleSaveAirdrop = async (formData) => {
     setFormLoading(true);
@@ -124,7 +122,6 @@ export default function PageAdminAirdrops({ currentUser }) {
         ({ error } = await supabase.from('airdrops').insert([dataToSave]));
       }
       if (error) throw error;
-
       setShowAdminForm(false);
       setEditingAirdrop(null);
       alert('Airdrop berhasil disimpan!');
@@ -168,7 +165,7 @@ export default function PageAdminAirdrops({ currentUser }) {
     return (
       <div className="flex flex-col items-center justify-center h-full pt-20 text-center text-red-400">
           <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/>
-          <p>You are not authorized to view this page.</p>
+          <p className="text-light-text dark:text-white">You are not authorized to view this page.</p>
           <Link to="/airdrops" className="btn-secondary mt-6 px-6 py-2">
             Back to Airdrops
           </Link>
