@@ -1,17 +1,16 @@
-// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL DENGAN PEMISAHAN STYLE
+// src/components/AirdropDetailPage.jsx - PERUBAHAN LAYOUT VIDEO
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
-  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus, faVideo
 } from '@fortawesome/free-solid-svg-icons';
 
-// Impor library yang kita butuhkan
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import rehypeVideo from 'rehype-video';
+import ReactPlayer from 'react-player/youtube';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -35,23 +34,20 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       )}
       <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
-
       {update.content && (
-        // [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown
-        <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown
-            className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
             children={update.content}
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
+            rehypePlugins={[rehypeRaw]}
           />
         </div>
       )}
-
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
 };
+
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
@@ -118,13 +114,11 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
 
-          {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
-          <div className="text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400">
              <ReactMarkdown
-                className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
                 children={airdrop.description || ''}
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
+                rehypePlugins={[rehypeRaw]}
              />
           </div>
 
@@ -132,20 +126,35 @@ export default function AirdropDetailPage({ currentUser }) {
             <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
+          
+          {/* Bagian Tutorial (Hanya Teks) */}
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-             {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
-             <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+            <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
                 <ReactMarkdown
-                   className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline"
                    children={airdrop.tutorial || ''}
                    remarkPlugins={[remarkGfm]}
-                   rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
+                   rehypePlugins={[rehypeRaw]}
                 />
             </div>
           </div>
-          {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
+          {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
+          
+          {/* [PERUBAHAN]: Bagian Video dipindahkan ke sini */}
+          {airdrop.video_url && (
+            <div className="my-8">
+              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
+                <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
+                Video Tutorial
+              </h3>
+              <div className="my-4 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
+                <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
+              </div>
+            </div>
+          )}
+
+          {/* Bagian Aktivitas & Updates */}
           <div ref={updatesSectionRef} className="my-8">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
