@@ -8,15 +8,8 @@ import { faCheckCircle as farFaCheckCircle } from '@fortawesome/free-regular-svg
 import { faTelegram, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons';
 import { useLanguage } from '../context/LanguageContext'; // Correct import
 
-// REMOVE this entire getTranslations function, as it's now handled by the context
-// const getTranslations = (lang, key) => {
-//   const translations = {
-//     id: require('../translations/id.json'),
-//     en: require('../translations/en.json'),
-//   };
-//   const path = key.split('.');
-//   return path.reduce((acc, curr) => acc && acc[curr], translations[lang]) || key;
-// };
+// REMOVE the local getTranslations function that uses require()
+// The `t` function from useLanguage context is already available and handles this.
 
 // Data mock untuk event, di aplikasi nyata ini akan dari database
 const giveawayEvent = {
@@ -26,8 +19,8 @@ const giveawayEvent = {
   reward: 'Total Hadiah 100 USDT untuk 5 Pemenang',
   tasks: [
     { name: 'Follow AFA on X (Twitter)', icon: faXTwitter, link: 'https://x.com/airdropforal', id: 'twitter' },
-    { name: 'Join AFA Telegram Channel', icon: faTelegram, link: 'https://t.me/airdrop4ll', id: 'telegram' }, // Changed link to match other files
-    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://www.youtube.com/@AirdropForAll', id: 'youtube' }, // Changed link to a more realistic one
+    { name: 'Join AFA Telegram Channel', icon: faTelegram, link: 'https://t.me/airdrop4ll', id: 'telegram' }, // Changed link to a more common Telegram link format
+    { name: 'Subscribe AFA on YouTube', icon: faYoutube, link: 'https://www.youtube.com/@AirdropForAll', id: 'youtube' }, // Changed link for demonstration
   ],
 };
 
