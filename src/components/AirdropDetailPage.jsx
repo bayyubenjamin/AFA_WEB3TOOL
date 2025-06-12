@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - SOLUSI FINAL MENGGUNAKAN REACT-PLAYER
+// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL DENGAN PEMISAHAN STYLE
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,18 +7,17 @@ import {
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
 } from '@fortawesome/free-solid-svg-icons';
 
-// Impor library
+// Impor library yang kita butuhkan
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import ReactPlayer from 'react-player/youtube'; // <-- [LANGKAH 3.A] Impor ReactPlayer
+import rehypeVideo from 'rehype-video';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-// ... (Kode AirdropUpdateItem tetap sama, tidak perlu diubah)
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -36,20 +35,23 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       )}
       <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
+
       {update.content && (
-        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+        // [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown
+        <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
           <ReactMarkdown
+            className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
             children={update.content}
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
           />
         </div>
       )}
+
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
 };
-
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
@@ -116,11 +118,13 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
 
-          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400">
+          {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
+          <div className="text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
              <ReactMarkdown
+                className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
                 children={airdrop.description || ''}
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
+                rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
              />
           </div>
 
@@ -130,19 +134,13 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            
-            {/* [LANGKAH 3.B] Tampilkan ReactPlayer jika ada video_url */}
-            {airdrop.video_url && (
-              <div className="my-6 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
-                <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
-              </div>
-            )}
-
-             <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
+             {/* [PERBAIKAN] Memindahkan class 'prose' langsung ke komponen ReactMarkdown */}
+             <div className="[&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
                 <ReactMarkdown
+                   className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline"
                    children={airdrop.tutorial || ''}
                    remarkPlugins={[remarkGfm]}
-                   rehypePlugins={[rehypeRaw]} // Kita tidak butuh plugin video di sini lagi
+                   rehypePlugins={[[rehypeVideo, { details: false }], rehypeRaw]}
                 />
             </div>
           </div>
