@@ -20,14 +20,11 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// [PERUBAHAN]: Komponen ini sekarang akan menampilkan info author
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
   
-  // Ambil data author dari relasi 'profiles'
   const authorName = update.profiles?.username || 'Admin';
-  // Default avatar jika tidak ada
   const authorAvatar = update.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${authorName.charAt(0)}&background=2a2a3a&color=fff`;
 
   return (
@@ -38,7 +35,6 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
           <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt} /></button>
         </div>
       )}
-      {/* Tampilkan info author di sini */}
       <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <img src={authorAvatar} alt={authorName} className="w-6 h-6 rounded-full object-cover border-2 border-primary/50" />
@@ -91,8 +87,9 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      // [PERUBAHAN]: Query ini sekarang akan berhasil setelah foreign key dibuat
-      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
+      // [PERUBAHAN]: Mengubah 'ascending: false' menjadi 'ascending: true'
+      // Ini akan mengurutkan dari yang paling lama ke yang paling baru.
+      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: true });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
     } catch (err) { setError(err.message || "Terjadi kesalahan saat mengambil data."); } finally { setLoading(false); }
