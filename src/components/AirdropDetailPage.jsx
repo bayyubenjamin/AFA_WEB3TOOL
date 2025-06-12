@@ -11,7 +11,6 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-// [LANGKAH 1] Hapus rehype-video dan ganti dengan remark-oembed
 import remarkOembed from 'remark-oembed';
 
 import { useLanguage } from "../context/LanguageContext";
@@ -22,10 +21,9 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen untuk merender setiap item update
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
-  const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
+  const handleEdit = () => navigate(`/airdrops/<span class="math-inline">\{airdropSlug\}/update/</span>{update.id}`);
 
   return (
     <div className="p-4 bg-dark rounded-lg relative group">
@@ -37,19 +35,17 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       )}
       <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
-      
+
       {update.content && (
         <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
           <ReactMarkdown
             children={update.content}
-            // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
             remarkPlugins={[remarkGfm, remarkOembed]}
-            // [LANGKAH 3] Hapus rehypeVideo dari sini
             rehypePlugins={[rehypeRaw]}
           />
         </div>
       )}
-      
+
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
@@ -64,7 +60,7 @@ export default function AirdropDetailPage({ currentUser }) {
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const updatesSectionRef = useRef(null);
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
@@ -119,13 +115,11 @@ export default function AirdropDetailPage({ currentUser }) {
               <FontAwesomeIcon icon={faBell} className="mr-2" />Check Update
             </button>
           </div>
-          
+
           <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
              <ReactMarkdown
                 children={airdrop.description || ''}
-                // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
                 remarkPlugins={[remarkGfm, remarkOembed]}
-                // [LANGKAH 3] Hapus rehypeVideo dari sini
                 rehypePlugins={[rehypeRaw]}
              />
           </div>
@@ -139,9 +133,7 @@ export default function AirdropDetailPage({ currentUser }) {
              <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
                 <ReactMarkdown
                    children={airdrop.tutorial || ''}
-                   // [LANGKAH 2] Tambahkan remarkOembed ke remarkPlugins
                    remarkPlugins={[remarkGfm, remarkOembed]}
-                   // [LANGKAH 3] Hapus rehypeVideo dari sini
                    rehypePlugins={[rehypeRaw]}
                 />
             </div>
