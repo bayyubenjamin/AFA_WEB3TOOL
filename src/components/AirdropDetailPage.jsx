@@ -1,3 +1,4 @@
+// src/components/AirdropDetailPage.jsx - Koreksi Posisi Video
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -128,7 +129,6 @@ export default function AirdropDetailPage({ currentUser }) {
              />
           </div>
 
-          {/* [PERUBAHAN]: Mengatur ulang urutan badge */}
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
             {airdrop.raise_amount && (
               <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300">
@@ -159,7 +159,19 @@ export default function AirdropDetailPage({ currentUser }) {
 
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
           
-          {/* [PERUBAHAN]: Bagian Aktivitas & Updates dipindahkan ke sebelum Video */}
+          {/* [PERUBAHAN]: Urutan dibalik. Video dulu, baru Aktivitas & Updates. */}
+          {airdrop.video_url && (
+            <div className="my-8">
+              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
+                <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
+                Video Tutorial
+              </h3>
+              <div className="my-4 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
+                <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
+              </div>
+            </div>
+          )}
+
           <div ref={updatesSectionRef} className="my-8">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
               <h3 className="text-2xl font-bold text-white">Aktivitas & Updates</h3>
@@ -184,19 +196,6 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
             ) : (<p className="text-center text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
           </div>
-
-          {/* [PERUBAHAN]: Bagian Video sekarang di posisi paling akhir */}
-          {airdrop.video_url && (
-            <div className="my-8">
-              <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center">
-                <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
-                Video Tutorial
-              </h3>
-              <div className="my-4 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
-                <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
