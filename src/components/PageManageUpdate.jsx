@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import AirdropUpdateForm from './AirdropUpdateForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
@@ -21,7 +21,8 @@ export default function PageManageUpdate({ currentUser }) {
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   useEffect(() => {
-    // Redirect jika bukan admin
+    if (currentUser === undefined) return; 
+
     if (currentUser && !isAdmin) {
       navigate(`/airdrops/${airdropSlug}`);
     }
@@ -67,7 +68,7 @@ export default function PageManageUpdate({ currentUser }) {
     return <div className="text-center text-red-400 pt-20"><p>{error}</p></div>;
   }
   
-  if (!isAdmin) return null; // Atau tampilkan pesan "Tidak diizinkan"
+  if (!isAdmin) return null;
 
   return (
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto">
@@ -81,6 +82,8 @@ export default function PageManageUpdate({ currentUser }) {
         initialData={initialUpdateData}
         onUpdateAdded={handleSaveComplete}
         onCancelEdit={() => navigate(`/airdrops/${airdropSlug}`)}
+        // [PERUBAIKAN]: Kirim data currentUser ke dalam form
+        currentUser={currentUser}
       />
     </div>
   );
