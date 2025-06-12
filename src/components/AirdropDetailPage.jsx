@@ -1,14 +1,17 @@
-// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN PERBAIKAN PLUGIN
+// src/components/AirdropDetailPage.jsx - FINAL DENGAN REACT-MARKDOWN
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle,
-  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus
+import { 
+  faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
+  faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
 } from '@fortawesome/free-solid-svg-icons';
-import { remark } from 'remark';
+
+// Impor library yang kita butuhkan
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkHtml from 'remark-html';
+import rehypeRaw from 'rehype-raw';
+import rehypeVideo from 'rehype-video';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -18,57 +21,36 @@ import translationsEn from "../translations/en.json";
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen untuk merender setiap item update (sudah diperbaiki)
+// Komponen untuk merender setiap item update
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
-  const [processedContent, setProcessedContent] = useState('');
-
-  useEffect(() => {
-    if (update.content) {
-      remark().use(remarkGfm).use(remarkHtml).process(update.content)
-        .then(file => {
-          setProcessedContent(String(file));
-        });
-    } else {
-      setProcessedContent('');
-    }
-  }, [update.content]);
-
-  const handleEdit = () => {
-    navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
-  };
+  const handleEdit = () => navigate(`/airdrops/${airdropSlug}/update/${update.id}`);
 
   return (
     <div className="p-4 bg-dark rounded-lg relative group">
       {isAdmin && (
         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update">
-            <FontAwesomeIcon icon={faEdit} />
-          </button>
-          <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update">
-            <FontAwesomeIcon icon={faTrashAlt} />
-          </button>
+          <button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Edit Update"><FontAwesomeIcon icon={faEdit} /></button>
+          <button onClick={() => onDelete(update.id)} className="bg-red-600 hover:bg-red-500 text-white w-7 h-7 rounded-md flex items-center justify-center text-xs shadow" title="Hapus Update"><FontAwesomeIcon icon={faTrashAlt} /></button>
         </div>
       )}
-      <p className="text-sm text-gray-400 mb-1 flex items-center">
-        <FontAwesomeIcon icon={faClock} className="mr-2" />
-        {new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-      </p>
+      <p className="text-sm text-gray-400 mb-1 flex items-center"><FontAwesomeIcon icon={faClock} className="mr-2" />{new Date(update.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       <h4 className="font-bold text-lg text-primary">{update.title}</h4>
       
-      {/* PERBAIKAN: Menggunakan class 'prose' untuk styling otomatis dari plugin typography */}
-      {processedContent && (
-        <div
-          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
-          dangerouslySetInnerHTML={{ __html: processedContent }}
-        />
+      {update.content && (
+        <div className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+          <ReactMarkdown
+            children={update.content}
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+          />
+        </div>
       )}
       
       {update.link && (<a href={update.link} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs mt-3 inline-block px-4 py-1.5">Kunjungi Link</a>)}
     </div>
   );
 };
-
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
@@ -79,9 +61,7 @@ export default function AirdropDetailPage({ currentUser }) {
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [processedTutorial, setProcessedTutorial] = useState('');
-  const [processedDescription, setProcessedDescription] = useState('');
-
+  
   const updatesSectionRef = useRef(null);
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
@@ -93,15 +73,6 @@ export default function AirdropDetailPage({ currentUser }) {
       const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
-      
-      const processMarkdown = async (markdown) => {
-        if (!markdown) return '';
-        const file = await remark().use(remarkGfm).use(remarkHtml).process(markdown);
-        return String(file);
-      };
-
-      setProcessedTutorial(await processMarkdown(airdropData.tutorial));
-      setProcessedDescription(await processMarkdown(airdropData.description));
 
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
@@ -146,18 +117,27 @@ export default function AirdropDetailPage({ currentUser }) {
             </button>
           </div>
           
-          <div
-            className="prose prose-invert prose-base max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400"
-            dangerouslySetInnerHTML={{ __html: processedDescription }}
-          />
+          <div className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+             <ReactMarkdown
+                children={airdrop.description || ''}
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+             />
+          </div>
 
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
-            <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
+            <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {t.modalStatus || 'Status'}: {statusInfo.text}</div>
             {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-white/20 bg-white/5 text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
           </div>
           <div className="my-8">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-            {processedTutorial ? (<div className="prose prose-invert prose-base max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline" dangerouslySetInnerHTML={{ __html: processedTutorial }} />) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
+             <div className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&_iframe]:aspect-video [&_iframe]:w-full [&_iframe]:rounded-xl [&_iframe]:shadow-lg">
+                <ReactMarkdown
+                   children={airdrop.tutorial || ''}
+                   remarkPlugins={[remarkGfm]}
+                   rehypePlugins={[rehypeRaw, [rehypeVideo, { details: false }]]}
+                />
+            </div>
           </div>
           {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
 
