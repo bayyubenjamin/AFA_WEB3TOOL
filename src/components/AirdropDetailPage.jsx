@@ -1,4 +1,4 @@
-// src/components/AirdropDetailPage.jsx - PERBAIKAN FINAL MENGGUNAKAN REHYPE-VIDEO
+// src/components/AirdropDetailPage.jsx - VERSI FINAL DENGAN VIDEO PLAYER
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,12 +7,11 @@ import {
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus 
 } from '@fortawesome/free-solid-svg-icons';
 
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
+import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
-import remarkRehype from 'remark-rehype';
-import rehypeVideo from 'rehype-video'; // <-- PLUGIN BARU YANG BENAR
-import rehypeStringify from 'rehype-stringify';
+import remarkHtml from 'remark-html';
+// ===== TAMBAHAN: Impor plugin video embed =====
+import remarkEmbedVideo from 'remark-embed-video';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
@@ -25,22 +24,23 @@ const getTranslations = (lang) => (lang === 'id' ? translationsId : translations
 // Fungsi helper untuk memproses Markdown menjadi HTML dengan video embed
 const processMarkdown = async (markdown) => {
   if (!markdown) return '';
-  const file = await unified()
-    .use(remarkParse)
+  const file = await remark()
     .use(remarkGfm)
-    .use(remarkRehype, { allowDangerousHtml: true }) // Izinkan HTML mentah
-    .use(rehypeVideo, { details: false }) // Gunakan plugin video
-    .use(rehypeStringify)
+    // ===== TAMBAHAN: Gunakan plugin video embed di sini =====
+    .use(remarkEmbedVideo, { width: 500, height: 300, noIframeBorder: true })
+    // ===== PENTING: Izinkan iframe agar video bisa muncul =====
+    .use(remarkHtml, { sanitize: false })
     .process(markdown);
   return String(file);
 };
 
-// Komponen untuk merender setiap item update
+// Komponen untuk merender setiap item update (sudah diperbaiki)
 const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
   const navigate = useNavigate();
   const [processedContent, setProcessedContent] = useState('');
 
   useEffect(() => {
+    // Gunakan fungsi helper untuk memproses konten update
     processMarkdown(update.content).then(html => setProcessedContent(html));
   }, [update.content]);
 
@@ -59,7 +59,7 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       
       {processedContent && (
         <div
-          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
+          className="prose prose-sm prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-iframe:aspect-video prose-iframe:w-full prose-iframe:rounded-xl prose-iframe:shadow-lg"
           dangerouslySetInnerHTML={{ __html: processedContent }}
         />
       )}
@@ -68,7 +68,6 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
     </div>
   );
 };
-
 
 export default function AirdropDetailPage({ currentUser }) {
   const { airdropSlug } = useParams();
@@ -94,6 +93,7 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
       
+      // Gunakan fungsi helper untuk memproses deskripsi dan tutorial
       setProcessedTutorial(await processMarkdown(airdropData.tutorial));
       setProcessedDescription(await processMarkdown(airdropData.description));
 
@@ -141,7 +141,7 @@ export default function AirdropDetailPage({ currentUser }) {
           </div>
           
           <div
-            className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
+            className="prose prose-base prose-invert max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline text-gray-400 prose-iframe:aspect-video prose-iframe:w-full prose-iframe:rounded-xl prose-iframe:shadow-lg"
             dangerouslySetInnerHTML={{ __html: processedDescription }}
           />
 
@@ -153,7 +153,7 @@ export default function AirdropDetailPage({ currentUser }) {
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
             {processedTutorial ? (
               <div 
-                className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline [&>div>iframe]:aspect-video [&>div>iframe]:w-full [&>div>iframe]:rounded-xl [&>div>iframe]:shadow-lg"
+                className="prose prose-base prose-invert max-w-none prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline prose-iframe:aspect-video prose-iframe:w-full prose-iframe:rounded-xl prose-iframe:shadow-lg" 
                 dangerouslySetInnerHTML={{ __html: processedTutorial }} />
             ) : (<p className="text-gray-500">{t.modalNoTutorial || 'Tidak ada tutorial untuk airdrop ini.'}</p>)}
           </div>
