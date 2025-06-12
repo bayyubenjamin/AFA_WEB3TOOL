@@ -1,10 +1,8 @@
-// src/components/Header.jsx
+// src/components/Header.jsx - VERSI GABUNGAN FITUR
 import React, { useState, useEffect, useRef } from "react";
-// [TAMBAHAN] Impor Link untuk navigasi
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"; // Impor Link untuk navigasi
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// [TAMBAHAN] Impor ikon faComments
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments } from "@fortawesome/free-solid-svg-icons"; // Impor ikon faComments
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -56,7 +54,6 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
     setIsOptionsMenuOpen(false);
   };
 
-
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
       <div className="flex items-center flex-1 min-w-0">
@@ -83,9 +80,9 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
         {title}
       </h1>
       
-      {/* [DIUBAH] Bungkus tombol-tombol kanan */}
+      {/* Bungkus tombol-tombol kanan */}
       <div className="flex-1 flex justify-end items-center gap-2">
-        {/* [TAMBAHAN] Tombol Forum */}
+        {/* Tombol Forum */}
         <Link
           to="/forum"
           className="p-2 w-10 h-10 flex items-center justify-center"

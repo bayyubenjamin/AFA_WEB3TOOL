@@ -1,7 +1,8 @@
-// src/App.jsx - VERSI LENGKAP DENGAN ROUTE EVENTS
+// src/App.jsx - VERSI GABUNGAN FITUR
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
+// Impor semua komponen halaman
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -12,8 +13,9 @@ import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
 import PageManageUpdate from "./components/PageManageUpdate";
-import PageEvents from './components/PageEvents'; // [TAMBAHAN]: Impor halaman Events baru
+import PageEvents from './components/PageEvents'; // Impor halaman Events baru
 
+// Impor utilitas
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -41,6 +43,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
+
 function MainAppContent() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
@@ -53,10 +56,11 @@ function MainAppContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // useEffect untuk mengupdate jumlah pengguna online secara acak
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
-      const max = 42;
+      const max = 42; // Anda bisa sesuaikan angka maksimalnya
       const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
       setOnlineUsers(randomCount);
     };
@@ -65,6 +69,8 @@ function MainAppContent() {
     return () => clearInterval(intervalId);
   }, []);
 
+
+  // useEffect untuk menangani otentikasi pengguna
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleAuthChange = async (session) => {
@@ -100,12 +106,13 @@ function MainAppContent() {
     };
   }, []);
 
+  // useEffect untuk mengatur judul header berdasarkan halaman
   useEffect(() => {
     if (location.pathname.includes('/update')) { setHeaderTitle('Manage Update'); return; }
     if (location.pathname === '/airdrops/postairdrops') { setHeaderTitle('Admin Panel'); return; }
     const path = location.pathname.split('/')[1] || 'home';
     
-    // [DIUBAH] Menambahkan judul untuk halaman "events"
+    // Menambahkan judul untuk halaman "events"
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events" };
     
@@ -114,6 +121,7 @@ function MainAppContent() {
     else { setHeaderTitle(titles_en[titleKey] || "AFA WEB3TOOL"); }
   }, [location, language]);
 
+  // useEffect untuk animasi transisi halaman
   useEffect(() => {
     if (loadingInitialSession) return;
     if (pageContentRef.current) {
@@ -125,6 +133,7 @@ function MainAppContent() {
       return () => clearTimeout(timer);
     }
   }, [location.pathname, loadingInitialSession]);
+
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
@@ -164,7 +173,7 @@ function MainAppContent() {
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           
-          {/* [TAMBAHAN] Route baru untuk halaman Events */}
+          {/* Route baru untuk halaman Events */}
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
