@@ -1,18 +1,17 @@
-// src/components/PageProfile.jsx - VERSI FINAL DENGAN SEMUA PERBAIKAN
+// src/components/PageProfile.jsx - VERSI REDESIGN PREMIUM
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSignInAlt, faSignOutAlt, faEdit, faIdBadge, faRobot, faUserPlus,
-  faEnvelope, faLock, faUser, faTimes, faSave, faEye, faEyeSlash, faImage, faSpinner, faKey
+  faEnvelope, faLock, faUser, faTimes, faSave, faEye, faEyeSlash, faImage, faSpinner, faKey,
+  faChartBar, faClipboardCheck, faStar, faWallet, faCopy
 } from "@fortawesome/free-solid-svg-icons";
 
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
-// [PERBAIKAN]: Impor file terjemahan di level atas menggunakan 'import'
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-// [PERBAIKAN]: Gunakan fungsi getTranslations yang benar
 const getTranslations = (lang) => {
     return lang === 'id' ? translationsId : translationsEn;
 };
@@ -63,6 +62,15 @@ const InputField = React.memo(({
 });
 InputField.displayName = 'InputField';
 
+const StatCard = ({ icon, label, value }) => (
+  <div className="bg-card hover:bg-primary/10 p-5 rounded-xl border border-white/10 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
+    <FontAwesomeIcon icon={icon} className="text-primary text-2xl mb-3" />
+    <p className="text-3xl font-bold text-white">{value}</p>
+    <p className="text-gray-400 text-sm uppercase tracking-wider">{label}</p>
+  </div>
+);
+
+
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage;
@@ -87,6 +95,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
     if (isLoggedIn && currentUser) {
@@ -98,6 +107,15 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const clearMessages = useCallback(() => {
     setError(null); setSuccessMessage(null);
   }, []);
+
+  const handleCopyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopySuccess('Copied!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    }, () => {
+      setCopySuccess('Failed');
+    });
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault(); clearMessages(); setLoading(true);
@@ -119,7 +137,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
         email: signupEmail,
         options: { 
             shouldCreateUser: true,
-            emailRedirectTo: window.location.origin, // Ini adalah perbaikan untuk login di HP
+            emailRedirectTo: window.location.origin, 
         },
       });
       if (error) throw error;
@@ -191,11 +209,10 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
 
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
-  if (!currentUser) {
+  if (currentUser === undefined) {
     return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p>{t.loadingApp}</p></section>);
   }
 
-  // Sisa kode dari sini tidak ada perubahan dan sudah benar
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
       {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
@@ -263,40 +280,67 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
         </div>
       ) : (
         <>
-          <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-            <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-5 md:gap-8">
-              <div className="relative group">
-                <img src={currentUser.avatar_url || defaultGuestUserFromProfile.avatar_url} alt={currentUser.name || currentUser.username || "Avatar"} className="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-primary/70 shadow-lg"/>
-                <button onClick={handleOpenEditProfileModal} className="absolute inset-0 w-full h-full bg-black/50 rounded-full flex items-center justify-center text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity" aria-label={t.editAvatar} disabled={loading}><FontAwesomeIcon icon={faEdit} /></button>
-              </div>
-              <div className="flex-grow">
-                <h2 className="text-3xl md:text-4xl font-bold text-white break-words">{currentUser.name || currentUser.username}</h2>
-                {currentUser.address && ( <p className="text-sm text-primary/80 font-mono break-all mt-1.5 flex items-center justify-center sm:justify-start"><FontAwesomeIcon icon={faIdBadge} className="mr-2 opacity-70"/>{currentUser.address.substring(0, 6)}...{currentUser.address.substring(currentUser.address.length - 4)}</p> )}
-                {currentUser.email && ( <p className="text-sm text-gray-400 break-all mt-1 flex items-center justify-center sm:justify-start"><FontAwesomeIcon icon={faEnvelope} className="mr-2 opacity-70"/>{currentUser.email}</p> )}
-                <div className="mt-4 space-x-3">
-                    <button disabled={loading} onClick={handleOpenEditProfileModal} className="btn-secondary text-xs px-5 py-2 rounded-lg inline-flex items-center" ><FontAwesomeIcon icon={faEdit} className="mr-1.5"/> {t.editProfileModalTitle}</button>
+          {/* === START PROFILE HEADER === */}
+          <div className="card rounded-xl overflow-hidden shadow-2xl shadow-primary/10">
+            <div className="h-32 md:h-40 bg-gradient-to-r from-primary/50 to-blue-500/30"></div>
+            <div className="px-5 pb-5 sm:px-8 sm:pb-8 -mt-20">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6">
+                <div className="relative flex-shrink-0">
+                  <img 
+                    src={currentUser.avatar_url || defaultGuestUserFromProfile.avatar_url} 
+                    alt={currentUser.name || currentUser.username || "Avatar"} 
+                    className="w-32 h-32 rounded-full object-cover border-4 border-card ring-4 ring-primary/50"
+                  />
+                   <button 
+                      onClick={handleOpenEditProfileModal}
+                      className="absolute bottom-1 right-1 bg-primary hover:bg-fuchsia-500 text-white w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                      aria-label={t.editAvatar}
+                    >
+                      <FontAwesomeIcon icon={faEdit} className="text-sm" />
+                    </button>
+                </div>
+                <div className="mt-4 sm:mt-0 flex-grow text-center sm:text-left">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white break-words futuristic-text-gradient">{currentUser.name || currentUser.username}</h2>
+                  <p className="text-sm text-gray-400 break-all mt-1">
+                    <FontAwesomeIcon icon={faEnvelope} className="mr-2 opacity-70"/>{currentUser.email}
+                  </p>
+                  {currentUser.address && (
+                    <div className="mt-1.5 inline-flex items-center bg-white/10 text-gray-300 text-xs font-mono rounded-full py-1 pl-3 pr-2" title={currentUser.address}>
+                      <FontAwesomeIcon icon={faWallet} className="mr-2"/>
+                      {currentUser.address.substring(0, 6)}...{currentUser.address.substring(currentUser.address.length - 4)}
+                      <button onClick={() => handleCopyToClipboard(currentUser.address)} className="ml-2 hover:text-primary transition-colors">
+                        <FontAwesomeIcon icon={faCopy} />
+                      </button>
+                      {copySuccess && <span className="text-primary text-xs ml-2">{copySuccess}</span>}
+                    </div>
+                  )}
+                </div>
+                 <div className="mt-4 sm:mt-0 flex-shrink-0">
+                    <button disabled={loading} onClick={handleLogout} className="btn-secondary bg-red-500/20 border-red-500/30 hover:bg-red-500/40 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm">
+                      {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />}
+                      {t.logoutBtn}
+                    </button>
                 </div>
               </div>
             </div>
           </div>
+          {/* === END PROFILE HEADER === */}
+
+          {/* === START STATS SECTION === */}
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-primary border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faRobot} className="mr-2.5" /> {t.statsTitle}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 text-sm">
-              {[
-                { label: t.statPoints, value: currentUser.stats?.points || 0 },
-                { label: t.statAirdropsClaimed, value: currentUser.stats?.airdropsClaimed || 0 },
-                { label: t.statNftsOwned, value: currentUser.stats?.nftsOwned || 0 },
-                { label: t.statActiveTasks, value: activeAirdropsCount }
-              ].map(stat => (<div key={stat.label} className="bg-card hover:bg-primary/10 p-4 rounded-lg text-center border border-white/10"><p className="text-gray-400 text-xs uppercase tracking-wider mb-1.5">{stat.label}</p><p className="text-white font-bold text-3xl">{stat.value}</p></div>))}
+            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-white border-b border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-2.5 text-primary" /> {t.statsTitle}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+              <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
+              <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
+              <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} icon={faRobot} />
+              <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
             </div>
           </div>
-          <div className="mt-6 md:mt-8">
-            <button disabled={loading} onClick={handleLogout} className="w-full btn-danger bg-red-600/80 hover:bg-red-700/90 text-white font-semibold py-3.5 px-6 rounded-lg flex items-center justify-center text-base">
-              {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2.5" /> : <FontAwesomeIcon icon={faSignOutAlt} className="mr-2.5" />} {t.logoutBtn}
-            </button>
-          </div>
+          {/* === END STATS SECTION === */}
         </>
       )}
+      
+      {/* === MODAL (UNCHANGED) === */}
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="modal-content card rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-lg">
