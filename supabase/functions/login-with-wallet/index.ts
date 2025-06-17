@@ -46,7 +46,7 @@ serve(async (req) => {
         email_confirm: true,
       })
       if (createUserError) throw createUserError
-      
+
       user = newUser.user
       userId = user.id
       const username = `user_${address.substring(2, 8)}`
@@ -66,11 +66,22 @@ serve(async (req) => {
       if (getUserError) throw getUserError
       user = existingUser.user
     }
-    
-    const supabaseJwtSecret = Deno.env.get('AFA_JWT_SECRET');
-    if (!supabaseJwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
 
-    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000);
+    const jwtSecret = Deno.env.get('AFA_JWT_SECRET');
+    if (!jwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
+
+    // ===== PERBAIKAN KRUSIAL DI SINI =====
+    // Mengubah string secret menjadi CryptoKey yang bisa dipakai djwt
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(jwtSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign", "verify"]
+    );
+    // =====================================
+
+    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // Sesi berlaku 1 jam
 
     const accessToken = await create(
       { alg: "HS256", typ: "JWT" },
@@ -80,7 +91,7 @@ serve(async (req) => {
         role: "authenticated",
         exp: expiration
       },
-      supabaseJwtSecret
+      key // Menggunakan CryptoKey, bukan string
     );
 
     const session = {
@@ -89,6 +100,7 @@ serve(async (req) => {
         expires_in: 3600,
         expires_at: expiration,
         user: user,
+        refresh_token: 'dummy-refresh-token' // Tambahkan dummy refresh token
     }
 
     return new Response(JSON.stringify(session), {
@@ -96,6 +108,8 @@ serve(async (req) => {
     })
 
   } catch (error) {
+    // Tambahkan console.log di sini untuk debugging di server
+    console.error('Error in Edge Function:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
