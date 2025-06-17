@@ -31,7 +31,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // PERBAIKAN: Membaca kolom 'id', bukan 'user_id'
     let { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('id')
@@ -52,11 +51,10 @@ serve(async (req) => {
       userId = user.id
       const username = `user_${address.substring(2, 8)}`
 
-      // PERBAIKAN: Meng-insert ke kolom 'id', tidak ada lagi 'user_id'
       const { error: newProfileError } = await supabaseAdmin
         .from('profiles')
         .insert({
-          id: userId, // Kunci utama dan foreign key ke auth.users
+          id: userId,
           web3_address: address.toLowerCase(),
           username, name: username,
           email: user.email,
@@ -69,10 +67,6 @@ serve(async (req) => {
       user = existingUser.user
     }
     
-<<<<<<< HEAD
-=======
-    // PERUBAHAN DI SINI: Menggunakan nama secret yang baru
->>>>>>> dddf34500979bbe49fc1ccc582191117552e6b8e
     const supabaseJwtSecret = Deno.env.get('AFA_JWT_SECRET');
     if (!supabaseJwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
 
