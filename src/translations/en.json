@@ -1,3 +1,4 @@
+
 {
   "header": {
     "title": "AFA WEB3TOOL",
@@ -31,6 +32,9 @@
     "feature3Title": "Community Forum",
     "feature3Description": "Join the community, discuss, and get the latest tips about airdrops.",
     "feature3Action": "Visit Forum",
+    "feature4Title": "Special Events",
+    "feature4Description": "Don't miss our exclusive giveaways and events for community members!",
+    "feature4Action": "Join Events",
     "joinCtaTitle": "Ready to Start Your Airdrop Journey?",
     "joinCtaSubtitle": "Don't miss out. Join Airdrop For All now!",
     "startNow": "Start Now"
@@ -229,3 +233,4 @@
     "tasksCompleteMessage": "You have participated! Winners will be announced on our official channels."
   }
 }
+

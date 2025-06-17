@@ -4,7 +4,7 @@ import React from "react";
 import { Link } from "react-router-dom"; // [TAMBAHAN]: Impor Link
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faFingerprint, faRocket, faTasks, faComments, faArrowRight, faShieldHalved, faSignInAlt
+  faFingerprint, faRocket, faTasks, faComments, faArrowRight, faShieldHalved, faSignInAlt, faGift // [TAMBAHAN]: Tambahkan faGift untuk ikon event
 } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -73,6 +73,15 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
       actionTarget: "/forum", // [DIUBAH]: Menjadi path URL
       color: "text-teal-400",
     },
+    // [TAMBAHAN]: Kartu baru untuk Event
+    {
+      icon: faGift, // Menggunakan ikon hadiah
+      title: tHome.feature4Title || "Special Events", // Tambahkan terjemahan di id.json dan en.json
+      description: tHome.feature4Description || "Don't miss our exclusive giveaways and events for community members!", // Tambahkan terjemahan
+      actionText: tHome.feature4Action || "Join Events", // Tambahkan terjemahan
+      actionTarget: "/events", // Arahkan ke halaman events
+      color: "text-green-400", // Warna hijau
+    },
   ];
   
   const handleMainAction = () => {
@@ -117,7 +126,8 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
             {tHome.featuresSubtitle}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* [UBAH]: Sesuaikan grid agar muat 4 kartu jika ada, atau 3 jika hanya 3 fitur */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"> {/* [UBAH] grid-cols-4 */}
           {features.map((feature, index) => (
             <FeatureCard
               key={index}
