@@ -3,7 +3,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { ethers } from 'https://esm.sh/ethers@6.13.1'
+<<<<<<< HEAD
 import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.9.1/mod.ts'
+=======
+import { create, getNumericDate } from 'djwt'
+>>>>>>> 00a82069449070ac0eb1ea99ff755dfe9186c142
 
 const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan."
 const corsHeaders = {
@@ -41,6 +45,7 @@ serve(async (req) => {
     let user;
 
     if (!userId) {
+      // User Baru
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: `${address.toLowerCase()}@wallet.afa-web3.com`,
         email_confirm: true,
@@ -62,16 +67,28 @@ serve(async (req) => {
         })
       if (newProfileError) throw newProfileError
     } else {
+<<<<<<< HEAD
+=======
+      // User Lama
+>>>>>>> 00a82069449070ac0eb1ea99ff755dfe9186c142
       const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId)
       if (getUserError) throw getUserError
       user = existingUser.user
     }
     
+<<<<<<< HEAD
     // PERUBAHAN DI SINI: Menggunakan nama secret yang baru
     const supabaseJwtSecret = Deno.env.get('AFA_JWT_SECRET');
     if (!supabaseJwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
 
     const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000);
+=======
+    // Membuat Sesi Login (JWT) secara manual
+    const supabaseJwtSecret = Deno.env.get('SUPABASE_JWT_SECRET');
+    if (!supabaseJwtSecret) throw new Error("SUPABASE_JWT_SECRET belum di-set di Edge Function secrets.")
+
+    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // Sesi berlaku 1 jam
+>>>>>>> 00a82069449070ac0eb1ea99ff755dfe9186c142
 
     const accessToken = await create(
       { alg: "HS256", typ: "JWT" },
