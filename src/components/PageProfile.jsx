@@ -1,4 +1,4 @@
-// src/components/PageProfile.jsx - VERSI LENGKAP DENGAN KONEKSI WALLET
+// src/components/PageProfile.jsx - VERSI LENGKAP DENGAN KONEKSI WALLET (FINAL & DIPERBAIKI)
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -12,10 +12,9 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-// --- TAMBAHAN WALLET ---
-import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi'
-import { injected } from 'wagmi/connectors'
-// --- AKHIR TAMBAHAN ---
+// --- Import hook dari wagmi ---
+import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 
 const getTranslations = (lang) => {
     return lang === 'id' ? translationsId : translationsEn;
@@ -38,14 +37,13 @@ const mapSupabaseDataToAppUser = (authUser, profileData) => {
     name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserFromProfile.avatar_url,
     stats: profileData?.stats || defaultGuestUserFromProfile.stats,
-    address: profileData?.web3_address || null, // Ambil dari kolom baru
+    address: profileData?.web3_address || null,
     user_metadata: authUser.user_metadata || {}
   };
 };
 
-const InputField = React.memo(({
-  id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading
-}) => {
+// --- Komponen-komponen UI (InputField & StatCard) tidak diubah ---
+const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => {
   return (
     <div className="mb-4">
       <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -53,16 +51,7 @@ const InputField = React.memo(({
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <FontAwesomeIcon icon={icon} className="text-light-subtle dark:text-gray-400" />
         </div>
-        <input
-          disabled={parentLoading}
-          type={type}
-          id={id}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          autoComplete="off"
-          className="w-full bg-black/5 dark:bg-white/5 border border-black/20 dark:border-white/20 text-light-text dark:text-gray-200 py-2.5 px-3 rounded-md pl-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all disabled:opacity-50"
-        />
+        <input disabled={parentLoading} type={type} id={id} value={value} onChange={onChange} placeholder={placeholder} autoComplete="off" className="w-full bg-black/5 dark:bg-white/5 border border-black/20 dark:border-white/20 text-light-text dark:text-gray-200 py-2.5 px-3 rounded-md pl-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all disabled:opacity-50" />
         {children}
       </div>
     </div>
@@ -77,19 +66,21 @@ const StatCard = ({ icon, label, value }) => (
     <p className="text-light-subtle dark:text-gray-400 text-sm uppercase tracking-wider">{label}</p>
   </div>
 );
+// --- Akhir Komponen UI ---
 
 
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
-
   const isLoggedIn = !!(currentUser && currentUser.id);
 
-  // State yang ada
+  // State UI
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // State Form
   const [signupStage, setSignupStage] = useState('collectingDetails');
   const [otpCode, setOtpCode] = useState('');
   const [loginEmail, setLoginEmail] = useState("");
@@ -100,19 +91,19 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [editName, setEditName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  
+  // State Aksi & Pesan
   const [loading, setLoading] = useState(false);
+  const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
 
-  // --- STATE & HOOKS WALLET ---
+  // Hooks dari wagmi
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
-  const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
-  // --- AKHIR STATE & HOOKS WALLET ---
-
 
   useEffect(() => {
     if (isLoggedIn && currentUser) {
@@ -122,10 +113,11 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   }, [currentUser, isLoggedIn]);
 
   const clearMessages = useCallback(() => {
-    setError(null); setSuccessMessage(null);
+    setError(null);
+    setSuccessMessage(null);
   }, []);
 
-  // --- FUNGSI BARU UNTUK WALLET ---
+  // --- LOGIKA WALLET ---
 
   const handleWalletLogin = async () => {
     clearMessages();
@@ -134,7 +126,9 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     try {
       if (!isConnected) {
         connect({ connector: injected() });
-        // Flow akan dilanjutkan di useEffect di bawah setelah user connect
+        // Jika belum terhubung, flow berhenti di sini.
+        // useEffect akan menangani sisanya saat status `isConnected` berubah.
+        setIsWalletActionLoading(false);
         return;
       }
 
@@ -143,17 +137,15 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', {
         body: { address, signature },
       });
-
+      
       if (functionError) throw new Error(functionError.message);
       if (session.error) throw new Error(session.error);
-
 
       const { error: sessionError } = await supabase.auth.setSession(session);
       if (sessionError) throw sessionError;
 
       setSuccessMessage("Berhasil login dengan wallet!");
-      // `onAuthStateChange` di App.jsx akan menangani sisanya (fetch profile & navigasi)
-
+      // `onAuthStateChange` di App.jsx akan menangani pembaruan data pengguna
     } catch (err) {
       console.error("Wallet login error:", err);
       setError(err.message || "Gagal login dengan wallet.");
@@ -171,20 +163,24 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     setIsWalletActionLoading(true);
     clearMessages();
     try {
+        // **PERBAIKAN**: Selalu gunakan lowercase untuk pengecekan
+        const lowerCaseAddress = address.toLowerCase();
+
         const { data: existingProfile, error: checkError } = await supabase
             .from('profiles')
             .select('id')
-            .eq('web3_address', address)
+            .eq('web3_address', lowerCaseAddress)
             .single();
 
         if (checkError && checkError.code !== 'PGRST116') throw checkError;
         if (existingProfile) throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
 
         await signMessageAsync({ message: `Tautkan wallet ini ke akun AFA Anda: ${currentUser.email}` });
-
+        
+        // **PERBAIKAN**: Simpan alamat dalam format lowercase
         const { data, error: updateError } = await supabase
             .from('profiles')
-            .update({ web3_address: address })
+            .update({ web3_address: lowerCaseAddress })
             .eq('id', currentUser.id)
             .select()
             .single();
@@ -193,6 +189,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
 
         onUpdateUser(mapSupabaseDataToAppUser({ ...currentUser }, data));
         setSuccessMessage("Wallet berhasil ditautkan!");
+        disconnect(); // Putuskan koneksi setelah berhasil untuk UX yang lebih baik
 
     } catch (err) {
         setError(err.message || "Gagal menautkan wallet.");
@@ -226,20 +223,21 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     }
   };
 
+  // useEffect untuk melanjutkan flow setelah koneksi wallet berhasil
   useEffect(() => {
-    if (isConnected && address && !loading) {
-      if (!isLoggedIn) {
-        handleWalletLogin();
-      }
+    // Hanya jalankan jika `address` tersedia dan user belum login
+    if (isConnected && address && !isLoggedIn && !loading) {
+      handleWalletLogin();
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, isLoggedIn]);
 
-  // [CUT] - Fungsi handle lainnya (handleLogin, handleSignup, handleLogout, handleUpdateProfile) tidak berubah
+
+  // --- LOGIKA FORM EMAIL/PASSWORD & PROFIL ---
   const handleLogin = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword }); if (error) throw error; setSuccessMessage(t.loginSuccess || "Login berhasil!"); } catch (err) { setError(err.message || "Gagal login."); } finally { setLoading(false); } };
-  const handleSignupRequestOtp = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired); setLoading(false); return; } if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch); setLoading(false); return; } try { const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword, options: { data: { username: signupUsername, name: signupUsername, avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=${signupUsername.substring(0,1).toUpperCase()}` } } }); if (error) throw error; setSuccessMessage((t.otpSent?.replace('{email}', signupEmail)) || `Kode OTP telah dikirim ke ${signupEmail}.`); setSignupStage('awaitingOtp'); } catch (err) { setError(err.message || "Gagal mengirim OTP."); } finally { setLoading(false); } };
-  const handleVerifyOtpAndCompleteSignup = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); if (!otpCode) { setError(t.otpRequired); setLoading(false); return; } try { const { data: { session }, error: otpError } = await supabase.auth.verifyOtp({ email: signupEmail, token: otpCode, type: 'signup' }); if (otpError) throw otpError; if (!session?.user) throw new Error(t.sessionNotFound); setSuccessMessage(t.signupSuccess); } catch (err) { setError(err.message || "Verifikasi OTP atau pembuatan profil gagal."); } finally { setLoading(false); } };
+  const handleSignupRequestOtp = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); if (!signupUsername || !signupEmail || !signupPassword) { setError(t.signupUsernameEmailPasswordRequired || "Username, Email, dan Password harus diisi!"); setLoading(false); return; } if (signupPassword !== signupConfirmPassword) { setError(t.signupPasswordMismatch || "Password tidak cocok!"); setLoading(false); return; } try { const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword, options: { data: { name: signupUsername, username: signupUsername, avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=${signupUsername.substring(0,1).toUpperCase()}` } } }); if (error) throw error; setSuccessMessage((t.otpSent?.replace('{email}', signupEmail)) || `Kode OTP telah dikirim ke ${signupEmail}.`); setSignupStage('awaitingOtp'); } catch (err) { setError(err.message || "Gagal mengirim OTP."); } finally { setLoading(false); } };
+  const handleVerifyOtpAndCompleteSignup = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); if (!otpCode) { setError(t.otpRequired || "Kode OTP harus diisi!"); setLoading(false); return; } try { const { data: { session }, error: otpError } = await supabase.auth.verifyOtp({ email: signupEmail, token: otpCode, type: 'signup' }); if (otpError) throw otpError; if (!session?.user) throw new Error(t.sessionNotFound || "Sesi tidak ditemukan setelah verifikasi OTP."); setSuccessMessage(t.signupSuccess || "Pendaftaran berhasil!"); } catch (err) { setError(err.message || "Verifikasi OTP atau pembuatan profil gagal."); } finally { setLoading(false); } };
   const handleLogout = async () => { setLoading(true); await supabase.auth.signOut(); if (onUpdateUser) onUpdateUser(defaultGuestUserFromProfile); disconnect(); setLoading(false); };
-  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess); setShowEditProfileModal(false); } catch (err) { setError(err.message || t.profileUpdateError); } finally { setLoading(false); } };
+  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
@@ -247,7 +245,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
 
-  if (currentUser === null) {
+  if (currentUser === undefined) {
     return (<section className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p className="dark:text-white text-light-text">{t.loadingApp || "Memuat Aplikasi..."}</p></section>);
   }
 
@@ -259,45 +257,47 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
       {!isLoggedIn ? (
         <div className="max-w-lg mx-auto">
           <div className="card rounded-xl p-6 md:p-8 shadow-2xl">
+            {/* ... Konten form login/signup ... */}
             <div className="text-center mb-6">
               <FontAwesomeIcon icon={isLoginForm ? faIdBadge : faUserPlus} className="text-6xl text-primary mb-4" />
               <h2 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{isLoginForm ? t.welcomeBack : t.createAccount}</h2>
               <p className="text-light-subtle dark:text-gray-400 mt-2">{isLoginForm ? t.loginPrompt : (signupStage === 'collectingDetails' ? t.signupPromptDetails : t.signupPromptVerify)}</p>
             </div>
             {isLoginForm ? (
-              <form onSubmit={handleLogin} className="space-y-4">
-                 {/* FORM LOGIN EMAIL & PASSWORD */}
-                 <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
-                 <div className="relative">
-                    <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
-                 </div>
-                 <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
-                    {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
-                 </button>
-              </form>
+               <form onSubmit={handleLogin} className="space-y-4">
+                  <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
+                  <div className="relative">
+                      <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                  </div>
+                  <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
+                      {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
+                  </button>
+               </form>
             ) : (
-              // FORM SIGNUP
-              <>
+                <>
                 {signupStage === 'collectingDetails' ? (
                   <form onSubmit={handleSignupRequestOtp} className="space-y-4">
-                     {/* ... Input Fields untuk Signup ... */}
-                     <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
-                       {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}
-                     </button>
+                    <InputField id="signupUsername" label={t.formLabelUsername} value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} icon={faUser} placeholder={t.formPlaceholderUsername} parentLoading={loading} />
+                    <InputField id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
+                    <div className="relative"><InputField id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} parentLoading={loading} /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button></div>
+                    <div className="relative"><InputField id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} parentLoading={loading} /><button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button></div>
+                    <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}</button>
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtpAndCompleteSignup} className="space-y-4">
-                    {/* ... Input Field untuk OTP ... */}
+                    <InputField id="otpCode" type="text" label={t.otpRequired} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} icon={faKey} placeholder={t.otpRequired} parentLoading={loading} />
+                    <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.verifyBtn}</button>
+                    <button type="button" onClick={handleBackToDetails} disabled={loading} className="text-center w-full text-sm text-light-subtle dark:text-gray-400 hover:text-primary disabled:opacity-50">{t.backToDetails}</button>
                   </form>
                 )}
               </>
             )}
-            
+
             <div className="relative my-6 flex items-center">
-                <div className="flex-grow border-t border-gray-600"></div>
-                <span className="flex-shrink mx-4 text-gray-400 text-sm">ATAU</span>
-                <div className="flex-grow border-t border-gray-600"></div>
+                <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
+                <span className="flex-shrink mx-4 text-light-subtle dark:text-gray-400 text-sm">ATAU</span>
+                <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
             </div>
 
             <button
@@ -305,57 +305,38 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
               disabled={isWalletActionLoading}
               className="bg-transparent border-2 border-primary text-primary font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-70"
             >
-              {isWalletActionLoading ? (
-                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-              ) : (
-                <FontAwesomeIcon icon={faWallet} className="mr-2" />
-              )}
+              {isWalletActionLoading ? (<FontAwesomeIcon icon={faSpinner} spin className="mr-2" />) : (<FontAwesomeIcon icon={faWallet} className="mr-2" />)}
               {t.loginWithWallet || "Login dengan Wallet"}
             </button>
-
-            <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
-              {isLoginForm ? t.noAccountYet : t.alreadyHaveAccount}{" "}
-              <button disabled={loading} onClick={() => { setIsLoginForm(!isLoginForm); clearMessages(); setSignupStage('collectingDetails'); }} className="font-semibold text-primary hover:underline disabled:opacity-50">
-                {isLoginForm ? t.signupHere : t.loginHere}
-              </button>
-            </p>
+            <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">{isLoginForm ? t.noAccountYet : t.alreadyHaveAccount}{" "}<button disabled={loading} onClick={() => { setIsLoginForm(!isLoginForm); clearMessages(); setSignupStage('collectingDetails'); }} className="font-semibold text-primary hover:underline disabled:opacity-50">{isLoginForm ? t.signupHere : t.loginHere}</button></p>
           </div>
         </div>
       ) : (
         <>
-          {/* PROFILE HEADER */}
+          {/* Tampilan Profil jika Sudah Login */}
           <div className="card rounded-xl overflow-hidden shadow-2xl shadow-primary/10">
-            {/* ... Konten header profil ... */}
-             <div className="mt-4 sm:mt-0 flex-shrink-0">
-                <button disabled={loading || isWalletActionLoading} onClick={handleLogout} className="btn-secondary bg-red-500/20 border-red-500/30 hover:bg-red-500/40 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm">
-                  {(loading || isWalletActionLoading) ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />}
-                  {t.logoutBtn}
-                </button>
+            <div className="h-32 md:h-40 bg-gradient-to-r from-primary/50 to-blue-500/30"></div>
+            <div className="px-5 pb-5 sm:px-8 sm:pb-8 -mt-20">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6">
+                {/* ... Avatar & Info Nama/Email ... */}
+              </div>
             </div>
           </div>
-
-          {/* === START WALLET MANAGEMENT SECTION === */}
+          
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
-                 <FontAwesomeIcon icon={faWallet} className="mr-2.5 text-primary" />
-                 {t.walletManagementTitle || "Manajemen Wallet"}
-             </h3>
+             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faWallet} className="mr-2.5 text-primary" />{t.walletManagementTitle || "Manajemen Wallet"}</h3>
              {currentUser.address ? (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
                         <p className="text-sm text-green-400 font-semibold">{t.walletConnected || "Wallet Terhubung"}</p>
                         <p className="text-lg font-mono text-light-text dark:text-white break-all">{currentUser.address}</p>
                     </div>
-                    <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary bg-red-500/20 border-red-500/30 hover:bg-red-500/40 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm">
-                        {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (t.unlinkWalletBtn || "Putuskan Tautan")}
-                    </button>
+                    <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary bg-red-500/20 border-red-500/30 hover:bg-red-500/40 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm">{isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (t.unlinkWalletBtn || "Putuskan Tautan")}</button>
                 </div>
              ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Wallet Anda belum terhubung."}</p>
-                    <button onClick={() => connect({ connector: injected() })} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm">
-                        {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (t.linkWalletBtn || "Hubungkan Wallet")}
-                    </button>
+                    <button onClick={() => connect({ connector: injected() })} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm">{isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (t.linkWalletBtn || "Hubungkan Wallet")}</button>
                 </div>
              )}
               { isConnected && !currentUser.address &&
@@ -364,21 +345,42 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
                 </button>
               }
           </div>
-          {/* === END WALLET MANAGEMENT SECTION === */}
-
-          {/* STATS SECTION */}
+          
           <div className="card rounded-xl p-6 md:p-8 shadow-xl">
-             {/* ... Konten statistik ... */}
+             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-2.5 text-primary" /> {t.statsTitle}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+              <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
+              <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
+              <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} icon={faRobot} />
+              <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
+            </div>
           </div>
         </>
       )}
 
-      {/* MODAL EDIT PROFIL */}
       {showEditProfileModal && (
-         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-           {/* ... Konten modal ... */}
-         </div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="modal-content card rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-light-text dark:text-white flex items-center"><FontAwesomeIcon icon={faEdit} className="mr-3 text-primary" /> {t.editProfileModalTitle}</h3>
+              <button disabled={loading} onClick={handleCloseEditProfileModal} className="text-light-subtle dark:text-gray-400 hover:text-light-text dark:hover:text-white text-2xl"><FontAwesomeIcon icon={faTimes} /></button>
+            </div>
+            {error && <div className="p-3 mb-3 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
+            {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
+            <form onSubmit={handleUpdateProfile} className="space-y-5">
+              <InputField id="editName" label={t.editProfileLabelName} value={editName} onChange={(e) => setEditName(e.target.value)} icon={faUser} parentLoading={loading} />
+              <InputField id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} parentLoading={loading} />
+              <div className="flex justify-end gap-4 pt-4">
+                <button disabled={loading} type="button" onClick={handleCloseEditProfileModal} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.editProfileBtnCancel}</button>
+                <button disabled={loading} type="submit" className="btn-primary text-white px-6 py-2.5 rounded-lg text-sm flex items-center">
+                  {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />} {t.editProfileBtnSave}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </section>
   );
 }
+
