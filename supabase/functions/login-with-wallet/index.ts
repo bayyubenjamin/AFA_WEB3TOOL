@@ -69,6 +69,10 @@ serve(async (req) => {
       user = existingUser.user
     }
     
+<<<<<<< HEAD
+=======
+    // PERUBAHAN DI SINI: Menggunakan nama secret yang baru
+>>>>>>> dddf34500979bbe49fc1ccc582191117552e6b8e
     const supabaseJwtSecret = Deno.env.get('AFA_JWT_SECRET');
     if (!supabaseJwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
 
