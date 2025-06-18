@@ -1,5 +1,5 @@
 // src/wagmiConfig.js
-import { http, createConfig } from 'wagmi';
+import { http, createConfig, createStorage } from 'wagmi'; // [MODIFIKASI] Impor 'createStorage'
 import { mainnet, sepolia } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
@@ -27,9 +27,10 @@ export const config = createConfig({
       appLogoUrl: metadata.icons[0],
     }),
   ],
+  // [PERBAIKAN] Tambahkan baris ini untuk mengaktifkan penyimpanan sesi permanen
+  storage: createStorage({ storage: window.localStorage }),
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http(),
   },
-  // [DIHAPUS] Baris reconnectOnMount: false dihapus agar kembali ke default (true)
 });
