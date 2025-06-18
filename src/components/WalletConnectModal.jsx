@@ -1,6 +1,7 @@
 // src/components/WalletConnectModal.jsx
 import React from 'react';
 import { useConnect } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react'; // <-- [DITAMBAHKAN]
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
@@ -9,7 +10,6 @@ const walletIcons = {
   'metaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
   'walletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
   'coinbaseWallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
-  // Fallback atau ikon default jika tidak ditemukan
   'default': 'https://www.svgrepo.com/show/448252/wallet.svg'
 };
 
@@ -18,20 +18,18 @@ const getConnectorName = (name) => {
   if (name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet';
   if (name.toLowerCase().includes('metamask')) return 'MetaMask';
   if (name.toLowerCase().includes('walletconnect')) return 'WalletConnect';
-  // Untuk dompet injected lain seperti OKX, Bitget, dll.
   if (name.toLowerCase().includes('okx')) return 'OKX Wallet';
   return name;
 }
 
-const WalletButton = ({ connector, onClose }) => {
+const WalletButton = ({ connector }) => {
   const { connect, isPending, variables } = useConnect();
+  const { open } = useWeb3Modal(); // <-- [DITAMBAHKAN]
   const [isReady, setIsReady] = React.useState(false);
   const isLoading = isPending && variables?.connector?.id === connector.id;
 
-  // Mendapatkan ikon yang sesuai atau ikon default
   const iconUrl = walletIcons[connector.id] || walletIcons['default'];
   
-  // Cek apakah provider untuk konektor (misal: extension) sudah terinstall
   React.useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -43,14 +41,19 @@ const WalletButton = ({ connector, onClose }) => {
     return () => { isMounted = false; };
   }, [connector]);
 
+  // [DIPERBARUI] Logika klik tombol
   const handleConnect = () => {
-    connect({ connector });
-    // Tidak perlu onClose di sini lagi agar pengguna melihat status loading
+    if (connector.id === 'walletConnect') {
+      open(); // Buka Web3Modal untuk WalletConnect
+    } else {
+      connect({ connector }); // Hubungkan langsung untuk yang lain
+    }
   }
 
   return (
     <button
       className="wallet-connect-button group"
+      // WalletConnect selalu bisa diklik untuk memunculkan QR Code
       disabled={!isReady && connector.id !== 'walletConnect'}
       onClick={handleConnect}
     >
@@ -89,18 +92,14 @@ export default function WalletConnectModal({ isOpen, onClose }) {
           </button>
         </div>
         <div className="wallet-connect-body">
-          {/* Bagian Email - Sesuai desain, namun belum fungsional */}
           <div className="form-group relative">
             <FontAwesomeIcon icon={faEnvelope} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="email" placeholder="Email" className="w-full pl-10" disabled/>
           </div>
-          
           <div className="separator-or">or</div>
-
-          {/* Daftar Wallet */}
           <div className="flex flex-col gap-2">
             {connectors.map((connector) => (
-              <WalletButton key={connector.uid} connector={connector} onClose={onClose} />
+              <WalletButton key={connector.uid} connector={connector} />
             ))}
           </div>
         </div>
