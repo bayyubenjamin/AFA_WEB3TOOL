@@ -9,18 +9,16 @@ import {
   faSignInAlt
 } from "@fortawesome/free-solid-svg-icons";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-// [MODIFIKASI] useSignMessage tidak lagi diperlukan di sini untuk proses link
 import { useAccount, useDisconnect } from 'wagmi';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// ... (Komponen InputField, StatCard, ProfileHeader tidak perlu diubah) ...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -69,7 +67,6 @@ const ProfileHeader = ({ currentUser, onEditClick, onLogoutClick, loading, t }) 
 );
 
 
-// [MODIFIKASI] Terima prop onOpenWalletModal
 export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [], onOpenWalletModal }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
@@ -87,10 +84,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   
-  // Logika untuk menautkan wallet setelah berhasil terkoneksi
+  const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
+  
   const handleLinkWallet = useCallback(async () => {
     if (!address || !currentUser?.id) return;
-    
     setIsWalletActionLoading(true);
     clearMessages();
     try {
@@ -115,7 +112,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         setError(err.message || "Gagal menautkan wallet.");
     } finally {
         setIsWalletActionLoading(false);
-        disconnect(); // Selalu disconnect setelah proses selesai (baik berhasil atau gagal)
+        disconnect();
     }
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
 
@@ -132,7 +129,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       }
   }, [currentUser, isLoggedIn]);
 
-  const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
   
   if (!isLoggedIn) {
     return (
@@ -149,7 +145,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     );
   }
 
-  // ... (Fungsi lain tidak berubah)
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return {};
     return {
@@ -218,7 +213,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
          ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Your wallet is not linked."}</p>
-                {/* [DIPERBARUI] Tombol ini sekarang membuka modal */}
                 <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
                     {t.linkWalletBtn || "Link Wallet"}

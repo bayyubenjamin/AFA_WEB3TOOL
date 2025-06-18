@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 
-// ... (semua impor lain tetap sama)
+// Impor semua komponen halaman
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -23,14 +23,12 @@ import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
 import WalletConnectModal from "./components/WalletConnectModal";
 
-
+// Impor utilitas
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-// [PERBAIKAN] Impor 'LanguageProvider' dihapus karena tidak lagi digunakan di file ini
 import { useLanguage } from "./context/LanguageContext";
 
-// ... (const LS_CURRENT_USER_KEY, defaultGuestUserForApp, mapSupabaseDataToAppUserForApp tetap sama) ...
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
 const defaultGuestUserForApp = {
@@ -67,7 +65,6 @@ function MainAppContent() {
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
 
-  // ... (semua useEffect tetap sama) ...
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
@@ -118,10 +115,8 @@ function MainAppContent() {
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
     const pathSegments = location.pathname.split('/');
-
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register" };
-    
     let titleKey = path;
     if (path === 'events' && pathSegments.length > 2) {
         titleKey = 'events';
@@ -129,10 +124,8 @@ function MainAppContent() {
     if (path.startsWith('admin') || location.pathname.includes('postairdrops') || location.pathname.includes('update')) {
         titleKey = 'admin';
     }
-
     const currentTitles = language === 'id' ? titles_id : titles_en;
     setHeaderTitle(currentTitles[titleKey] || "AFA WEB3TOOL");
-    
   }, [location, language]);
 
   useEffect(() => {
@@ -178,15 +171,9 @@ function MainAppContent() {
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
-      
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
-      
-      <main
-        ref={pageContentRef}
-        className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
-      >
+      <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
-          {/* ... rute lain ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
@@ -195,18 +182,13 @@ function MainAppContent() {
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-          
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-          
           <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-          
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-          
-          {/* [MODIFIKASI] Teruskan onOpenWalletModal ke PageProfile */}
-          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} navigate={navigate} />} />
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
@@ -215,8 +197,7 @@ function MainAppContent() {
   );
 }
 
-// [PERBAIKAN] Fungsi 'App' sekarang hanya me-render 'MainAppContent'
-// Pembungkus <LanguageProvider> yang asli ada di main.jsx
+// [PERBAIKAN] Komponen App default sekarang terpisah
 export default function App() {
   return (
     <MainAppContent />
