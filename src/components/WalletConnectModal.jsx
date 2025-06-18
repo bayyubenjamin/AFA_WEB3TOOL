@@ -8,9 +8,9 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 const walletIcons = {
   'MetaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
   'WalletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-  'Coinbase Wallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
-  'OKX Wallet': 'https://static.okx.com/cdn/assets/imgs/226/5B2529DECB27C8A9.png',
-  'Brave Wallet': 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
+  'Coinbase Wallet': 'https://raw.githubusercontent.com/gist/taycaldwell/2291907115c0bb5589bc346661435007/raw/280eafdc84cb80ed0c60e36b4d0c563f6dca6b3e/cbw.svg',
+  'OKX Wallet': 'https://altcoinsbox.com/wp-content/uploads/2023/03/okx-logo-black-and-white-300x300.webp',
+  'Brave Wallet': 'https://static1.xdaimages.com/wordpress/wp-content/uploads/2019/10/Brave-browser-dark-mode-featured.jpg',
   'default': 'https://www.svgrepo.com/show/448252/wallet.svg'
 };
 
