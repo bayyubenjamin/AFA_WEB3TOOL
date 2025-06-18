@@ -10,7 +10,7 @@ import {
   faClipboard
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -69,7 +69,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  
+  const [copySuccess, setCopySuccess] = useState('');
+
   const [telegramLinkState, setTelegramLinkState] = useState('idle');
   const [telegramCode, setTelegramCode] = useState('');
   const [telegramError, setTelegramError] = useState('');
@@ -77,6 +78,13 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+
+  useEffect(() => {
+    if (currentUser) {
+      setEditName(currentUser.name || "");
+      setEditAvatarUrl(currentUser.avatar_url || "");
+    }
+  }, [currentUser]);
   
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser || !profileData) return currentUser;
@@ -121,13 +129,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       handleLinkWallet();
     }
   }, [isConnected, address, currentUser, handleLinkWallet]);
-
-  useEffect(() => {
-      if (isLoggedIn && currentUser) {
-        setEditName(currentUser.name || currentUser.username || "");
-        setEditAvatarUrl(currentUser.avatar_url || "");
-      }
-  }, [currentUser, isLoggedIn]);
   
   const handleGenerateCode = async () => {
       const userId = currentUser?.id;
@@ -160,7 +161,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
           alert('Sukses! Akun Telegram berhasil ditautkan.');
           window.location.reload(); 
       } catch (err) {
-          setTelegramError(err.message);
+          setTelegramError(err.message || "Terjadi kesalahan. Coba lagi.");
           setTelegramLinkState('awaiting_code'); 
       } finally {
           setTelegramLoading(false);
@@ -178,11 +179,27 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       }
   };
 
-  const handleUnlinkWallet = async () => { /* ... */ };
-  const handleUpdateProfile = async (e) => { /* ... */ };
-  const handleOpenEditProfileModal = () => setShowEditProfileModal(true);
-  const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
-  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => alert('Kode berhasil disalin!')); };
+  const handleUnlinkWallet = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
+    setIsWalletActionLoading(true);
+    clearMessages();
+    try {
+        const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: null }).eq('id', currentUser.id).select().single();
+        if (updateError) throw updateError;
+        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
+        setSuccessMessage("Tautan wallet berhasil dilepas.");
+        disconnect();
+    } catch (err) {
+        setError(err.message || "Gagal melepas tautan wallet.");
+    } finally {
+        setIsWalletActionLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
+  const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
+  const handleCloseEditProfileModal = () => { setShowEditProfileModal(false); };
+  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { alert('Kode berhasil disalin!') }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   if (!isLoggedIn) {
@@ -217,7 +234,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                        <button onClick={() => handleCopyToClipboard(currentUser.address)} title="Copy address" className="text-light-subtle dark:text-gray-400 hover:text-primary transition-colors"><FontAwesomeIcon icon={faCopy}/></button>
                     </div>
                 </div>
-                <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary ...">
+                <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
                     {t.unlinkWalletBtn || "Unlink Wallet"}
                 </button>
@@ -225,7 +242,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
          ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Your wallet is not linked."}</p>
-                <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary ...">
+                <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
                     {t.linkWalletBtn || "Link Wallet"}
                 </button>

@@ -64,8 +64,10 @@ function MainAppContent() {
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
 
+  // ====================== PERBAIKAN LOGIKA LOADING DI SINI ======================
   useEffect(() => {
     setLoadingInitialSession(true);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
         if (session && session.user) {
@@ -74,7 +76,9 @@ function MainAppContent() {
             .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
+          
           if (profileError) throw profileError;
+          
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
         } else {
@@ -84,13 +88,27 @@ function MainAppContent() {
         console.error("Error handling auth change:", e);
         setCurrentUser(defaultGuestUserForApp);
       } finally {
+        // Ini akan selalu dijalankan setelah pengecekan sesi selesai
         setLoadingInitialSession(false);
       }
     });
+
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
+  // ============================================================================
+
+  // Sisa kode tidak berubah
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    disconnect();
+    navigate('/login');
+   };
+  const handleUpdateUserInApp = (updatedUserData) => {
+    setCurrentUser(updatedUserData);
+   };
+  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
   
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
@@ -102,19 +120,7 @@ function MainAppContent() {
   }, [location, language]);
 
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    disconnect();
-    navigate('/login');
-  };
-
-  const handleUpdateUserInApp = (updatedUserData) => {
-    setCurrentUser(updatedUserData);
-  };
-
-  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
-
-  if (loadingInitialSession || !currentUser) {
+  if (loadingInitialSession || !currentUser) { // Tambahkan cek !currentUser
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a1a]">
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
