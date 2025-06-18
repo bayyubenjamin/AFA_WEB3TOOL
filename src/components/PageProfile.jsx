@@ -8,7 +8,7 @@ import {
   faSignOutAlt,
   faSignInAlt
 } from "@fortawesome/free-solid-svg-icons";
-import { faTelegram } from '@fortawesome/free-brands-svg-icons'; // <-- Impor ikon Telegram
+import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
 import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -16,11 +16,10 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect } from 'wagmi';
-import TelegramLoginWidget from './TelegramLoginWidget'; // <-- [DITAMBAHKAN] Impor widget
+import TelegramLoginWidget from './TelegramLoginWidget';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// ... (Komponen InputField, StatCard, ProfileHeader tetap sama) ...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -82,8 +81,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
-  
-  // [DITAMBAHKAN] State untuk proses loading koneksi Telegram
   const [isTelegramConnecting, setIsTelegramConnecting] = useState(false);
 
   const { address, isConnected } = useAccount();
@@ -91,22 +88,37 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
-  // [DITAMBAHKAN] Fungsi untuk menangani callback dari widget Telegram
+  const mapSupabaseDataToAppUser = (authUser, profileData) => {
+    if (!authUser) return {};
+    return {
+      id: authUser.id, email: authUser.email,
+      username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
+      name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
+      avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url,
+      stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
+      address: profileData?.web3_address || null,
+      telegram_user_id: profileData?.telegram_user_id || null,
+      user_metadata: authUser.user_metadata || {}
+    };
+  };
+
   const handleTelegramAuth = async (telegramUser) => {
     setIsTelegramConnecting(true);
     clearMessages();
     try {
-      const { error: functionError } = await supabase.functions.invoke('verify-telegram-auth', {
+      const { data: result, error: functionError } = await supabase.functions.invoke('verify-telegram-auth', {
         body: telegramUser
       });
 
       if (functionError) throw functionError;
+      if (result.error) throw new Error(result.error);
 
       setSuccessMessage('Akun Telegram berhasil terhubung!');
-      // Refresh data pengguna untuk menampilkan status terhubung
+      
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       onUpdateUser(mapSupabaseDataToAppUserForApp(session.user, profile));
+
     } catch (err) {
       setError(err.message || 'Gagal menghubungkan akun Telegram.');
     } finally {
@@ -115,7 +127,33 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   };
   
   const handleLinkWallet = useCallback(async () => {
-    // ... (fungsi handleLinkWallet tetap sama)
+    if (!address || !currentUser?.id) return;
+    setIsWalletActionLoading(true);
+    clearMessages();
+    try {
+        const lowerCaseAddress = address.toLowerCase();
+        const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
+        if (checkError && checkError.code !== 'PGRST116') throw checkError;
+        if (existingProfile && existingProfile.id !== currentUser.id) {
+            throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
+        }
+        
+        const { data, error: updateError } = await supabase
+            .from('profiles')
+            .update({ web3_address: lowerCaseAddress })
+            .eq('id', currentUser.id)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
+        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
+        setSuccessMessage("Wallet berhasil ditautkan!");
+    } catch (err) {
+        setError(err.message || "Gagal menautkan wallet.");
+    } finally {
+        setIsWalletActionLoading(false);
+        disconnect();
+    }
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
 
   useEffect(() => {
@@ -146,27 +184,28 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     );
   }
 
-  // ... (sisa fungsi helper lain tetap sama)
-  const mapSupabaseDataToAppUser = (authUser, profileData) => {
-    if (!authUser) return {};
-    return {
-      id: authUser.id, email: authUser.email,
-      username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
-      name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
-      avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url,
-      stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
-      address: profileData?.web3_address || null,
-      telegram_user_id: profileData?.telegram_user_id || null, // [DITAMBAHKAN]
-      user_metadata: authUser.user_metadata || {}
-    };
+  const handleUnlinkWallet = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
+    setIsWalletActionLoading(true);
+    clearMessages();
+    try {
+        const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: null }).eq('id', currentUser.id).select().single();
+        if (updateError) throw updateError;
+        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
+        setSuccessMessage("Tautan wallet berhasil dilepas.");
+        disconnect();
+    } catch (err) {
+        setError(err.message || "Gagal melepas tautan wallet.");
+    } finally {
+        setIsWalletActionLoading(false);
+    }
   };
-  const handleUnlinkWallet = async () => { /* ... */ };
-  const handleUpdateProfile = async (e) => { /* ... */ };
-  const handleOpenEditProfileModal = () => { /* ... */ };
-  const handleCloseEditProfileModal = () => { /* ... */ };
-  const handleCopyToClipboard = (text) => { /* ... */ };
-  const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
+  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
+  const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
+  const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
+  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
+  const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
@@ -175,9 +214,39 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
       <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={onLogout} loading={loading} t={t} />
       
-      {/* ... (bagian Wallet Management tetap sama) ... */}
+      {/* [DIKEMBALIKAN] Bagian Wallet Management yang hilang */}
+      <div className="card rounded-xl p-6 md:p-8 shadow-xl">
+         <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
+             <FontAwesomeIcon icon={faWallet} className="mr-3 text-primary" />
+             {t.walletManagementTitle || "Wallet Management"}
+         </h3>
+         {currentUser.address ? (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex-grow">
+                    <p className="text-sm text-green-400 font-semibold">{t.walletConnected || "Wallet Connected"}</p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-lg font-mono text-light-text dark:text-white break-all">{`${currentUser.address.substring(0, 6)}...${currentUser.address.substring(currentUser.address.length - 4)}`}</p>
+                       <button onClick={() => handleCopyToClipboard(currentUser.address)} title={copySuccess || 'Copy address'} className="text-light-subtle dark:text-gray-400 hover:text-primary transition-colors">
+                          <FontAwesomeIcon icon={faCopy}/>
+                       </button>
+                    </div>
+                </div>
+                <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm gap-2">
+                    {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
+                    {t.unlinkWalletBtn || "Unlink Wallet"}
+                </button>
+            </div>
+         ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Your wallet is not linked."}</p>
+                <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
+                    {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
+                    {t.linkWalletBtn || "Link Wallet"}
+                </button>
+            </div>
+         )}
+      </div>
 
-      {/* [DIPERBARUI] Bagian Social Accounts */}
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
              <FontAwesomeIcon icon={faTelegram} className="mr-3 text-sky-400" />
@@ -198,9 +267,38 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
          </div>
       </div>
       
-      {/* ... (bagian My Stats tetap sama) ... */}
+      <div className="card rounded-xl p-6 md:p-8 shadow-xl">
+         <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-3 text-primary" /> {t.statsTitle}</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+          <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
+          <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
+          <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} />
+          <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
+        </div>
+      </div>
       
-      {/* ... (bagian Modal Edit Profile tetap sama) ... */}
+      {showEditProfileModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="modal-content card rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-light-text dark:text-white flex items-center"><FontAwesomeIcon icon={faEdit} className="mr-3 text-primary" /> {t.editProfileModalTitle}</h3>
+              <button disabled={loading} onClick={handleCloseEditProfileModal} className="text-light-subtle dark:text-gray-400 hover:text-light-text dark:hover:text-white text-2xl"><FontAwesomeIcon icon={faTimes} /></button>
+            </div>
+            {error && <div className="p-3 mb-3 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
+            {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
+            <form onSubmit={handleUpdateProfile} className="space-y-5">
+              <InputField id="editName" label={t.editProfileLabelName} value={editName} onChange={(e) => setEditName(e.target.value)} icon={faUser} parentLoading={loading} />
+              <InputField id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} parentLoading={loading} />
+              <div className="flex justify-end gap-4 pt-4">
+                <button disabled={loading} type="button" onClick={handleCloseEditProfileModal} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.editProfileBtnCancel}</button>
+                <button disabled={loading} type="submit" className="btn-primary text-white px-6 py-2.5 rounded-lg text-sm flex items-center">
+                  {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />} {t.editProfileBtnSave}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
