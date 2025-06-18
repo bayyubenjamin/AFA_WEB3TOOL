@@ -1,34 +1,44 @@
 // src/components/WalletConnectModal.jsx
 import React from 'react';
 import { useConnect } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react'; // <-- [DITAMBAHKAN]
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
-// URL Ikon resolusi tinggi untuk setiap wallet
+// [DIPERBARUI] Daftar ikon wallet yang lebih lengkap dan berkualitas tinggi
 const walletIcons = {
-  'metaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-  'walletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-  'coinbaseWallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
+  'MetaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
+  'WalletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
+  'Coinbase Wallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
+  'OKX Wallet': 'https://static.okx.com/cdn/assets/imgs/226/5B2529DECB27C8A9.png',
+  'Brave Wallet': 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
   'default': 'https://www.svgrepo.com/show/448252/wallet.svg'
 };
 
-// Nama tampilan yang lebih rapi untuk setiap konektor
-const getConnectorName = (name) => {
+// [DIPERBARUI] Fungsi untuk mendapatkan nama yang lebih baik
+const getConnectorName = (connector) => {
+  const name = connector.name;
   if (name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet';
   if (name.toLowerCase().includes('metamask')) return 'MetaMask';
   if (name.toLowerCase().includes('walletconnect')) return 'WalletConnect';
-  if (name.toLowerCase().includes('okx')) return 'OKX Wallet';
+  // Untuk dompet injected lain seperti OKX, Bitget, dll.
+  // 'rdns' adalah cara baru wagmi mengidentifikasi dompet injected
+  if (connector.rdns === 'io.metamask') return 'MetaMask';
+  if (connector.rdns === 'com.okex.wallet') return 'OKX Wallet';
+  if (connector.rdns === 'com.coinbase.wallet') return 'Coinbase Wallet';
+  // Fallback ke nama bawaan jika tidak ada yang cocok
   return name;
 }
 
-const WalletButton = ({ connector }) => {
+const WalletButton = ({ connector, onClose }) => {
   const { connect, isPending, variables } = useConnect();
-  const { open } = useWeb3Modal(); // <-- [DITAMBAHKAN]
+  const { open } = useWeb3Modal();
   const [isReady, setIsReady] = React.useState(false);
+  
+  // [DIPERBARUI] Logika untuk loading dan nama tampilan
+  const displayName = getConnectorName(connector);
   const isLoading = isPending && variables?.connector?.id === connector.id;
-
-  const iconUrl = walletIcons[connector.id] || walletIcons['default'];
+  const iconUrl = walletIcons[displayName] || walletIcons['default'];
   
   React.useEffect(() => {
     let isMounted = true;
@@ -41,27 +51,35 @@ const WalletButton = ({ connector }) => {
     return () => { isMounted = false; };
   }, [connector]);
 
-  // [DIPERBARUI] Logika klik tombol
+  // [DIPERBARUI] Logika klik tombol untuk auto-close
   const handleConnect = () => {
     if (connector.id === 'walletConnect') {
-      open(); // Buka Web3Modal untuk WalletConnect
+      onClose(); // Tutup modal kustom kita dulu
+      open();   // Lalu buka modal WalletConnect
     } else {
-      connect({ connector }); // Hubungkan langsung untuk yang lain
+      connect(
+        { connector },
+        {
+          onSuccess: () => {
+            // Setelah berhasil konek, panggil fungsi onClose
+            onClose();
+          }
+        }
+      );
     }
   }
 
   return (
     <button
       className="wallet-connect-button group"
-      // WalletConnect selalu bisa diklik untuk memunculkan QR Code
       disabled={!isReady && connector.id !== 'walletConnect'}
       onClick={handleConnect}
     >
       <div className="flex items-center gap-4">
         <div className="wallet-icon-wrapper">
-          <img src={iconUrl} alt={connector.name} className="w-8 h-8" />
+          <img src={iconUrl} alt={displayName} className="w-8 h-8" />
         </div>
-        <span className="text-base font-bold text-light-text dark:text-gray-100">{getConnectorName(connector.name)}</span>
+        <span className="text-base font-bold text-light-text dark:text-gray-100">{displayName}</span>
       </div>
       
       {isLoading ? (
@@ -99,7 +117,8 @@ export default function WalletConnectModal({ isOpen, onClose }) {
           <div className="separator-or">or</div>
           <div className="flex flex-col gap-2">
             {connectors.map((connector) => (
-              <WalletButton key={connector.uid} connector={connector} />
+              // [DIPERBARUI] Teruskan prop onClose ke tombol
+              <WalletButton key={connector.uid} connector={connector} onClose={onClose} />
             ))}
           </div>
         </div>
