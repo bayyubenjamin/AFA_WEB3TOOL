@@ -1,4 +1,5 @@
-// src/App.jsx - VERSI GABUNGAN FITUR
+// src/App.jsx
+
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
@@ -14,9 +15,13 @@ import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
 import PageManageUpdate from "./components/PageManageUpdate";
 import PageEvents from './components/PageEvents';
-import PageEventDetail from './components/PageEventDetail'; // Impor detail event
+import PageEventDetail from './components/PageEventDetail';
 import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
+// [DITAMBAHKAN] Impor halaman login dan register baru
+import PageLogin from "./components/PageLogin";
+import PageRegister from "./components/PageRegister";
+
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -59,11 +64,10 @@ function MainAppContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // useEffect untuk mengupdate jumlah pengguna online secara acak
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
-      const max = 42; // Anda bisa sesuaikan angka maksimalnya
+      const max = 42;
       const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
       setOnlineUsers(randomCount);
     };
@@ -72,8 +76,6 @@ function MainAppContent() {
     return () => clearInterval(intervalId);
   }, []);
 
-
-  // useEffect untuk menangani otentikasi pengguna
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleAuthChange = async (session) => {
@@ -109,17 +111,17 @@ function MainAppContent() {
     };
   }, []);
 
-  // useEffect untuk mengatur judul header berdasarkan halaman
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
     const pathSegments = location.pathname.split('/');
 
-    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard" };
-    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard" };
+    // [MODIFIKASI] Tambahkan judul untuk halaman login dan register
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register" };
     
     let titleKey = path;
     if (path === 'events' && pathSegments.length > 2) {
-        titleKey = 'events'; // Judul tetap "Event Spesial" untuk halaman detail
+        titleKey = 'events';
     }
     if (path.startsWith('admin') || location.pathname.includes('postairdrops') || location.pathname.includes('update')) {
         titleKey = 'admin';
@@ -130,7 +132,6 @@ function MainAppContent() {
     
   }, [location, language]);
 
-  // useEffect untuk animasi transisi halaman
   useEffect(() => {
     if (loadingInitialSession) return;
     if (pageContentRef.current) {
@@ -154,7 +155,8 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
+  // [MODIFIKASI] Logika untuk menampilkan Navigasi Bawah
+  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
     return (
@@ -182,11 +184,13 @@ function MainAppContent() {
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           
-          {/* Rute untuk halaman daftar event dan halaman detail event */}
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
           
-          {/* Rute Admin */}
+          {/* [DITAMBAHKAN] Rute baru untuk Login dan Register */}
+          <Route path="/login" element={<PageLogin currentUser={currentUser} />} />
+          <Route path="/register" element={<PageRegister currentUser={currentUser} />} />
+          
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           
@@ -206,4 +210,3 @@ export default function App() {
     </LanguageProvider>
   );
 }
-

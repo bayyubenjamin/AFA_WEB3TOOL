@@ -78,7 +78,8 @@ export default function PageEvents({ currentUser }) {
         <div className="card max-w-md mx-auto p-8">
           <h2 className="text-2xl font-bold text-light-text dark:text-white mb-3">{t('eventsPage.loginPromptTitle')}</h2>
           <p className="text-light-subtle dark:text-gray-400 mb-6">{t('eventsPage.loginPrompt')}</p>
-          <Link to="/profile" className="btn-primary px-6 py-2">
+          {/* [MODIFIKASI] Tautan ini sekarang mengarah ke /login */}
+          <Link to="/login" className="btn-primary px-6 py-2">
             {t('header.login')}
           </Link>
         </div>
@@ -93,7 +94,6 @@ export default function PageEvents({ currentUser }) {
         <p className="text-lg text-light-subtle dark:text-gray-400 max-w-2xl mx-auto">{t('eventsPage.subtitle')}</p>
       </div>
       
-      {/* [TAMBAHAN] Tombol Panel Admin */}
       {isAdmin && (
         <div className="max-w-3xl mx-auto text-center">
           <Link to="/admin/events" className="btn-secondary inline-flex items-center gap-4 px-6 py-3 rounded-xl shadow-lg transition-all hover:shadow-primary/20 hover:border-primary/50">
@@ -122,4 +122,3 @@ export default function PageEvents({ currentUser }) {
     </section>
   );
 }
-

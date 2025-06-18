@@ -1,6 +1,7 @@
-// src/components/Header.jsx - VERSI GABUNGAN FITUR
+// src/components/Header.jsx
+
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Impor useNavigate untuk navigasi programatik
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
@@ -14,7 +15,7 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
   const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
-  const navigate = useNavigate(); // Gunakan hook useNavigate
+  const navigate = useNavigate();
 
   const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
@@ -49,12 +50,20 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
   };
   
   const handleAuthAction = () => {
-    navigateTo('profile');
+    // [MODIFIKASI] Navigasi kondisional berdasarkan status login
+    if (currentUser && currentUser.id) {
+        // Jika sudah login, tombol ini akan berfungsi sebagai navigasi ke profil
+        // di mana pengguna bisa melihat detail dan tombol logout.
+        navigateTo('/profile'); 
+    } else {
+        // Jika belum login, arahkan ke halaman login baru.
+        navigateTo('/login');
+    }
     setIsOptionsMenuOpen(false);
   };
   
   const handleAdminNav = () => {
-    navigate('/admin'); // Navigasi ke halaman admin
+    navigate('/admin');
     setIsOptionsMenuOpen(false);
   };
 
@@ -92,9 +101,7 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
         {title}
       </h1>
       
-      {/* Bungkus tombol-tombol kanan */}
       <div className="flex-1 flex justify-end items-center gap-2">
-        {/* Tombol Forum */}
         <Link
           to="/forum"
           className="p-2 w-10 h-10 flex items-center justify-center"
@@ -103,7 +110,6 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
           <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
         </Link>
         
-        {/* Tombol Menu Tiga Titik */}
         <div className="relative" ref={menuRef}>
           <button
             onClick={toggleOptionsMenu}
