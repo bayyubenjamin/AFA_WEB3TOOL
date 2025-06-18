@@ -13,7 +13,8 @@ import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
 import PageManageUpdate from "./components/PageManageUpdate";
-import PageEvents from './components/PageEvents'; // Impor halaman Events baru
+import PageEvents from './components/PageEvents';
+import PageAdminEvents from './components/PageAdminEvents'; // Impor halaman Admin Events
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -110,6 +111,9 @@ function MainAppContent() {
   useEffect(() => {
     if (location.pathname.includes('/update')) { setHeaderTitle('Manage Update'); return; }
     if (location.pathname === '/airdrops/postairdrops') { setHeaderTitle('Admin Panel'); return; }
+    // Tambahan untuk admin events
+    if (location.pathname === '/admin/events') { setHeaderTitle('Admin Events'); return; }
+    
     const path = location.pathname.split('/')[1] || 'home';
     
     // Menambahkan judul untuk halaman "events"
@@ -145,7 +149,7 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
+  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
 
   if (loadingInitialSession) {
     return (
@@ -173,8 +177,10 @@ function MainAppContent() {
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           
-          {/* Route baru untuk halaman Events */}
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+          
+          {/* Rute baru untuk panel admin event */}
+          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
@@ -192,3 +198,4 @@ export default function App() {
     </LanguageProvider>
   );
 }
+
