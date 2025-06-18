@@ -2,15 +2,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom"; // Impor Link untuk navigasi
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments } from "@fortawesome/free-solid-svg-icons"; // Impor ikon faComments
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved } from "@fortawesome/free-solid-svg-icons"; // Impor faShieldHalved
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
+
+const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766'; // Tambahkan ID Admin di sini
 
 export default function Header({ title, currentUser, navigateTo, onlineUsers }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const isAdmin = currentUser?.id === ADMIN_USER_ID; // Tambahkan pengecekan admin
 
   const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
@@ -82,6 +85,18 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
       
       {/* Bungkus tombol-tombol kanan */}
       <div className="flex-1 flex justify-end items-center gap-2">
+        {/* Tombol Admin (dipindahkan ke sini) */}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="p-2 w-10 h-10 flex items-center justify-center"
+            aria-label="Admin Dashboard"
+            title="Admin Dashboard"
+          >
+            <FontAwesomeIcon icon={faShieldHalved} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
+          </Link>
+        )}
+        
         {/* Tombol Forum */}
         <Link
           to="/forum"

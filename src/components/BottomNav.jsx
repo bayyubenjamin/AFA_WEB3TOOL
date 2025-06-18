@@ -8,7 +8,7 @@ import {
   faParachuteBox,
   faCalendarCheck,
   faUserCircle,
-  faShieldHalved // Impor ikon untuk Admin
+  // faShieldHalved // Ikon tidak lagi digunakan di sini
 } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -18,16 +18,16 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// ID Admin Anda
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+// ID Admin dan logika terkait tidak lagi diperlukan di komponen ini
+// const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 export default function BottomNav({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).bottomNav;
-  const isAdmin = currentUser?.id === ADMIN_USER_ID;
+  // const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
-  // Daftar item navigasi dasar
-  const baseNavItems = [
+  // Daftar item navigasi sekarang statis
+  const navItems = [
     { id: "home", path: "/", icon: faHome, label: t.home },
     { id: "myWork", path: "/my-work", icon: faBriefcase, label: t.myWork },
     { id: "airdrops", path: "/airdrops", icon: faParachuteBox, label: t.airdrops },
@@ -35,16 +35,8 @@ export default function BottomNav({ currentUser }) {
     { id: "profile", path: "/profile", icon: faUserCircle, label: t.profile },
   ];
 
-  // Buat daftar item navigasi akhir
-  const navItems = [...baseNavItems];
-  
-  // Jika pengguna adalah admin, sisipkan tombol Admin di tengah
-  if (isAdmin) {
-    navItems.splice(2, 0, { id: "admin", path: "/admin", icon: faShieldHalved, label: "Admin" });
-  }
-
-  // Sesuaikan jumlah kolom grid berdasarkan apakah admin atau bukan
-  const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-5';
+  // Grid selalu 5 kolom
+  const gridColsClass = 'grid-cols-5';
 
   return (
     <nav
@@ -82,4 +74,3 @@ export default function BottomNav({ currentUser }) {
     </nav>
   );
 }
-
