@@ -5,7 +5,7 @@ import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
 // [PENTING] Ganti dengan WalletConnect Project ID Anda sendiri
 // Anda bisa mendapatkannya secara gratis dari https://cloud.walletconnect.com/
-export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
+export const walletConnectProjectId = '3a2a849d44557c3d79a296d93333604a';
 
 const metadata = {
   name: 'AFA Web3Tool',
@@ -20,7 +20,6 @@ export const config = createConfig({
     walletConnect({
       projectId: walletConnectProjectId,
       metadata,
-      // showQrModal sudah tidak diperlukan, akan dihandle oleh Web3Modal
     }),
     injected({ target: 'metaMask' }),
     coinbaseWallet({
@@ -32,5 +31,5 @@ export const config = createConfig({
     [mainnet.id]: http(),
     [sepolia.id]: http(),
   },
-  reconnectOnMount: false,
+  // [DIHAPUS] Baris reconnectOnMount: false dihapus agar kembali ke default (true)
 });
