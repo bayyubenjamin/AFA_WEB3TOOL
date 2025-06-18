@@ -6,10 +6,12 @@ import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartBar, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
   faSignOutAlt,
-  faSignInAlt
+  faSignInAlt,
+  faClipboard
 } from "@fortawesome/free-solid-svg-icons";
+import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -81,6 +83,12 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
 
+  // State khusus untuk alur koneksi Telegram
+  const [telegramLinkState, setTelegramLinkState] = useState('idle'); // 'idle', 'awaiting_code', 'confirming'
+  const [telegramCode, setTelegramCode] = useState('');
+  const [telegramError, setTelegramError] = useState('');
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   
@@ -154,6 +162,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url,
       stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
       address: profileData?.web3_address || null,
+      telegram_id: profileData?.telegram_id || null,
+      telegram_handle: profileData?.telegram_handle || null,
       user_metadata: authUser.user_metadata || {}
     };
   };
@@ -180,6 +190,62 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
+
+  // Fungsi untuk alur koneksi Telegram
+  const handleGenerateCode = async () => {
+    setTelegramLoading(true);
+    setTelegramError('');
+    const code = `AFA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // Berlaku 10 menit
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({
+            telegram_verification_code: code,
+            telegram_code_expires_at: expiresAt
+        })
+        .eq('id', currentUser.id);
+
+    setTelegramLoading(false);
+    if (error) {
+        setTelegramError('Gagal membuat kode. Silakan coba lagi.');
+    } else {
+        setTelegramCode(code);
+        setTelegramLinkState('awaiting_code');
+    }
+  };
+
+  const handleCompleteLink = async () => {
+      setTelegramLoading(true);
+      setTelegramLinkState('confirming');
+      setTelegramError('');
+      try {
+          const { data, error } = await supabase.functions.invoke('confirm-telegram-link');
+          
+          if (error) throw new Error(error.message);
+          if (data.error) throw new Error(data.error);
+
+          alert('Sukses! Akun Telegram berhasil ditautkan.');
+          setTelegramLinkState('idle');
+          window.location.reload(); 
+      } catch (err) {
+          setTelegramError(err.message || "Terjadi kesalahan. Coba lagi.");
+          setTelegramLinkState('awaiting_code'); 
+      } finally {
+          setTelegramLoading(false);
+      }
+  };
+
+  const handleUnlinkTelegram = async () => {
+      if (!window.confirm("Yakin ingin memutus hubungan dengan akun Telegram?")) return;
+      const { error } = await supabase.from('profiles').update({ telegram_id: null, telegram_handle: null }).eq('id', currentUser.id);
+      if (error) {
+          alert("Gagal memutus hubungan: " + error.message);
+      } else {
+          alert("Hubungan dengan Telegram telah diputus.");
+          window.location.reload();
+      }
+  };
 
 
   return (
@@ -220,16 +286,82 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             </div>
          )}
       </div>
+
+      <div className="card rounded-xl p-6 md:p-8 shadow-xl">
+        <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
+            <FontAwesomeIcon icon={faLink} className="mr-3 text-primary" />
+            Social Accounts
+        </h3>
+        {/* Bagian Khusus Telegram */}
+        <div className="p-4 border border-blue-500/30 rounded-lg bg-light-bg dark:bg-dark/30">
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <FontAwesomeIcon icon={faTelegram} className="text-2xl text-[#2AABEE]" />
+                    {currentUser.telegram_id ? (
+                        <div>
+                            <span className="font-semibold text-light-text dark:text-white">Telegram Terhubung</span>
+                            <p className="text-xs text-light-subtle dark:text-gray-400">@{currentUser.telegram_handle || currentUser.telegram_id}</p>
+                        </div>
+                    ) : (
+                        <span className="font-semibold text-light-text dark:text-white">Hubungkan Akun Telegram</span>
+                    )}
+                </div>
+                {currentUser.telegram_id && (
+                    <button onClick={handleUnlinkTelegram} className="btn-secondary bg-red-500/10 hover:bg-red-500/20 text-red-300 px-4 py-2 text-sm flex items-center gap-2">
+                        <FontAwesomeIcon icon={faUnlink} /> Putuskan
+                    </button>
+                )}
+            </div>
+            
+            {!currentUser.telegram_id && (
+                <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/20">
+                    {telegramLinkState === 'idle' && (
+                        <button onClick={handleGenerateCode} disabled={telegramLoading} className="btn-secondary w-full disabled:opacity-50">
+                            {telegramLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faLink} className="mr-2" /> Mulai Proses Koneksi</>}
+                        </button>
+                    )}
+
+                    {telegramLinkState === 'awaiting_code' && (
+                        <div className="space-y-3 text-center">
+                            <p className="text-sm text-light-subtle dark:text-gray-400">
+                                1. Buka bot <a href="http://t.me/afaweb3tool_bot" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">@afaweb3tool_bot</a> di Telegram.
+                            </p>
+                            <p className="text-sm text-light-subtle dark:text-gray-400">2. Kirim kode unik di bawah ini ke bot.</p>
+                            <div className="bg-dark p-3 rounded-lg flex items-center justify-center gap-4 my-2">
+                                <code className="text-xl font-bold tracking-widest text-green-400">{telegramCode}</code>
+                                <button onClick={() => handleCopyToClipboard(telegramCode)} title="Salin Kode" className="text-gray-400 hover:text-white">
+                                    <FontAwesomeIcon icon={faClipboard} />
+                                </button>
+                            </div>
+                            <p className="text-sm text-light-subtle dark:text-gray-400">3. Kembali ke sini dan klik tombol di bawah.</p>
+                            <button onClick={handleCompleteLink} disabled={telegramLoading} className="btn-primary w-full mt-2 disabled:opacity-50">
+                                {telegramLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Selesaikan Koneksi'}
+                            </button>
+                        </div>
+                    )}
+
+                    {telegramLinkState === 'confirming' && (
+                        <div className="text-center text-primary py-4">
+                            <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                            <p className="mt-2 text-sm font-semibold">Mengecek pesan dari bot...</p>
+                        </div>
+                    )}
+                    {telegramError && <p className="text-xs text-red-400 text-center mt-2">{telegramError}</p>}
+                </div>
+            )}
+        </div>
+      </div>
       
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center"><FontAwesomeIcon icon={faChartBar} className="mr-3 text-primary" /> {t.statsTitle}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
           <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
           <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
-          <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} />
+          <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} icon={faTasks} />
           <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
         </div>
       </div>
+
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="modal-content card rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-lg">
