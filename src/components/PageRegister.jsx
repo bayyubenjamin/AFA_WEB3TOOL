@@ -6,21 +6,19 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
-import { injected } from 'wagmi/connectors';
+import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 
 import AuthForm from './AuthForm';
 
-// [DITAMBAHKAN] Impor ikon untuk tombol kembali
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
-
 const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
 
-export default function PageRegister({ currentUser }) {
+// [MODIFIKASI] Terima prop onOpenWalletModal
+export default function PageRegister({ currentUser, onOpenWalletModal }) {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
@@ -39,7 +37,6 @@ export default function PageRegister({ currentUser }) {
   const [successMessage, setSuccessMessage] = useState(null);
 
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
 
@@ -50,7 +47,8 @@ export default function PageRegister({ currentUser }) {
       navigate('/profile');
     }
   }, [currentUser, navigate]);
-
+  
+  // ... (Fungsi handleSignup, handleSignupRequestOtp, handleVerifyOtpAndCompleteSignup, handleBackToDetails tetap sama)
   const handleSignup = async (e) => {
     e.preventDefault();
     if (signupStage === 'collectingDetails') {
@@ -59,7 +57,6 @@ export default function PageRegister({ currentUser }) {
         await handleVerifyOtpAndCompleteSignup();
     }
   };
-  
   const handleSignupRequestOtp = async () => {
     clearMessages();
     setLoading(true);
@@ -94,7 +91,6 @@ export default function PageRegister({ currentUser }) {
       setLoading(false);
     }
   };
-
   const handleVerifyOtpAndCompleteSignup = async () => {
     clearMessages();
     setLoading(true);
@@ -115,22 +111,17 @@ export default function PageRegister({ currentUser }) {
       setLoading(false);
     }
   };
-
   const handleBackToDetails = () => {
     setSignupStage('collectingDetails');
     clearMessages();
     setOtpCode('');
   };
-  
-   const handleWalletLogin = async () => {
+   
+  const handleWalletLogin = async () => {
+    if (!address) return;
     clearMessages();
     setIsWalletActionLoading(true);
     try {
-      if (!isConnected) {
-        connect({ connector: injected() });
-        setIsWalletActionLoading(false);
-        return;
-      }
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { body: { address, signature } });
       if (functionError) throw new Error(functionError.message);
@@ -149,14 +140,14 @@ export default function PageRegister({ currentUser }) {
   };
 
   useEffect(() => {
-      if (isConnected && address && !(currentUser && currentUser.id) && !loading) {
-          handleWalletLogin();
-      }
-  }, [isConnected, address, currentUser, loading]);
+    if (isConnected && address && !isWalletActionLoading) {
+      handleWalletLogin();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address]);
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
-      {/* [DITAMBAHKAN] Tombol Kembali */}
       <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Kembali ke Beranda
@@ -169,7 +160,8 @@ export default function PageRegister({ currentUser }) {
         <AuthForm
           isLoginForm={false}
           onFormSubmit={handleSignup}
-          onWalletLogin={handleWalletLogin}
+          // [MODIFIKASI] Tombol sekarang membuka modal
+          onWalletLogin={onOpenWalletModal}
           loading={loading}
           isWalletActionLoading={isWalletActionLoading}
           t={t}
@@ -181,7 +173,8 @@ export default function PageRegister({ currentUser }) {
           otpCode={otpCode} setOtpCode={setOtpCode}
           handleBackToDetails={handleBackToDetails}
           showPassword={showPassword} setShowPassword={setShowPassword}
-          showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword}
+      
+showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword}
         />
          <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
            {t.alreadyHaveAccount}{" "}

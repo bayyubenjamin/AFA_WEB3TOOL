@@ -6,21 +6,18 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
-import { injected } from 'wagmi/connectors';
+import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 
 import AuthForm from './AuthForm';
 
-// [DITAMBAHKAN] Impor ikon untuk tombol kembali
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
-
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
-
 const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
 
-export default function PageLogin({ currentUser }) {
+// [MODIFIKASI] Terima prop onOpenWalletModal
+export default function PageLogin({ currentUser, onOpenWalletModal }) { 
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
@@ -34,7 +31,6 @@ export default function PageLogin({ currentUser }) {
   const [successMessage, setSuccessMessage] = useState(null);
 
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
 
@@ -62,15 +58,12 @@ export default function PageLogin({ currentUser }) {
     }
   };
   
+  // [MODIFIKASI] Fungsi ini sekarang hanya menangani logika SETELAH koneksi berhasil
   const handleWalletLogin = async () => {
+    if (!address) return; // Pastikan alamat ada
     clearMessages();
     setIsWalletActionLoading(true);
     try {
-      if (!isConnected) {
-        connect({ connector: injected() });
-        setIsWalletActionLoading(false);
-        return;
-      }
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { body: { address, signature } });
       if (functionError) throw new Error(functionError.message);
@@ -82,22 +75,23 @@ export default function PageLogin({ currentUser }) {
     } catch (err) {
       console.error("Wallet login error:", err);
       setError(err.message || "Gagal login dengan wallet.");
-      disconnect();
+      disconnect(); // Putuskan koneksi jika login ke Supabase gagal
     } finally {
       setIsWalletActionLoading(false);
     }
   };
 
+  // [MODIFIKASI] useEffect ini sekarang menangani alur pasca-koneksi
   useEffect(() => {
-      if (isConnected && address && !(currentUser && currentUser.id) && !loading) {
+      // Jalankan handleWalletLogin HANYA JIKA sudah terkoneksi dan ada alamat
+      if (isConnected && address && !isWalletActionLoading) {
           handleWalletLogin();
       }
-  }, [isConnected, address, currentUser, loading]);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address]);
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
-       {/* [DITAMBAHKAN] Tombol Kembali */}
        <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Kembali ke Beranda
@@ -110,7 +104,8 @@ export default function PageLogin({ currentUser }) {
         <AuthForm
           isLoginForm={true}
           onFormSubmit={handleLogin}
-          onWalletLogin={handleWalletLogin}
+          // [MODIFIKASI] Tombol sekarang membuka modal
+          onWalletLogin={onOpenWalletModal} 
           loading={loading}
           isWalletActionLoading={isWalletActionLoading}
           t={t}

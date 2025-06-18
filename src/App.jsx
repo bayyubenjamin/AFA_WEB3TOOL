@@ -18,10 +18,9 @@ import PageEvents from './components/PageEvents';
 import PageEventDetail from './components/PageEventDetail';
 import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
-// [DITAMBAHKAN] Impor halaman login dan register baru
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
-
+import WalletConnectModal from "./components/WalletConnectModal"; // <-- [DITAMBAHKAN] Impor Modal
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -58,12 +57,14 @@ function MainAppContent() {
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false); // <-- [DITAMBAHKAN] State untuk modal
 
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // ... (useEffect lainnya tetap sama) ...
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
@@ -115,7 +116,6 @@ function MainAppContent() {
     const path = location.pathname.split('/')[1] || 'home';
     const pathSegments = location.pathname.split('/');
 
-    // [MODIFIKASI] Tambahkan judul untuk halaman login dan register
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register" };
     
@@ -144,7 +144,6 @@ function MainAppContent() {
     }
   }, [location.pathname, loadingInitialSession]);
 
-
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
@@ -155,8 +154,9 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  // [MODIFIKASI] Logika untuk menampilkan Navigasi Bawah
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
+  
+  const handleOpenWalletModal = () => setIsWalletModalOpen(true); // <-- [DITAMBAHKAN] Fungsi untuk membuka modal
 
   if (loadingInitialSession) {
     return (
@@ -170,11 +170,16 @@ function MainAppContent() {
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} onlineUsers={onlineUsers} />}
+      
+      {/* [DITAMBAHKAN] Render Modal di sini */}
+      <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+      
       <main
         ref={pageContentRef}
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
       >
         <Routes>
+          {/* ... Rute lain tetap sama ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
@@ -186,10 +191,10 @@ function MainAppContent() {
           
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-          
-          {/* [DITAMBAHKAN] Rute baru untuk Login dan Register */}
-          <Route path="/login" element={<PageLogin currentUser={currentUser} />} />
-          <Route path="/register" element={<PageRegister currentUser={currentUser} />} />
+
+          {/* [MODIFIKASI] Teruskan fungsi pembuka modal ke halaman Login/Register */}
+          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
           
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
