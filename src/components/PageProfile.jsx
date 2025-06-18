@@ -20,7 +20,6 @@ import TelegramLoginWidget from './TelegramLoginWidget';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// ... (Komponen InputField, StatCard, ProfileHeader tetap sama, tidak perlu diubah) ...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -118,6 +117,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      
+      // [PERBAIKAN] Menggunakan nama fungsi yang benar
       onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
 
     } catch (err) {
@@ -156,22 +157,19 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         disconnect();
     }
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
-  
-  // [PERBAIKAN] Logika Unlink Wallet dibuat lebih kokoh
+
   const handleUnlinkWallet = async () => {
     if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
     setIsWalletActionLoading(true);
     clearMessages();
     try {
-        // Lakukan update untuk menghapus alamat wallet
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ web3_address: null })
           .eq('id', currentUser.id);
 
         if (updateError) throw updateError;
-
-        // Ambil ulang data user yang sudah paling baru dari Supabase
+        
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) throw new Error("Sesi tidak ditemukan, silakan login ulang.");
         
@@ -183,7 +181,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         
         if (profileError) throw profileError;
 
-        // Update state aplikasi dengan data yang 100% baru
         onUpdateUser(mapSupabaseDataToAppUser(session.user, refreshedProfile));
 
         setSuccessMessage("Tautan wallet berhasil dilepas.");
@@ -194,6 +191,32 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         setIsWalletActionLoading(false);
     }
   };
+
+  // [DITAMBAHKAN] Fungsi untuk unlink Telegram
+  const handleUnlinkTelegram = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin melepas tautan akun Telegram ini?")) return;
+    setIsTelegramConnecting(true);
+    clearMessages();
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ telegram_user_id: null })
+        .eq('id', currentUser.id);
+
+      if (updateError) throw updateError;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
+      setSuccessMessage('Tautan akun Telegram berhasil dilepas.');
+
+    } catch (err) {
+      setError(err.message || 'Gagal melepas tautan Telegram.');
+    } finally {
+      setIsTelegramConnecting(false);
+    }
+  };
+
 
   useEffect(() => {
     if (isConnected && address && !currentUser.address) {
@@ -275,9 +298,15 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
          </h3>
          <div className="flex flex-col items-center justify-center text-center">
             {currentUser.telegram_user_id ? (
-              <div className="text-green-400 font-semibold">
-                <p>Akun Telegram sudah terhubung!</p>
-                <p className="text-xs">(ID: {currentUser.telegram_user_id})</p>
+              <div className="w-full">
+                <div className="text-green-400 font-semibold text-center mb-4">
+                  <p>Akun Telegram sudah terhubung!</p>
+                  <p className="text-xs">(ID: {currentUser.telegram_user_id})</p>
+                </div>
+                <button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm gap-2 w-full max-w-xs mx-auto">
+                    {isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
+                    Lepas Tautan Telegram
+                </button>
               </div>
             ) : (
               <>
