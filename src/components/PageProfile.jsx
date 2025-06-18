@@ -20,6 +20,7 @@ import TelegramLoginWidget from './TelegramLoginWidget';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
+// ... (Komponen InputField, StatCard, ProfileHeader tetap sama, tidak perlu diubah) ...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -117,7 +118,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      onUpdateUser(mapSupabaseDataToAppUserForApp(session.user, profile));
+      onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
 
     } catch (err) {
       setError(err.message || 'Gagal menghubungkan akun Telegram.');
@@ -155,6 +156,44 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         disconnect();
     }
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
+  
+  // [PERBAIKAN] Logika Unlink Wallet dibuat lebih kokoh
+  const handleUnlinkWallet = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
+    setIsWalletActionLoading(true);
+    clearMessages();
+    try {
+        // Lakukan update untuk menghapus alamat wallet
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ web3_address: null })
+          .eq('id', currentUser.id);
+
+        if (updateError) throw updateError;
+
+        // Ambil ulang data user yang sudah paling baru dari Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) throw new Error("Sesi tidak ditemukan, silakan login ulang.");
+        
+        const { data: refreshedProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileError) throw profileError;
+
+        // Update state aplikasi dengan data yang 100% baru
+        onUpdateUser(mapSupabaseDataToAppUser(session.user, refreshedProfile));
+
+        setSuccessMessage("Tautan wallet berhasil dilepas.");
+        disconnect();
+    } catch (err) {
+        setError(err.message || "Gagal melepas tautan wallet.");
+    } finally {
+        setIsWalletActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isConnected && address && !currentUser.address) {
@@ -184,23 +223,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     );
   }
 
-  const handleUnlinkWallet = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
-    setIsWalletActionLoading(true);
-    clearMessages();
-    try {
-        const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: null }).eq('id', currentUser.id).select().single();
-        if (updateError) throw updateError;
-        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
-        setSuccessMessage("Tautan wallet berhasil dilepas.");
-        disconnect();
-    } catch (err) {
-        setError(err.message || "Gagal melepas tautan wallet.");
-    } finally {
-        setIsWalletActionLoading(false);
-    }
-  };
-
   const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
@@ -214,7 +236,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
       <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={onLogout} loading={loading} t={t} />
       
-      {/* [DIKEMBALIKAN] Bagian Wallet Management yang hilang */}
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
              <FontAwesomeIcon icon={faWallet} className="mr-3 text-primary" />
