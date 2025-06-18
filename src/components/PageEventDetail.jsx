@@ -1,4 +1,5 @@
 // src/components/PageEventDetail.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -91,8 +92,10 @@ export default function PageEventDetail({ currentUser }) {
   }, [eventSlug, currentUser?.id]);
 
   useEffect(() => {
-    fetchEventData();
-  }, [fetchEventData]);
+    if (currentUser?.id) { // Hanya fetch data jika user sudah ada
+        fetchEventData();
+    }
+  }, [fetchEventData, currentUser?.id]);
 
   // Fungsi untuk memverifikasi task
   const handleVerifyTask = async (task) => {
@@ -109,10 +112,7 @@ export default function PageEventDetail({ currentUser }) {
 
       setVerifyingTaskId(task.id);
       try {
-          // Panggil Edge Function `verify-telegram-follow`
           const { data, error } = await supabase.functions.invoke('verify-telegram-follow', {
-              // Pastikan tabel `event_tasks` punya kolom `target_resource_id`
-              // yang berisi username channel, contoh: '@AFA_Channel_Official'
               body: { channelId: task.target_resource_id } 
           });
 
@@ -133,7 +133,35 @@ export default function PageEventDetail({ currentUser }) {
       }
   };
   
-  const handleParticipate = async () => { /* ... Logika partisipasi ... */ };
+  const handleParticipate = async () => {
+    if (!isConnected) {
+        connect({ connector: injected() });
+        return;
+    }
+    if (!currentUser?.id) {
+        alert("Anda harus login untuk berpartisipasi.");
+        navigate('/profile');
+        return;
+    }
+
+    try {
+        const { error } = await supabase.from('event_participants').insert({
+            event_id: event.id,
+            user_id: currentUser.id,
+            wallet_address: address
+        });
+        if (error) {
+            if(error.code === '23505') {
+                alert("Anda sudah berpartisipasi dalam event ini.");
+            } else { throw error; }
+        } else {
+            alert(t('eventsPage.submitSuccess'));
+            setIsSubmitted(true);
+        }
+    } catch (err) {
+        alert("Gagal berpartisipasi: " + err.message);
+    }
+  };
 
   if (loading) return <div className="page-content text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary"/></div>;
   if (error) return <div className="page-content text-center py-20 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4"/><p className="text-xl">{error}</p><Link to="/events" className="btn-primary mt-6">Kembali ke Daftar Event</Link></div>;
@@ -148,10 +176,10 @@ export default function PageEventDetail({ currentUser }) {
         Kembali ke Daftar Event
       </Link>
 
-      <div className="card-premium max-w-3xl mx-auto p-0 overflow-hidden">
+      <div className="card max-w-3xl mx-auto p-0 overflow-hidden">
         <div className="relative">
           <img src={event.banner_image_url || 'https://placehold.co/800x400/101020/7f5af0?text=AFA+Event'} alt={event.title} className="w-full h-48 md:h-64 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
         </div>
         
         <div className="p-6 md:p-8 space-y-6">
@@ -175,7 +203,7 @@ export default function PageEventDetail({ currentUser }) {
           <div>
             <h3 className="text-xl font-semibold text-light-text dark:text-white mb-4 border-t border-black/10 dark:border-white/20 pt-6">{t('eventsPage.tasksTitle')}</h3>
             <div className="space-y-3">
-              {event.event_tasks.map(task => (
+              {(event.event_tasks || []).map(task => (
                 <SocialTask 
                     key={task.id}
                     task={task}
