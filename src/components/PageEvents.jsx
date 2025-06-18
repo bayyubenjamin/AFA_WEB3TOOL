@@ -3,14 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGift, faSpinner, faExclamationTriangle, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
+import { faGift, faSpinner, faExclamationTriangle, faCalendarDays, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../supabaseClient';
+
+const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
 // Komponen Event Card yang sekarang menjadi tautan
 const EventCard = ({ event }) => {
   return (
-    <Link to={`/events/${event.slug}`} className="card-premium block hover:border-primary transition-all duration-300">
+    <Link to={`/events/${event.slug}`} className="card-premium block hover:border-primary transition-all duration-300 group">
       <div className="relative mb-4 -mx-6 -mt-6">
         <img src={event.banner_image_url || 'https://placehold.co/800x400/101020/7f5af0?text=AFA+Event'} alt={event.title} className="w-full h-48 object-cover rounded-t-2xl" />
         <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent"></div>
@@ -39,6 +41,7 @@ export default function PageEvents({ currentUser }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
   const fetchEventsData = useCallback(async () => {
     setLoading(true);
@@ -59,10 +62,10 @@ export default function PageEvents({ currentUser }) {
   }, []);
   
   useEffect(() => {
-    if (currentUser) { // Hanya fetch jika user sudah terdefinisi
+    if (currentUser) {
         fetchEventsData();
     } else {
-        setLoading(false); // Berhenti loading jika tidak ada user
+        setLoading(false);
     }
   }, [currentUser, fetchEventsData]);
 
@@ -90,6 +93,19 @@ export default function PageEvents({ currentUser }) {
         <p className="text-lg text-light-subtle dark:text-gray-400 max-w-2xl mx-auto">{t('eventsPage.subtitle')}</p>
       </div>
       
+      {/* [TAMBAHAN] Tombol Panel Admin */}
+      {isAdmin && (
+        <div className="max-w-3xl mx-auto text-center">
+          <Link to="/admin/events" className="btn-secondary inline-flex items-center gap-4 px-6 py-3 rounded-xl shadow-lg transition-all hover:shadow-primary/20 hover:border-primary/50">
+            <FontAwesomeIcon icon={faShieldHalved} className="text-2xl text-primary" />
+            <div className="text-left">
+              <p className="font-bold text-md text-light-text dark:text-white">Kelola Events</p>
+              <p className="text-xs text-light-subtle dark:text-gray-400">Buat, edit, dan kelola giveaway.</p>
+            </div>
+          </Link>
+        </div>
+      )}
+
       {events.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map(event => (
