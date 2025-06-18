@@ -1,6 +1,6 @@
-// supabase/functions/confirm-telegram-link/index.ts
+// supabase/functions/confirm-telegram-link/index.ts (Versi Final)
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2' // <-- Pakai URL import
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 
 const corsHeaders = {
@@ -15,7 +15,7 @@ async function getProfileForLinking(supabaseAdmin: SupabaseClient, userId: strin
         .eq('id', userId)
         .single();
     
-    if (error) throw new Error("Profil Anda tidak ditemukan.");
+    if (error) throw new Error("Profil Anda tidak ditemukan atau terjadi kesalahan.");
     if (!profile.telegram_verification_code || !profile.telegram_code_expires_at) {
         throw new Error("Silakan buat kode verifikasi terlebih dahulu di halaman profil.");
     }
@@ -30,6 +30,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // ================== PERUBAHAN KUNCI DI SINI ==================
+    // 1. Dapatkan user yang sedang login dari token otentikasi di header
     const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -37,6 +39,8 @@ serve(async (req) => {
     );
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error("Akses ditolak. Anda harus login untuk melakukan aksi ini.");
+    // Sekarang kita punya user.id yang pasti valid dari sisi server
+    // =============================================================
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -72,10 +76,10 @@ serve(async (req) => {
         .update({ 
             telegram_id: foundTelegramUser.id,
             telegram_handle: foundTelegramUser.username || null,
-            telegram_verification_code: null,
+            telegram_verification_code: null, 
             telegram_code_expires_at: null
         })
-        .eq('id', user.id);
+        .eq('id', user.id); // Gunakan user.id yang didapat dari server
 
     if (updateError) throw updateError;
     
