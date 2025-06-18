@@ -27,7 +27,8 @@ import WalletConnectModal from "./components/WalletConnectModal";
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+// [PERBAIKAN] Impor 'LanguageProvider' dihapus karena tidak lagi digunakan di file ini
+import { useLanguage } from "./context/LanguageContext";
 
 // ... (const LS_CURRENT_USER_KEY, defaultGuestUserForApp, mapSupabaseDataToAppUserForApp tetap sama) ...
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
@@ -214,10 +215,10 @@ function MainAppContent() {
   );
 }
 
+// [PERBAIKAN] Fungsi 'App' sekarang hanya me-render 'MainAppContent'
+// Pembungkus <LanguageProvider> yang asli ada di main.jsx
 export default function App() {
   return (
-    <LanguageProvider>
-      <MainAppContent />
-    </LanguageProvider>
+    <MainAppContent />
   );
 }
