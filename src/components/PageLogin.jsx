@@ -9,7 +9,12 @@ import translationsEn from "../translations/en.json";
 import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 
-import AuthForm from './AuthForm'; // Impor komponen form yang baru dibuat
+import AuthForm from './AuthForm';
+
+// [DITAMBAHKAN] Impor ikon untuk tombol kembali
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -35,7 +40,6 @@ export default function PageLogin({ currentUser }) {
 
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
-  // Jika sudah login, redirect ke profil
   useEffect(() => {
     if (currentUser && currentUser.id) {
       navigate('/profile');
@@ -50,7 +54,7 @@ export default function PageLogin({ currentUser }) {
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
       if (error) throw error;
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
-      navigate('/profile'); // Redirect setelah berhasil login
+      navigate('/profile');
     } catch (err) {
       setError(err.message || "Gagal login.");
     } finally {
@@ -74,7 +78,7 @@ export default function PageLogin({ currentUser }) {
       const { error: sessionError } = await supabase.auth.setSession(session);
       if (sessionError) throw sessionError;
       setSuccessMessage("Berhasil login dengan wallet!");
-      navigate('/profile'); // Redirect setelah berhasil
+      navigate('/profile');
     } catch (err) {
       console.error("Wallet login error:", err);
       setError(err.message || "Gagal login dengan wallet.");
@@ -93,6 +97,12 @@ export default function PageLogin({ currentUser }) {
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
+       {/* [DITAMBAHKAN] Tombol Kembali */}
+       <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+        <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+        Kembali ke Beranda
+      </Link>
+
        {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
        {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
 
