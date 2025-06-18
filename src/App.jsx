@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { useDisconnect } from 'wagmi'; // <-- [DITAMBAHKAN]
+import { useDisconnect } from 'wagmi';
 
-// Impor semua komponen halaman
+// ... (semua impor lain tetap sama)
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -24,12 +24,12 @@ import PageRegister from "./components/PageRegister";
 import WalletConnectModal from "./components/WalletConnectModal";
 
 
-// Impor utilitas
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
+// ... (const LS_CURRENT_USER_KEY, defaultGuestUserForApp, mapSupabaseDataToAppUserForApp tetap sama) ...
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
 const defaultGuestUserForApp = {
@@ -52,7 +52,6 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-
 function MainAppContent() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
@@ -65,9 +64,9 @@ function MainAppContent() {
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
-  const { disconnect } = useDisconnect(); // <-- [DITAMBAHKAN]
+  const { disconnect } = useDisconnect();
 
-  // ... (useEffect yang lain tetap sama) ...
+  // ... (semua useEffect tetap sama) ...
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
@@ -147,8 +146,6 @@ function MainAppContent() {
     }
   }, [location.pathname, loadingInitialSession]);
 
-
-  // [DIPINDAHKAN & DIPERBARUI] Logika logout terpusat
   const handleLogout = async () => {
     await supabase.auth.signOut();
     disconnect();
@@ -179,7 +176,6 @@ function MainAppContent() {
 
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden">
-      {/* [MODIFIKASI] Teruskan fungsi handleLogout ke Header */}
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
       
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
@@ -189,6 +185,7 @@ function MainAppContent() {
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
       >
         <Routes>
+          {/* ... rute lain ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
@@ -207,8 +204,8 @@ function MainAppContent() {
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           
-          {/* [MODIFIKASI] Teruskan fungsi handleLogout ke PageProfile */}
-          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
+          {/* [MODIFIKASI] Teruskan onOpenWalletModal ke PageProfile */}
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>

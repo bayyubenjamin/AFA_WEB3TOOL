@@ -15,8 +15,8 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { injected } from 'wagmi/connectors';
+// [MODIFIKASI] useSignMessage tidak lagi diperlukan di sini untuk proses link
+import { useAccount, useDisconnect } from 'wagmi';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -69,8 +69,8 @@ const ProfileHeader = ({ currentUser, onEditClick, onLogoutClick, loading, t }) 
 );
 
 
-// [MODIFIKASI] Terima prop onLogout dari App.jsx
-export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [] }) {
+// [MODIFIKASI] Terima prop onOpenWalletModal
+export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [], onOpenWalletModal }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
   const isLoggedIn = !!(currentUser && currentUser.id);
@@ -85,9 +85,46 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [copySuccess, setCopySuccess] = useState('');
 
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   
+  // Logika untuk menautkan wallet setelah berhasil terkoneksi
+  const handleLinkWallet = useCallback(async () => {
+    if (!address || !currentUser?.id) return;
+    
+    setIsWalletActionLoading(true);
+    clearMessages();
+    try {
+        const lowerCaseAddress = address.toLowerCase();
+        const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
+        if (checkError && checkError.code !== 'PGRST116') throw checkError;
+        if (existingProfile && existingProfile.id !== currentUser.id) {
+            throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
+        }
+        
+        const { data, error: updateError } = await supabase
+            .from('profiles')
+            .update({ web3_address: lowerCaseAddress })
+            .eq('id', currentUser.id)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
+        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
+        setSuccessMessage("Wallet berhasil ditautkan!");
+    } catch (err) {
+        setError(err.message || "Gagal menautkan wallet.");
+    } finally {
+        setIsWalletActionLoading(false);
+        disconnect(); // Selalu disconnect setelah proses selesai (baik berhasil atau gagal)
+    }
+  }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
+
+  useEffect(() => {
+    if (isConnected && address && !currentUser.address) {
+      handleLinkWallet();
+    }
+  }, [isConnected, address, currentUser.address, handleLinkWallet]);
+
   useEffect(() => {
       if (isLoggedIn && currentUser) {
         setEditName(currentUser.name || currentUser.username || "");
@@ -112,8 +149,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     );
   }
 
-  // ... (Sisa fungsi lain seperti mapSupabaseDataToAppUser, handleLinkWallet, dll. tidak berubah) ...
-    const mapSupabaseDataToAppUser = (authUser, profileData) => {
+  // ... (Fungsi lain tidak berubah)
+  const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return {};
     return {
       id: authUser.id, email: authUser.email,
@@ -124,29 +161,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       address: profileData?.web3_address || null,
       user_metadata: authUser.user_metadata || {}
     };
-  };
-
-  const handleLinkWallet = async () => {
-    if (!address) { setError("Alamat wallet tidak ditemukan."); return; }
-    setIsWalletActionLoading(true);
-    clearMessages();
-    try {
-        const lowerCaseAddress = address.toLowerCase();
-        const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
-        if (checkError && checkError.code !== 'PGRST116') throw checkError;
-        if (existingProfile) throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
-        // Untuk menautkan wallet, tidak perlu sign message yang kompleks
-        const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: lowerCaseAddress }).eq('id', currentUser.id).select().single();
-        if (updateError) throw updateError;
-        onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
-        setSuccessMessage("Wallet berhasil ditautkan!");
-        disconnect();
-    } catch (err) {
-        setError(err.message || "Gagal menautkan wallet.");
-        disconnect();
-    } finally {
-        setIsWalletActionLoading(false);
-    }
   };
 
   const handleUnlinkWallet = async () => {
@@ -173,7 +187,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
 
-  // [MODIFIKASI] Gunakan `onLogout` dari props saat tombol di-klik
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
       {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
@@ -205,20 +218,13 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
          ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Your wallet is not linked."}</p>
-                <button onClick={() => connect({ connector: injected() })} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
+                {/* [DIPERBARUI] Tombol ini sekarang membuka modal */}
+                <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
                     {t.linkWalletBtn || "Link Wallet"}
                 </button>
             </div>
          )}
-          { isConnected && !currentUser.address &&
-            <div className="mt-4 p-3 bg-primary/10 rounded-lg text-center">
-                <p className="text-sm text-primary mb-2">Wallet connected: {`${address.substring(0,6)}...${address.substring(address.length - 4)}`}</p>
-                <button onClick={handleLinkWallet} disabled={isWalletActionLoading} className="btn-secondary w-full">
-                    {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : `Confirm Link`}
-                </button>
-            </div>
-          }
       </div>
       
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
