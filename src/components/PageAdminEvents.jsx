@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSpinner, faTimes, faTasks, faLink, faShieldHalved, faImage, faTrophy, faCalendarAlt, faInfoCircle, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSpinner, faTimes, faTasks, faLink, faShieldHalved, faImage, faTrophy, faCalendarAlt, faInfoCircle, faUsers, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { faXTwitter, faTelegram, faYoutube, faDiscord } from '@fortawesome/free-brands-svg-icons';
+import { Link, useNavigate } from 'react-router-dom'; // Impor useNavigate
 
 // Komponen Form untuk membuat/mengedit event
 const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
@@ -47,7 +48,7 @@ const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
       reward_pool: reward,
       end_date: endDate ? new Date(endDate).toISOString() : null,
       created_by: currentUser.id,
-      is_active: true, // Selalu aktif saat dibuat/diedit
+      is_active: true,
     };
     onSave(eventData, tasks);
   };
@@ -60,65 +61,73 @@ const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-4 md:p-6 bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-2xl">
-      <h2 className="text-2xl font-bold text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-4">
-        {initialData ? 'Edit Event Giveaway' : 'Buat Event Giveaway Baru'}
-      </h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="form-label" htmlFor="title">Judul Event</label>
-          <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Cth: AFA Community Launch Giveaway" required />
-        </div>
-        <div>
-          <label className="form-label" htmlFor="reward">Deskripsi Hadiah</label>
-          <input id="reward" type="text" value={reward} onChange={e => setReward(e.target.value)} className="form-input" placeholder="Cth: 100 USDT untuk 5 Pemenang" required />
-        </div>
-      </div>
-      <div>
-        <label className="form-label" htmlFor="bannerUrl">URL Gambar Banner</label>
-        <input id="bannerUrl" type="url" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} className="form-input" placeholder="https://domain.com/banner.jpg" />
-      </div>
-      <div>
-        <label className="form-label" htmlFor="description">Deskripsi Singkat</label>
-        <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="form-input" rows="3" placeholder="Jelaskan tentang event ini..."></textarea>
-      </div>
-      <div>
-        <label className="form-label" htmlFor="endDate">Tanggal Berakhir (Opsional)</label>
-        <input id="endDate" type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input" />
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold text-light-text dark:text-white mb-2">Tugas (Tasks)</h3>
-        <div className="space-y-4">
-          {tasks.map((task, index) => (
-            <div key={index} className="flex items-center gap-2 p-3 rounded-lg bg-black/5 dark:bg-white/5">
-              <FontAwesomeIcon icon={taskIcons[task.task_type] || faTasks} className="text-primary text-xl" />
-              <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-2">
-                <select value={task.task_type} onChange={e => handleTaskChange(index, 'task_type', e.target.value)} className="form-input text-xs">
-                  <option value="twitter">X (Twitter)</option>
-                  <option value="telegram">Telegram</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="discord">Discord</option>
-                </select>
-                <input type="text" value={task.title} onChange={e => handleTaskChange(index, 'title', e.target.value)} placeholder="Deskripsi Tugas" className="form-input text-xs" />
-                <input type="url" value={task.link_url} onChange={e => handleTaskChange(index, 'link_url', e.target.value)} placeholder="https://..." className="form-input text-xs" required />
-              </div>
-              <button type="button" onClick={() => removeTask(index)} className="btn-danger p-0 w-8 h-8 flex-shrink-0 text-sm"><FontAwesomeIcon icon={faTimes} /></button>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={addTask} className="btn-secondary text-xs mt-4 px-4 py-2"><FontAwesomeIcon icon={faPlus} className="mr-2" /> Tambah Tugas</button>
-      </div>
-
-      <div className="flex justify-end gap-4 pt-4">
-        <button type="button" onClick={onCancel} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">Batal</button>
-        <button type="submit" disabled={loading} className="btn-primary px-6 py-2.5 rounded-lg text-sm flex items-center">
-          {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faTrophy} className="mr-2" />}
-          Simpan Event
+    // Membungkus form dengan div untuk tombol kembali
+    <div>
+        <button onClick={onCancel} className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            Kembali ke Panel Admin Events
         </button>
-      </div>
-    </form>
+        <form onSubmit={handleSubmit} className="space-y-6 p-4 md:p-6 bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-2xl">
+            <h2 className="text-2xl font-bold text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-4">
+                {initialData ? 'Edit Event Giveaway' : 'Buat Event Giveaway Baru'}
+            </h2>
+            
+            {/* ... sisa field form tidak berubah ... */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                <label className="form-label" htmlFor="title">Judul Event</label>
+                <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Cth: AFA Community Launch Giveaway" required />
+                </div>
+                <div>
+                <label className="form-label" htmlFor="reward">Deskripsi Hadiah</label>
+                <input id="reward" type="text" value={reward} onChange={e => setReward(e.target.value)} className="form-input" placeholder="Cth: 100 USDT untuk 5 Pemenang" required />
+                </div>
+            </div>
+            <div>
+                <label className="form-label" htmlFor="bannerUrl">URL Gambar Banner</label>
+                <input id="bannerUrl" type="url" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} className="form-input" placeholder="https://domain.com/banner.jpg" />
+            </div>
+            <div>
+                <label className="form-label" htmlFor="description">Deskripsi Singkat</label>
+                <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="form-input" rows="3" placeholder="Jelaskan tentang event ini..."></textarea>
+            </div>
+            <div>
+                <label className="form-label" htmlFor="endDate">Tanggal Berakhir (Opsional)</label>
+                <input id="endDate" type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input" />
+            </div>
+
+            <div>
+                <h3 className="text-lg font-semibold text-light-text dark:text-white mb-2">Tugas (Tasks)</h3>
+                <div className="space-y-4">
+                {tasks.map((task, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 rounded-lg bg-black/5 dark:bg-white/5">
+                    <FontAwesomeIcon icon={taskIcons[task.task_type] || faTasks} className="text-primary text-xl" />
+                    <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <select value={task.task_type} onChange={e => handleTaskChange(index, 'task_type', e.target.value)} className="form-input text-xs">
+                        <option value="twitter">X (Twitter)</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="discord">Discord</option>
+                        </select>
+                        <input type="text" value={task.title} onChange={e => handleTaskChange(index, 'title', e.target.value)} placeholder="Deskripsi Tugas" className="form-input text-xs" />
+                        <input type="url" value={task.link_url} onChange={e => handleTaskChange(index, 'link_url', e.target.value)} placeholder="https://..." className="form-input text-xs" required />
+                    </div>
+                    <button type="button" onClick={() => removeTask(index)} className="btn-danger p-0 w-8 h-8 flex-shrink-0 text-sm"><FontAwesomeIcon icon={faTimes} /></button>
+                    </div>
+                ))}
+                </div>
+                <button type="button" onClick={addTask} className="btn-secondary text-xs mt-4 px-4 py-2"><FontAwesomeIcon icon={faPlus} className="mr-2" /> Tambah Tugas</button>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-4">
+                <button type="button" onClick={onCancel} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">Batal</button>
+                <button type="submit" disabled={loading} className="btn-primary px-6 py-2.5 rounded-lg text-sm flex items-center">
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faTrophy} className="mr-2" />}
+                Simpan Event
+                </button>
+            </div>
+        </form>
+    </div>
   );
 };
 
@@ -127,9 +136,10 @@ export default function PageAdminEvents({ currentUser }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState('list'); // 'list' or 'form'
+  const [view, setView] = useState('list');
   const [editingEvent, setEditingEvent] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const navigate = useNavigate(); // Gunakan hook useNavigate
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -148,22 +158,23 @@ export default function PageAdminEvents({ currentUser }) {
   }, []);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (view === 'list') {
+        fetchEvents();
+    }
+  }, [fetchEvents, view]);
   
   const handleSave = async (eventData, tasks) => {
     setFormLoading(true);
     try {
-      if (editingEvent) { // --- EDIT LOGIC ---
+      if (editingEvent) {
         const { error: eventError } = await supabase.from('events').update(eventData).eq('id', editingEvent.id);
         if (eventError) throw eventError;
-        // Hapus task lama, lalu insert yang baru (cara simpel)
         await supabase.from('event_tasks').delete().eq('event_id', editingEvent.id);
         const tasksToInsert = tasks.map(task => ({ ...task, event_id: editingEvent.id }));
         const { error: tasksError } = await supabase.from('event_tasks').insert(tasksToInsert);
         if (tasksError) throw tasksError;
 
-      } else { // --- CREATE LOGIC ---
+      } else {
         const { data: newEvent, error: eventError } = await supabase.from('events').insert(eventData).select().single();
         if (eventError) throw eventError;
         const tasksToInsert = tasks.map(task => ({ ...task, event_id: newEvent.id }));
@@ -172,7 +183,6 @@ export default function PageAdminEvents({ currentUser }) {
       }
       setView('list');
       setEditingEvent(null);
-      fetchEvents(); // Re-fetch data
     } catch (error) {
       alert("Error saving event: " + error.message);
     } finally {
@@ -197,6 +207,12 @@ export default function PageAdminEvents({ currentUser }) {
 
   return (
     <section className="page-content space-y-8 pt-8">
+      {/* Tombol kembali ke Admin Dashboard */}
+      <button onClick={() => navigate('/admin')} className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+          Kembali ke Admin Dashboard
+      </button>
+
       <div className="text-center">
         <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-3 flex items-center justify-center gap-3">
            <FontAwesomeIcon icon={faShieldHalved}/> Admin Panel: Events
@@ -222,7 +238,7 @@ export default function PageAdminEvents({ currentUser }) {
               <div className="flex flex-wrap gap-4 text-xs text-light-subtle dark:text-gray-400 mt-2">
                 <span title="Partisipan"><FontAwesomeIcon icon={faUsers} className="mr-1.5"/>{event.event_participants[0]?.count || 0} partisipan</span>
                 <span title="Jumlah Tugas"><FontAwesomeIcon icon={faTasks} className="mr-1.5"/>{event.event_tasks.length} tugas</span>
-                {event.end_date && <span title="Batas Akhir"><FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5"/> {new Date(event.end_date).toLocaleString()}</span>}
+                {event.end_date && <span title="Batas Akhir"><FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5"/> {new Date(event.end_date).toLocaleString('id-ID')}</span>}
               </div>
             </div>
             <div className="flex gap-2 self-start">
@@ -235,3 +251,4 @@ export default function PageAdminEvents({ currentUser }) {
     </section>
   );
 }
+
