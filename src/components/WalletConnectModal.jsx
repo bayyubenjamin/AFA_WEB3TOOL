@@ -3,30 +3,26 @@ import React from 'react';
 import { useConnect } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
-// [DIPERBARUI] Daftar ikon wallet yang lebih lengkap dan berkualitas tinggi
+// Daftar ikon wallet yang sudah diperbaiki
 const walletIcons = {
   'MetaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
   'WalletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-  'Coinbase Wallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
-  'OKX Wallet': 'https://static.okx.com/cdn/assets/imgs/226/5B2529DECB27C8A9.png',
+  'OKX Wallet': 'https://developers.moralis.com/wp-content/uploads/web3wiki/47-okx-wallet/645c177c66d302f70d9a863e_OKX-Wallet-Twitter-Logo-300x300.jpeg',
+  'Coinbase Wallet': 'https://raw.githubusercontent.com/gist/taycaldwell/2291907115c0bb5589bc346661435007/raw/280eafdc84cb80ed0c60e36b4d0c563f6dca6b3e/cbw.svg',
   'Brave Wallet': 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
   'default': 'https://www.svgrepo.com/show/448252/wallet.svg'
 };
 
-// [DIPERBARUI] Fungsi untuk mendapatkan nama yang lebih baik
 const getConnectorName = (connector) => {
   const name = connector.name;
   if (name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet';
   if (name.toLowerCase().includes('metamask')) return 'MetaMask';
   if (name.toLowerCase().includes('walletconnect')) return 'WalletConnect';
-  // Untuk dompet injected lain seperti OKX, Bitget, dll.
-  // 'rdns' adalah cara baru wagmi mengidentifikasi dompet injected
   if (connector.rdns === 'io.metamask') return 'MetaMask';
   if (connector.rdns === 'com.okex.wallet') return 'OKX Wallet';
   if (connector.rdns === 'com.coinbase.wallet') return 'Coinbase Wallet';
-  // Fallback ke nama bawaan jika tidak ada yang cocok
   return name;
 }
 
@@ -35,7 +31,6 @@ const WalletButton = ({ connector, onClose }) => {
   const { open } = useWeb3Modal();
   const [isReady, setIsReady] = React.useState(false);
   
-  // [DIPERBARUI] Logika untuk loading dan nama tampilan
   const displayName = getConnectorName(connector);
   const isLoading = isPending && variables?.connector?.id === connector.id;
   const iconUrl = walletIcons[displayName] || walletIcons['default'];
@@ -51,17 +46,15 @@ const WalletButton = ({ connector, onClose }) => {
     return () => { isMounted = false; };
   }, [connector]);
 
-  // [DIPERBARUI] Logika klik tombol untuk auto-close
   const handleConnect = () => {
     if (connector.id === 'walletConnect') {
-      onClose(); // Tutup modal kustom kita dulu
-      open();   // Lalu buka modal WalletConnect
+      onClose();
+      open();
     } else {
       connect(
         { connector },
         {
           onSuccess: () => {
-            // Setelah berhasil konek, panggil fungsi onClose
             onClose();
           }
         }
@@ -109,15 +102,10 @@ export default function WalletConnectModal({ isOpen, onClose }) {
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
+        {/* [DIPERBARUI] Bagian email dan separator 'or' telah dihapus */}
         <div className="wallet-connect-body">
-          <div className="form-group relative">
-            <FontAwesomeIcon icon={faEnvelope} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="email" placeholder="Email" className="w-full pl-10" disabled/>
-          </div>
-          <div className="separator-or">or</div>
           <div className="flex flex-col gap-2">
             {connectors.map((connector) => (
-              // [DIPERBARUI] Teruskan prop onClose ke tombol
               <WalletButton key={connector.uid} connector={connector} onClose={onClose} />
             ))}
           </div>
