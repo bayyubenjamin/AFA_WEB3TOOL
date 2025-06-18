@@ -14,8 +14,9 @@ import PageProfile from "./components/PageProfile";
 import AirdropDetailPage from "./components/AirdropDetailPage";
 import PageManageUpdate from "./components/PageManageUpdate";
 import PageEvents from './components/PageEvents';
+import PageEventDetail from './components/PageEventDetail'; // Impor detail event
 import PageAdminEvents from './components/PageAdminEvents';
-import PageAdminDashboard from './components/PageAdminDashboard'; // Impor dashboard
+import PageAdminDashboard from './components/PageAdminDashboard';
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -111,16 +112,18 @@ function MainAppContent() {
   // useEffect untuk mengatur judul header berdasarkan halaman
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
+    const pathSegments = location.pathname.split('/');
 
     const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard" };
     const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard" };
     
-    // Logika judul yang lebih spesifik untuk halaman admin
     let titleKey = path;
-    if (location.pathname.startsWith('/airdrops/postairdrops')) titleKey = 'admin';
-    if (location.pathname.startsWith('/admin/events')) titleKey = 'admin';
-    if (location.pathname.includes('/update')) titleKey = 'admin';
-
+    if (path === 'events' && pathSegments.length > 2) {
+        titleKey = 'events'; // Judul tetap "Event Spesial" untuk halaman detail
+    }
+    if (path.startsWith('admin') || location.pathname.includes('postairdrops') || location.pathname.includes('update')) {
+        titleKey = 'admin';
+    }
 
     const currentTitles = language === 'id' ? titles_id : titles_en;
     setHeaderTitle(currentTitles[titleKey] || "AFA WEB3TOOL");
@@ -178,9 +181,12 @@ function MainAppContent() {
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           
-          {/* Rute Admin yang Diperbarui */}
+          {/* Rute untuk halaman daftar event dan halaman detail event */}
+          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+          <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+          
+          {/* Rute Admin */}
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           

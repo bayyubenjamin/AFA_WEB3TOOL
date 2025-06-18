@@ -3,110 +3,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGift, faCheckCircle as fasFaCheckCircle, faSpinner, faExclamationTriangle, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
-import { faCheckCircle as farFaCheckCircle } from '@fortawesome/free-regular-svg-icons';
-import { faTelegram, faYoutube, faXTwitter, faDiscord } from '@fortawesome/free-brands-svg-icons';
+import { faGift, faSpinner, faExclamationTriangle, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../supabaseClient';
-import { useAccount, useConnect } from 'wagmi';
-import { injected } from 'wagmi/connectors';
 
-const taskIcons = {
-  twitter: faXTwitter,
-  telegram: faTelegram,
-  youtube: faYoutube,
-  discord: faDiscord,
-};
-
-// Komponen Event Card
-const EventCard = ({ event, onParticipate, currentUser }) => {
-  const { t } = useLanguage();
-  const [completedTasks, setCompletedTasks] = useState(new Set());
-  const [isSubmitted, setIsSubmitted] = useState(event.is_participated);
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-
-  const handleTaskClick = (taskId, taskLink) => {
-    window.open(taskLink, '_blank', 'noopener,noreferrer');
-    setCompletedTasks(prev => new Set(prev).add(taskId));
-  };
-
-  const handleParticipate = () => {
-    if (!isConnected) {
-        connect({ connector: injected() });
-        return;
-    }
-    onParticipate(event.id, address);
-    setIsSubmitted(true);
-  };
-  
-  const allTasksCompleted = completedTasks.size === event.event_tasks.length;
-
+// Komponen Event Card yang sekarang menjadi tautan
+const EventCard = ({ event }) => {
   return (
-    <div className="card max-w-2xl mx-auto p-6 md:p-8 rounded-2xl shadow-xl overflow-hidden">
-      <div className="relative mb-6 -mx-8 -mt-8">
-        <img src={event.banner_image_url || 'https://placehold.co/800x400/101020/7f5af0?text=AFA+Event'} alt={event.title} className="w-full h-48 object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent"></div>
+    <Link to={`/events/${event.slug}`} className="card-premium block hover:border-primary transition-all duration-300">
+      <div className="relative mb-4 -mx-6 -mt-6">
+        <img src={event.banner_image_url || 'https://placehold.co/800x400/101020/7f5af0?text=AFA+Event'} alt={event.title} className="w-full h-48 object-cover rounded-t-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent"></div>
       </div>
       
-      <div className="flex items-center gap-4 mb-4">
-        <FontAwesomeIcon icon={faGift} className="text-4xl text-primary" />
+      <div className="flex items-center gap-4 mb-2">
+        <FontAwesomeIcon icon={faGift} className="text-3xl text-primary" />
         <div>
-          <h2 className="text-2xl font-bold text-light-text dark:text-white">{event.title}</h2>
+          <h2 className="text-xl font-bold text-light-text dark:text-white group-hover:text-primary">{event.title}</h2>
           <p className="text-sm font-semibold text-green-400">{event.reward_pool}</p>
         </div>
       </div>
-      
-      <p className="text-light-subtle dark:text-gray-400 mb-6">{event.description}</p>
-      
+
       {event.end_date && (
-        <p className="text-sm text-yellow-400 font-semibold mb-6 flex items-center gap-2">
+        <p className="text-xs text-yellow-400 font-medium flex items-center gap-2 mt-3">
             <FontAwesomeIcon icon={faCalendarDays} />
-            Berakhir pada: {new Date(event.end_date).toLocaleString('id-ID')}
+            <span>Berakhir pada: {new Date(event.end_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
         </p>
       )}
-      
-      <h3 className="text-lg font-semibold text-light-text dark:text-white mb-4">{t('eventsPage.tasksTitle')}</h3>
-      <div className="space-y-3">
-        {event.event_tasks.map(task => {
-          const isCompleted = completedTasks.has(task.id);
-          return (
-            <button
-              key={task.id}
-              onClick={() => handleTaskClick(task.id, task.link_url)}
-              className={`w-full flex items-center justify-between p-4 rounded-lg transition-all duration-300 ${
-                isCompleted
-                  ? 'bg-green-500/20 border-green-500/50'
-                  : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
-              } border`}
-            >
-              <div className="flex items-center gap-3">
-                <FontAwesomeIcon icon={taskIcons[task.task_type] || faTasks} className="text-xl text-primary" />
-                <span className="font-medium text-light-text dark:text-white text-left">{task.title}</span>
-              </div>
-              <FontAwesomeIcon
-                icon={isCompleted ? fasFaCheckCircle : farFaCheckCircle}
-                className={`text-xl ${isCompleted ? 'text-green-500' : 'text-gray-400'}`}
-              />
-            </button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-8 text-center">
-        {isSubmitted ? (
-          <p className="font-semibold text-green-400">{t('eventsPage.tasksCompleteMessage')}</p>
-        ) : (
-          <button
-            onClick={handleParticipate}
-            disabled={!allTasksCompleted && isConnected}
-            className="btn-primary w-full max-w-xs py-3 text-lg rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0"
-          >
-            { isConnected ? t('eventsPage.joinButton') : "Connect Wallet to Join" }
-          </button>
-        )}
-      </div>
-    </div>
+    </Link>
   );
 };
 
@@ -120,60 +44,30 @@ export default function PageEvents({ currentUser }) {
     setLoading(true);
     setError(null);
     try {
-        let query = supabase
+        const { data, error: fetchError } = await supabase
             .from('events')
-            .select(`*, event_tasks(*), event_participants(user_id)`)
+            .select(`*`)
             .eq('is_active', true)
             .order('created_at', { ascending: false });
-
-        const { data, error: fetchError } = await query;
         if (fetchError) throw fetchError;
-        
-        const processedData = data.map(event => ({
-            ...event,
-            is_participated: currentUser?.id ? event.event_participants.some(p => p.user_id === currentUser.id) : false
-        }));
-        setEvents(processedData);
+        setEvents(data || []);
     } catch (err) {
         setError(err.message);
     } finally {
         setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, []);
   
   useEffect(() => {
-    fetchEventsData();
-  }, [fetchEventsData]);
-
-  const handleParticipate = async (eventId, walletAddress) => {
-    try {
-        const { error } = await supabase.from('event_participants').insert({
-            event_id: eventId,
-            user_id: currentUser.id,
-            wallet_address: walletAddress
-        });
-        if (error) {
-            if(error.code === '23505') { // unique constraint violation
-                alert("Anda sudah berpartisipasi dalam event ini.");
-            } else {
-                throw error;
-            }
-        } else {
-            alert(t('eventsPage.submitSuccess'));
-            fetchEventsData(); // Refresh data untuk update UI
-        }
-    } catch (err) {
-        alert("Gagal berpartisipasi: " + err.message);
+    if (currentUser) { // Hanya fetch jika user sudah terdefinisi
+        fetchEventsData();
+    } else {
+        setLoading(false); // Berhenti loading jika tidak ada user
     }
-  };
+  }, [currentUser, fetchEventsData]);
 
-  if (loading) {
-    return <div className="page-content text-center py-10"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>
-  }
-  
-  if (error) {
-     return <div className="page-content text-center py-10 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-2"/> <p>{error}</p></div>
-  }
+  if (loading) return <div className="page-content text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary"/></div>;
+  if (error) return <div className="page-content text-center py-20 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4"/><p>{error}</p></div>;
   
   if (!currentUser?.id) {
     return (
@@ -197,15 +91,19 @@ export default function PageEvents({ currentUser }) {
       </div>
       
       {events.length > 0 ? (
-        events.map(event => (
-            <EventCard key={event.id} event={event} onParticipate={handleParticipate} currentUser={currentUser} />
-        ))
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map(event => (
+                <EventCard key={event.id} event={event} />
+            ))}
+        </div>
       ) : (
-        <div className="text-center py-10 text-light-subtle dark:text-gray-500">
-            <FontAwesomeIcon icon={faGift} size="3x" className="mb-4"/>
-            <p>Belum ada event yang aktif saat ini. Pantau terus!</p>
+        <div className="text-center py-16 card-premium">
+            <FontAwesomeIcon icon={faGift} size="3x" className="mb-4 text-primary"/>
+            <h3 className="text-xl font-semibold">Belum Ada Event Aktif</h3>
+            <p className="text-light-subtle dark:text-gray-400 mt-2">Nantikan giveaway selanjutnya. Pantau terus!</p>
         </div>
       )}
     </section>
   );
 }
+
