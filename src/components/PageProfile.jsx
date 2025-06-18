@@ -1,4 +1,4 @@
-// src/components/PageProfile.jsx
+// src/components/PageProfile.jsx (Versi Final dengan Perbaikan Keamanan)
 
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -83,7 +83,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
 
-  // State khusus untuk alur koneksi Telegram
   const [telegramLinkState, setTelegramLinkState] = useState('idle');
   const [telegramCode, setTelegramCode] = useState('');
   const [telegramError, setTelegramError] = useState('');
@@ -93,16 +92,16 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const { disconnect } = useDisconnect();
   
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
-    if (!authUser) return {};
+    if (!authUser || !profileData) return currentUser; // Return current state if something is wrong
     return {
       id: authUser.id, email: authUser.email,
-      username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
-      name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
-      avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url,
-      stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
-      address: profileData?.web3_address || null,
-      telegram_id: profileData?.telegram_id || null,
-      telegram_handle: profileData?.telegram_handle || null,
+      username: profileData.username || authUser.user_metadata?.username || "User",
+      name: profileData.name || authUser.user_metadata?.name || "User",
+      avatar_url: profileData.avatar_url || authUser.user_metadata?.avatar_url,
+      stats: profileData.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
+      address: profileData.web3_address || null,
+      telegram_id: profileData.telegram_id || null,
+      telegram_handle: profileData.telegram_handle || null,
       user_metadata: authUser.user_metadata || {}
     };
   };
@@ -117,9 +116,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         const lowerCaseAddress = address.toLowerCase();
         const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
         if (checkError && checkError.code !== 'PGRST116') throw checkError;
-        if (existingProfile && existingProfile.id !== currentUser.id) {
-            throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
-        }
+        if (existingProfile && existingProfile.id !== currentUser.id) throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
         const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: lowerCaseAddress }).eq('id', currentUser.id).select().single();
         if (updateError) throw updateError;
         onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
@@ -133,10 +130,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
 
   useEffect(() => {
-    if (isConnected && address && !currentUser?.address) {
+    if (isConnected && address && !currentUser.address) {
       handleLinkWallet();
     }
-  }, [isConnected, address, currentUser?.address, handleLinkWallet]);
+  }, [isConnected, address, currentUser, handleLinkWallet]);
 
   useEffect(() => {
       if (isLoggedIn && currentUser) {
@@ -146,15 +143,20 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   }, [currentUser, isLoggedIn]);
   
   const handleGenerateCode = async () => {
-      if (!currentUser || !currentUser.id) {
-          alert("Data user belum siap, silakan coba refresh halaman.");
+      const userId = currentUser?.id;
+      // ======================= PERBAIKAN FINAL DI SINI =======================
+      // Cek lebih ketat: harus string dan tidak kosong
+      if (typeof userId !== 'string' || userId.length === 0) {
+          alert("Data user tidak valid atau belum siap. Coba refresh halaman dan login kembali.");
+          console.error("Attempted to generate code with invalid user ID:", userId);
           return;
       }
+      // =======================================================================
       setTelegramLoading(true);
       setTelegramError('');
       const code = `AFA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-      const { error } = await supabase.from('profiles').update({ telegram_verification_code: code, telegram_code_expires_at: expiresAt }).eq('id', currentUser.id);
+      const { error } = await supabase.from('profiles').update({ telegram_verification_code: code, telegram_code_expires_at: expiresAt }).eq('id', userId);
       setTelegramLoading(false);
       if (error) {
           setTelegramError('Gagal membuat kode. Silakan coba lagi.');
@@ -214,7 +216,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
-  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
+  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { alert('Kode berhasil disalin!') }, () => { alert('Gagal menyalin kode') }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
   if (!isLoggedIn) {
