@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons"; // Menambahkan faUserCircle
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
-export default function Header({ title, currentUser, navigateTo, onlineUsers }) {
+// [MODIFIKASI] Terima prop onLogout
+export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage();
@@ -49,18 +50,15 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
     setIsOptionsMenuOpen(false);
   };
   
-  const handleAuthAction = () => {
-    // [MODIFIKASI] Navigasi kondisional berdasarkan status login
-    if (currentUser && currentUser.id) {
-        // Jika sudah login, tombol ini akan berfungsi sebagai navigasi ke profil
-        // di mana pengguna bisa melihat detail dan tombol logout.
-        navigateTo('/profile'); 
-    } else {
-        // Jika belum login, arahkan ke halaman login baru.
-        navigateTo('/login');
-    }
+  const handleLoginNav = () => {
+    navigateTo('/login');
     setIsOptionsMenuOpen(false);
-  };
+  }
+
+  const handleProfileNav = () => {
+    navigateTo('/profile');
+    setIsOptionsMenuOpen(false);
+  }
   
   const handleAdminNav = () => {
     navigate('/admin');
@@ -69,6 +67,14 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
 
   const handleToggleTheme = () => {
     toggleTheme();
+    setIsOptionsMenuOpen(false);
+  };
+
+  // [DIPERBARUI] Fungsi logout kini memanggil prop dari App.jsx
+  const handleLogoutAction = () => {
+    if (onLogout) {
+      onLogout();
+    }
     setIsOptionsMenuOpen(false);
   };
 
@@ -126,6 +132,11 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
                   <FontAwesomeIcon icon={faShieldHalved} className="mr-2" /> Admin Panel
                 </li>
               )}
+               {currentUser && currentUser.id && (
+                <li onClick={handleProfileNav}>
+                  <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
+                </li>
+              )}
               <li onClick={handleToggleTheme}>
                 <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
                 {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -139,17 +150,16 @@ export default function Header({ title, currentUser, navigateTo, onlineUsers }) 
               <li onClick={handleShare}>
                 <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
               </li>
-              <li onClick={handleAuthAction}>
-                {currentUser && currentUser.id ? (
-                  <>
-                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
-                  </>
-                )}
-              </li>
+               {/* [DIPERBARUI] Logika tombol login/logout */}
+              {currentUser && currentUser.id ? (
+                <li onClick={handleLogoutAction}>
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
+                </li>
+              ) : (
+                <li onClick={handleLoginNav}>
+                  <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
+                </li>
+              )}
             </ul>
           </div>
         </div>

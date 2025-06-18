@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { useDisconnect } from 'wagmi'; // <-- [DITAMBAHKAN]
 
 // Impor semua komponen halaman
 import Header from "./components/Header";
@@ -20,7 +21,8 @@ import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
-import WalletConnectModal from "./components/WalletConnectModal"; // <-- [DITAMBAHKAN] Impor Modal
+import WalletConnectModal from "./components/WalletConnectModal";
+
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -57,14 +59,15 @@ function MainAppContent() {
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false); // <-- [DITAMBAHKAN] State untuk modal
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const { disconnect } = useDisconnect(); // <-- [DITAMBAHKAN]
 
-  // ... (useEffect lainnya tetap sama) ...
+  // ... (useEffect yang lain tetap sama) ...
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
@@ -144,6 +147,14 @@ function MainAppContent() {
     }
   }, [location.pathname, loadingInitialSession]);
 
+
+  // [DIPINDAHKAN & DIPERBARUI] Logika logout terpusat
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    disconnect();
+    navigate('/login');
+  };
+
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
@@ -155,8 +166,7 @@ function MainAppContent() {
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
-  
-  const handleOpenWalletModal = () => setIsWalletModalOpen(true); // <-- [DITAMBAHKAN] Fungsi untuk membuka modal
+  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
 
   if (loadingInitialSession) {
     return (
@@ -169,9 +179,9 @@ function MainAppContent() {
 
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} navigateTo={navigate} onlineUsers={onlineUsers} />}
+      {/* [MODIFIKASI] Teruskan fungsi handleLogout ke Header */}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
       
-      {/* [DITAMBAHKAN] Render Modal di sini */}
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
       
       <main
@@ -179,7 +189,6 @@ function MainAppContent() {
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}
       >
         <Routes>
-          {/* ... Rute lain tetap sama ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
@@ -191,15 +200,15 @@ function MainAppContent() {
           
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-
-          {/* [MODIFIKASI] Teruskan fungsi pembuka modal ke halaman Login/Register */}
+          
           <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
           
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           
-          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
+          {/* [MODIFIKASI] Teruskan fungsi handleLogout ke PageProfile */}
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} navigate={navigate} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>

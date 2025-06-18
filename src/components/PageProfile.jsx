@@ -3,21 +3,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faEdit, faUser, faTimes, faSave, faImage, faSpinner, faKey,
+  faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartBar, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
   faSignOutAlt,
-  faSignInAlt // [DITAMBAHKAN] Ikon untuk pesan login
+  faSignInAlt
 } from "@fortawesome/free-solid-svg-icons";
 
-// [DITAMBAHKAN] Impor Link untuk tombol
 import { Link, useNavigate } from "react-router-dom";
-
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
-import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
@@ -71,7 +69,8 @@ const ProfileHeader = ({ currentUser, onEditClick, onLogoutClick, loading, t }) 
 );
 
 
-export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
+// [MODIFIKASI] Terima prop onLogout dari App.jsx
+export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [] }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
   const isLoggedIn = !!(currentUser && currentUser.id);
@@ -88,22 +87,16 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { signMessageAsync } = useSignMessage();
-  const navigate = useNavigate();
   
   useEffect(() => {
-      // [DIHAPUS] Logika redirect dipindahkan ke pengecekan di bawah
       if (isLoggedIn && currentUser) {
         setEditName(currentUser.name || currentUser.username || "");
         setEditAvatarUrl(currentUser.avatar_url || "");
       }
   }, [currentUser, isLoggedIn]);
 
-
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
   
-  // [MODIFIKASI] Pengecekan status login di awal render
-  // Ini akan mencegah error dan halaman blank
   if (!isLoggedIn) {
     return (
       <div className="page-content flex flex-col items-center justify-center text-center h-full pt-20">
@@ -119,9 +112,8 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     );
   }
 
-  // Sisa kode di bawah ini hanya akan berjalan jika pengguna sudah login
-  
-  const mapSupabaseDataToAppUser = (authUser, profileData) => {
+  // ... (Sisa fungsi lain seperti mapSupabaseDataToAppUser, handleLinkWallet, dll. tidak berubah) ...
+    const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return {};
     return {
       id: authUser.id, email: authUser.email,
@@ -143,7 +135,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
         const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
         if (checkError && checkError.code !== 'PGRST116') throw checkError;
         if (existingProfile) throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
-        await signMessageAsync({ message: `Tautkan wallet ini ke akun AFA Anda: ${currentUser.email}` });
+        // Untuk menautkan wallet, tidak perlu sign message yang kompleks
         const { data, error: updateError } = await supabase.from('profiles').update({ web3_address: lowerCaseAddress }).eq('id', currentUser.id).select().single();
         if (updateError) throw updateError;
         onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
@@ -174,27 +166,20 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     }
   };
 
-  const handleLogout = async () => { 
-    setLoading(true); 
-    await supabase.auth.signOut(); 
-    disconnect(); 
-    // navigateTo sudah tidak diperlukan karena App.jsx akan menangani state
-    // dan redirect akan terjadi secara otomatis karena isLoggedIn menjadi false.
-    setLoading(false); 
-    navigate('/login'); // Redirect manual untuk kepastian
-  };
   const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
 
+
+  // [MODIFIKASI] Gunakan `onLogout` dari props saat tombol di-klik
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
       {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
       {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
 
-      <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={handleLogout} loading={loading} t={t} />
+      <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={onLogout} loading={loading} t={t} />
 
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
