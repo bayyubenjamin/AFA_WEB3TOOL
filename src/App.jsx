@@ -22,6 +22,10 @@ import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
 import WalletConnectModal from "./components/WalletConnectModal";
+// --- [TAMBAHAN] Impor halaman baru untuk alur login Telegram ---
+import PageLoginWithTelegram from './components/PageLoginWithTelegram';
+import TelegramAuthCallback from './components/TelegramAuthCallback';
+
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -47,6 +51,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
     stats: profileData?.stats || defaultGuestUserForApp.stats,
     address: profileData?.web3_address || null,
+    telegram_user_id: profileData?.telegram_user_id || null, // <-- Menambahkan telegram_id ke state pengguna
     user_metadata: authUser.user_metadata || {}
   };
 };
@@ -115,8 +120,8 @@ function MainAppContent() {
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
     const pathSegments = location.pathname.split('/');
-    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" };
-    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register" };
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram" };
     let titleKey = path;
     if (path === 'events' && pathSegments.length > 2) {
         titleKey = 'events';
@@ -156,7 +161,7 @@ function MainAppContent() {
 
   const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update');
+  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => setIsWalletModalOpen(true);
 
   if (loadingInitialSession) {
@@ -189,6 +194,11 @@ function MainAppContent() {
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+          
+          {/* --- [TAMBAHAN] Rute baru untuk alur login Telegram --- */}
+          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
@@ -197,7 +207,7 @@ function MainAppContent() {
   );
 }
 
-// [PERBAIKAN] Komponen App default sekarang terpisah
+// Komponen App default sekarang terpisah
 export default function App() {
   return (
     <MainAppContent />
