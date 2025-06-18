@@ -135,7 +135,7 @@
 
   /* === [TAMBAHAN] Style Baru untuk Event Card Premium === */
   .event-card-container {
-    @apply perspective-[1000px];
+    perspective: 1000px;
   }
 
   .event-card {
