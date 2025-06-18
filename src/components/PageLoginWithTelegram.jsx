@@ -7,34 +7,20 @@ import { supabase } from '../supabaseClient';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
 export default function PageLoginWithTelegram() {
-  const [status, setStatus] = useState('loading'); // loading, waiting, error, initializing
+  const [status, setStatus] = useState('loading'); // loading, waiting, error
   const [error, setError] = useState('');
 
   useEffect(() => {
-    let timer;
-    let attempts = 0;
-    const maxAttempts = 20; // Coba 20 kali
-    const intervalTime = 200; // Setiap 200ms
-
-    const checkTelegramWebApp = () => {
-      if (window.Telegram && window.Telegram.WebApp) {
-        console.log('Telegram.WebApp is ready!');
-        clearTimeout(timer);
-        initiateLogin();
-      } else {
-        attempts++;
-        if (attempts < maxAttempts) {
-          console.log('Waiting for Telegram.WebApp...', attempts);
-          timer = setTimeout(checkTelegramWebApp, intervalTime);
-        } else {
-          setError('Telegram Mini App environment not detected or failed to initialize within time.');
-          setStatus('error');
-        }
-      }
-    };
-
     const initiateLogin = async () => {
+      // Pastikan kode ini hanya berjalan di lingkungan browser
+      if (typeof window === 'undefined' || !window.Telegram || !window.Telegram.WebApp) {
+        setError('Halaman ini hanya dapat diakses melalui Telegram Mini App.');
+        setStatus('error');
+        return;
+      }
+
       try {
+        // Ambil data pengguna dari Telegram Mini App
         const telegramUser = window.Telegram.WebApp.initDataUnsafe?.user;
 
         if (!telegramUser?.id) {
@@ -56,20 +42,14 @@ export default function PageLoginWithTelegram() {
       }
     };
 
-    // Mulai pengecekan
-    setStatus('initializing'); // Status baru untuk menunjukkan sedang menunggu inisialisasi
-    checkTelegramWebApp();
-
-    return () => {
-      clearTimeout(timer);
-    };
+    initiateLogin();
   }, []);
 
   return (
     <div className="page-content flex items-center justify-center text-center h-full">
       <div className="card max-w-sm p-8 space-y-4">
         <FontAwesomeIcon icon={faTelegram} className="text-6xl text-sky-400" />
-        {(status === 'loading' || status === 'initializing') && ( // Tambahkan initializing di sini
+        {status === 'loading' && (
           <>
             <h2 className="text-2xl font-bold">Mempersiapkan Login...</h2>
             <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary" />
@@ -90,10 +70,6 @@ export default function PageLoginWithTelegram() {
             <h2 className="text-2xl font-bold text-red-400">Terjadi Kesalahan</h2>
             <FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="text-red-400" />
             <p className="text-light-subtle dark:text-gray-400 text-sm">{error}</p>
-            {/* Opsi untuk mencoba lagi jika error */}
-            <button onClick={() => window.location.reload()} className="btn-primary mt-4">
-              Coba Lagi
-            </button>
           </>
         )}
       </div>
