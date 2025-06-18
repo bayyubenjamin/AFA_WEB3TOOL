@@ -5,8 +5,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner, faKey,
   faChartBar, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
-  faSignOutAlt // [MODIFIKASI] Hapus ikon yang tidak perlu
+  faSignOutAlt,
+  faSignInAlt // [DITAMBAHKAN] Ikon untuk pesan login
 } from "@fortawesome/free-solid-svg-icons";
+
+// [DITAMBAHKAN] Impor Link untuk tombol
+import { Link, useNavigate } from "react-router-dom";
 
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
@@ -18,11 +22,7 @@ import { injected } from 'wagmi/connectors';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
-
-// [DIHAPUS] Fungsi-fungsi ini tidak lagi diperlukan di sini
-// const defaultGuestUserFromProfile, mapSupabaseDataToAppUser
-
+// ... (Komponen InputField, StatCard, ProfileHeader tidak perlu diubah) ...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -70,12 +70,12 @@ const ProfileHeader = ({ currentUser, onEditClick, onLogoutClick, loading, t }) 
     </div>
 );
 
+
 export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = [], navigateTo }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
   const isLoggedIn = !!(currentUser && currentUser.id);
 
-  // [DIHAPUS] State untuk login, register, dan OTP
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
@@ -89,27 +89,40 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
+  const navigate = useNavigate();
   
-  // [MODIFIKASI] useEffect untuk redirect jika tidak login
   useEffect(() => {
-      if (!isLoggedIn) {
-          navigateTo('/login');
-          return;
-      }
-      if (currentUser) {
+      // [DIHAPUS] Logika redirect dipindahkan ke pengecekan di bawah
+      if (isLoggedIn && currentUser) {
         setEditName(currentUser.name || currentUser.username || "");
         setEditAvatarUrl(currentUser.avatar_url || "");
       }
-  }, [currentUser, isLoggedIn, navigateTo]);
+  }, [currentUser, isLoggedIn]);
 
 
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
-
-  // [DIHAPUS] handleWalletLogin
   
-  // [MODIFIKASI] onUpdateUser sekarang akan mengambil dari `currentUser` yang di-pass, bukan `session.user`
+  // [MODIFIKASI] Pengecekan status login di awal render
+  // Ini akan mencegah error dan halaman blank
+  if (!isLoggedIn) {
+    return (
+      <div className="page-content flex flex-col items-center justify-center text-center h-full pt-20">
+        <FontAwesomeIcon icon={faSignInAlt} size="3x" className="mb-4 text-primary" />
+        <h2 className="text-2xl font-bold text-light-text dark:text-white">Anda Belum Login</h2>
+        <p className="text-light-subtle dark:text-gray-400 mt-2 mb-6">
+            Silakan login untuk melihat dan mengelola profil Anda.
+        </p>
+        <Link to="/login" className="btn-primary px-8 py-2">
+          Ke Halaman Login
+        </Link>
+      </div>
+    );
+  }
+
+  // Sisa kode di bawah ini hanya akan berjalan jika pengguna sudah login
+  
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
-    if (!authUser) return {}; // Seharusnya tidak terjadi jika isLoggedIn
+    if (!authUser) return {};
     return {
       id: authUser.id, email: authUser.email,
       username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
@@ -161,18 +174,20 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
     }
   };
 
-  const handleLogout = async () => { setLoading(true); await supabase.auth.signOut(); disconnect(); navigateTo('/login'); setLoading(false); };
+  const handleLogout = async () => { 
+    setLoading(true); 
+    await supabase.auth.signOut(); 
+    disconnect(); 
+    // navigateTo sudah tidak diperlukan karena App.jsx akan menangani state
+    // dan redirect akan terjadi secara otomatis karena isLoggedIn menjadi false.
+    setLoading(false); 
+    navigate('/login'); // Redirect manual untuk kepastian
+  };
   const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
-
-  if (!isLoggedIn) {
-    return <div className="page-content text-center pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p className="dark:text-white text-light-text">Redirecting to login...</p></div>;
-  }
-  
-  // [DIHAPUS] Bagian render untuk !isLoggedIn
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
@@ -226,7 +241,7 @@ export default function PageProfile({ currentUser, onUpdateUser, userAirdrops = 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
           <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
           <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
-          <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} icon={faRobot} />
+          <StatCard label={t.statNftsOwned} value={currentUser.stats?.nftsOwned || 0} />
           <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
         </div>
       </div>
