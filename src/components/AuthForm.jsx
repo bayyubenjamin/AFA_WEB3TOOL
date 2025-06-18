@@ -6,6 +6,8 @@ import {
   faIdBadge, faUserPlus, faEnvelope, faLock, faUser,
   faEye, faEyeSlash, faSpinner, faSignInAlt, faKey, faWallet
 } from '@fortawesome/free-solid-svg-icons';
+import { faTelegram } from '@fortawesome/free-brands-svg-icons'; // <-- TAMBAHAN: Impor ikon Telegram
+import TelegramLoginWidget from './TelegramLoginWidget'; // <-- TAMBAHAN: Impor widget Telegram
 
 // Komponen InputField yang sama dari PageProfile
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
@@ -43,7 +45,10 @@ export default function AuthForm({
   handleBackToDetails,
   // Props untuk toggle password visibility
   showPassword, setShowPassword,
-  showConfirmPassword, setShowConfirmPassword
+  showConfirmPassword, setShowConfirmPassword,
+  // --- [TAMBAHAN] Prop untuk Telegram ---
+  onTelegramLogin,
+  isTelegramLoading,
 }) {
   return (
     <div className="card rounded-xl p-6 md:p-8 shadow-2xl">
@@ -97,6 +102,12 @@ export default function AuthForm({
         {isWalletActionLoading ? (<FontAwesomeIcon icon={faSpinner} spin className="mr-2" />) : (<FontAwesomeIcon icon={faWallet} className="mr-2" />)}
         {t.loginWithWallet || "Login with Wallet"}
       </button>
+
+      {/* --- [TAMBAHAN] Tombol Login Telegram --- */}
+      <div className="mt-4 flex justify-center">
+        <TelegramLoginWidget onTelegramAuth={onTelegramLogin} loading={isTelegramLoading} />
+      </div>
+      
     </div>
   );
 }
