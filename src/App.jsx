@@ -1,10 +1,10 @@
-// src/App.jsx (Versi Debug)
+// src/App.jsx (Versi Final dengan Perbaikan Logika Loading)
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 
-// Impor komponen-komponen
+// Impor semua komponen halaman
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -40,11 +40,12 @@ const defaultGuestUserForApp = {
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   if (!authUser) return defaultGuestUserForApp;
   return {
-    id: authUser.id, email: authUser.email,
-    username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
-    name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
+    id: authUser.id,
+    email: authUser.email,
+    username: profileData?.username || authUser.user_metadata?.user_name || "user_" + authUser.id.substring(0, 6),
+    name: profileData?.name || authUser.user_metadata?.full_name || "User",
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
-    stats: profileData?.stats || defaultGuestUserForApp.stats,
+    stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
     address: profileData?.web3_address || null,
     telegram_id: profileData?.telegram_id || null,
     telegram_handle: profileData?.telegram_handle || null,
@@ -63,55 +64,49 @@ function MainAppContent() {
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
 
+  // ====================== PERBAIKAN LOGIKA LOADING DI SINI ======================
   useEffect(() => {
-    // ================== DEBUGGING LOG ==================
-    console.log("[App.jsx] Current user state changed:", currentUser);
-    // ===================================================
-
     setLoadingInitialSession(true);
-    const handleAuthChange = async (event, session) => {
-      console.log(`[App.jsx] Auth event: ${event}`);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
         if (session && session.user) {
-          const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
           if (profileError) throw profileError;
+          
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
         } else {
           setCurrentUser(defaultGuestUserForApp);
         }
       } catch (e) {
-        console.error("[App.jsx] CRITICAL ERROR di dalam onAuthStateChange:", e);
+        console.error("Error handling auth change:", e);
         setCurrentUser(defaultGuestUserForApp);
       } finally {
+        // Ini akan selalu dijalankan setelah pengecekan sesi selesai
         setLoadingInitialSession(false);
-      }
-    };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-    
-    // Cek sesi awal
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        console.log("[App.jsx] No initial session found.");
-        setCurrentUser(defaultGuestUserForApp);
-        setLoadingInitialSession(false);
-      } else {
-         console.log("[App.jsx] Initial session found, waiting for auth change event.");
       }
     });
-    
+
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
+  // ============================================================================
 
-  // Sisa fungsi (useEffect untuk title, handleLogout, dll) tidak berubah
-
+  // Sisa kode tidak berubah
   const handleLogout = async () => { /* ... */ };
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
   const handleOpenWalletModal = () => setIsWalletModalOpen(true);
+  
+  useEffect(() => { /* ... useEffect untuk title ... */ }, [location, language]);
 
-  if (loadingInitialSession) {
+  if (loadingInitialSession || !currentUser) { // Tambahkan cek !currentUser
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a1a]">
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
@@ -129,13 +124,16 @@ function MainAppContent() {
         <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? 'pb-[var(--bottomnav-height)]' : ''} overflow-y-auto`}>
             <Routes>
                 <Route path="/profile" element={<PageProfile currentUser={currentUser} onUpdateUser={handleUpdateUserInApp} onLogout={handleLogout} userAirdrops={[]} onOpenWalletModal={handleOpenWalletModal} />} />
-                {/* Rute lainnya */}
                 <Route path="/" element={<PageHome currentUser={currentUser} navigate={navigate} />} />
                 <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
                 <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
                 <Route path="/events" element={<PageEvents currentUser={currentUser} />} />
                 <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={currentUser} />} />
-                 {/* Tambahkan rute lain di sini jika perlu */}
+                {/* Tambahkan rute lain yang sudah ada di sini */}
+                <Route path="/my-work" element={<PageMyWork currentUser={currentUser} />} />
+                <Route path="/airdrops" element={<PageAirdrops currentUser={currentUser} />} />
+                <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={currentUser} />} />
+                <Route path="/forum" element={<PageForum currentUser={currentUser} />} />
             </Routes>
         </main>
         {showNav && <BottomNav currentUser={currentUser} />}
