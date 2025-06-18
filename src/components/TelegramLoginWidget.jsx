@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // [PENTING] Ganti dengan username bot Telegram Anda (tanpa '@')
-const TELEGRAM_BOT_USERNAME = "AFA_Web3Tools_Bot";
+const TELEGRAM_BOT_USERNAME = "afaweb3tool_bot";
 
 const TelegramLoginWidget = ({ onTelegramAuth, loading }) => {
   const ref = useRef(null);
