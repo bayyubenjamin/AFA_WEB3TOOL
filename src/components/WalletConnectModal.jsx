@@ -5,26 +5,28 @@ import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
-// Daftar ikon wallet yang sudah diperbaiki
 const walletIcons = {
   'MetaMask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
   'WalletConnect': 'https://avatars.githubusercontent.com/u/37784886?s=200&v=4',
-  'OKX Wallet': 'https://developers.moralis.com/wp-content/uploads/web3wiki/47-okx-wallet/645c177c66d302f70d9a863e_OKX-Wallet-Twitter-Logo-300x300.jpeg',
-  'Coinbase Wallet': 'https://raw.githubusercontent.com/gist/taycaldwell/2291907115c0bb5589bc346661435007/raw/280eafdc84cb80ed0c60e36b4d0c563f6dca6b3e/cbw.svg',
+  'Coinbase Wallet': 'https://www.vectorlogo.zone/logos/coinbase/coinbase-icon.svg',
+  'OKX Wallet': 'https://static.okx.com/cdn/assets/imgs/226/5B2529DECB27C8A9.png',
   'Brave Wallet': 'https://brave.com/static-assets/images/brave-logo-sans-text.svg',
   'default': 'https://www.svgrepo.com/show/448252/wallet.svg'
 };
 
 const getConnectorName = (connector) => {
   const name = connector.name;
-  if (name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet';
-  if (name.toLowerCase().includes('metamask')) return 'MetaMask';
-  if (name.toLowerCase().includes('walletconnect')) return 'WalletConnect';
   if (connector.rdns === 'io.metamask') return 'MetaMask';
-  if (connector.rdns === 'com.okex.wallet') return 'OKX Wallet';
   if (connector.rdns === 'com.coinbase.wallet') return 'Coinbase Wallet';
+  if (connector.rdns === 'com.okex.wallet') return 'OKX Wallet';
+  if (connector.name.toLowerCase().includes('coinbase')) return 'Coinbase Wallet';
+  if (name === 'MetaMask') return 'MetaMask';
+  if (name === 'WalletConnect') return 'WalletConnect';
+  if (name === 'Brave Wallet') return 'Brave Wallet';
+  // Fallback untuk dompet injected lain yang mungkin tidak memiliki rdns
+  if (name === 'Injected') return 'Brave Wallet';
   return name;
-}
+};
 
 const WalletButton = ({ connector, onClose }) => {
   const { connect, isPending, variables } = useConnect();
@@ -33,7 +35,7 @@ const WalletButton = ({ connector, onClose }) => {
   
   const displayName = getConnectorName(connector);
   const isLoading = isPending && variables?.connector?.id === connector.id;
-  const iconUrl = walletIcons[displayName] || walletIcons['default'];
+  const iconUrl = walletIcons[displayName] || walletIcons.default;
   
   React.useEffect(() => {
     let isMounted = true;
@@ -54,9 +56,7 @@ const WalletButton = ({ connector, onClose }) => {
       connect(
         { connector },
         {
-          onSuccess: () => {
-            onClose();
-          }
+          onSuccess: () => onClose(),
         }
       );
     }
@@ -93,6 +93,18 @@ export default function WalletConnectModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  // [PERBAIKAN] Logika untuk menyaring duplikat berdasarkan nama
+  const uniqueConnectors = [];
+  const seenNames = new Set();
+  
+  connectors.forEach(connector => {
+    const name = getConnectorName(connector);
+    if (!seenNames.has(name)) {
+      seenNames.add(name);
+      uniqueConnectors.push(connector);
+    }
+  });
+
   return (
     <div className="modal active" onMouseDown={onClose}>
       <div className="wallet-connect-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -102,10 +114,10 @@ export default function WalletConnectModal({ isOpen, onClose }) {
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
-        {/* [DIPERBARUI] Bagian email dan separator 'or' telah dihapus */}
         <div className="wallet-connect-body">
           <div className="flex flex-col gap-2">
-            {connectors.map((connector) => (
+            {/* [MODIFIKASI] Gunakan array yang sudah disaring */}
+            {uniqueConnectors.map((connector) => (
               <WalletButton key={connector.uid} connector={connector} onClose={onClose} />
             ))}
           </div>
