@@ -1,4 +1,4 @@
-// src/components/BottomNav.jsx (Perbaikan Tombol Hilang)
+// src/components/BottomNav.jsx (Perbaikan Warna Dark Mode)
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
@@ -21,13 +21,10 @@ export default function BottomNav({ currentUser }) {
   const navItems = allNavItems.filter(item => !item.isPrivate || isLoggedIn);
   const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
-  // [PERBAIKAN]: Membuat nama class menjadi eksplisit agar terbaca oleh Tailwind.
-  // Ini akan menentukan apakah grid dibagi menjadi 3 atau 5 kolom.
   const gridColsClass = navItems.length === 5 ? 'grid-cols-5' : 'grid-cols-3';
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 w-full px-2 sm:px-4 pb-2 lg-desktop:hidden">
-      {/* [PERBAIKAN]: Menggunakan variabel `gridColsClass` yang sudah pasti. */}
       <nav className={`max-w-md mx-auto h-16 px-2 grid ${gridColsClass} glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         {navItems.map((item) => (
           <NavLink
@@ -46,12 +43,12 @@ export default function BottomNav({ currentUser }) {
                   <FontAwesomeIcon 
                     icon={item.icon} 
                     className={`relative z-10 text-lg transition-colors duration-200
-                               ${isActive ? 'text-white' : 'text-light-subtle dark:text-gray-400 group-hover:text-primary'}`} 
+                               ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-subtle group-hover:text-primary'}`} 
                   />
                 </div>
                 <span 
                   className={`text-xs mt-1 font-semibold transition-colors duration-200
-                             ${isActive ? 'text-primary' : 'text-light-subtle dark:text-gray-500'}`}
+                             ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}
                 >
                   {getLabel(item)}
                 </span>
