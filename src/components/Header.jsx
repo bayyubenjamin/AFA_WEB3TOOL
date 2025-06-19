@@ -1,4 +1,4 @@
-// src/components/Header.jsx
+// src/components/Header.jsx (VERSI FINAL SETELAH DIPINDAHKAN)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,39 +9,16 @@ import { useTheme } from "../context/ThemeContext";
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
-// [MODIFIKASI] Terima prop onLogout
-export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers }) {
+// [MODIFIKASI] Terima prop isHeaderVisible dari App.jsx
+export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true); // State untuk auto-hide
-  const lastScrollY = useRef(0); // Ref untuk menyimpan posisi scroll terakhir
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
   const navigate = useNavigate();
 
-  // [DITAMBAHKAN] Logika untuk auto-hiding header
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      // Sembunyikan header jika scroll ke bawah dan sudah melewati tinggi header (lebih dari 80px)
-      if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
-        setIsHeaderVisible(false);
-      } else { // Tampilkan header jika scroll ke atas
-        setIsHeaderVisible(true);
-      }
-      // Perbarui posisi scroll terakhir
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    // Hapus event listener saat komponen di-unmount
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
+  // [DIHAPUS] Logika scroll useEffect sudah tidak ada di sini lagi.
 
   const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
@@ -95,7 +72,6 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     setIsOptionsMenuOpen(false);
   };
 
-  // [DIPERBARUI] Fungsi logout kini memanggil prop dari App.jsx
   const handleLogoutAction = () => {
     if (onLogout) {
       onLogout();
@@ -104,6 +80,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
+    // [MODIFIKASI] Menggunakan prop isHeaderVisible untuk menentukan class
     <header className={`fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
       <div className="flex items-center flex-1 min-w-0">
         <img
@@ -175,7 +152,6 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
               <li onClick={handleShare}>
                 <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
               </li>
-               {/* [DIPERBARUI] Logika tombol login/logout */}
               {currentUser && currentUser.id ? (
                 <li onClick={handleLogoutAction}>
                   <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}

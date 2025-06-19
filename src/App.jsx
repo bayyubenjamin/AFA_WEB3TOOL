@@ -1,4 +1,4 @@
-// src/App.jsx (Versi Final dengan Pengecekan Sesi dan Overlay Loading Transparan)
+// src/App.jsx (VERSI FINAL DENGAN PERBAIKAN AUTO-HIDE)
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -62,11 +62,27 @@ export default function App() {
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
+  // [DITAMBAHKAN] State dan Ref untuk auto-hide header
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
+
+  // [DITAMBAHKAN] Fungsi untuk handle scroll PADA ELEMEN <main>
+  const handleScroll = (event) => {
+    const currentScrollY = event.currentTarget.scrollTop;
+
+    if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+      setIsHeaderVisible(false);
+    } else {
+      setIsHeaderVisible(true);
+    }
+    lastScrollY.current = currentScrollY;
+  };
 
   useEffect(() => {
     const updateOnlineCount = () => {
@@ -170,10 +186,13 @@ export default function App() {
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
       
-      {/* ===== Struktur Utama Aplikasi (selalu dirender) ===== */}
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
+      {/* [MODIFIKASI] Prop isHeaderVisible ditambahkan di sini */}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
+      
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
-      <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
+      
+      {/* [MODIFIKASI] Event onScroll ditambahkan di sini */}
+      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
@@ -197,10 +216,10 @@ export default function App() {
       </main>
       {showNav && <BottomNav currentUser={currentUser} />}
 
-    {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
+      {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
       <div 
         className={`
-          fixed inset-0 z-[9999] flex flex-col items-center justify-center 
+          fixed inset-0 z-[9999] flex flex-col items-center justify-center
           transition-opacity duration-500
           ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
@@ -211,4 +230,3 @@ export default function App() {
     </div>
   );
 }
-
