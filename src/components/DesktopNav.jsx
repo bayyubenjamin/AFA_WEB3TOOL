@@ -17,7 +17,7 @@ export default function DesktopNav({ currentUser }) {
     { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops' },
     { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work' },
     { to: '/events', label_id: 'Event', label_en: 'Events' },
-    { to: '/profile', label_id: 'profil', label_en: 'profile' },
+    { to: '/profile', label_id: 'profil', label_en: 'Profile' },
   ];
 
   const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
