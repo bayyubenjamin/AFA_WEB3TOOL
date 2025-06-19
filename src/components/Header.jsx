@@ -1,4 +1,4 @@
-// src/components/Header.jsx (MODIFIKASI FINAL v2)
+// src/components/Header.jsx (MODIFIKASI FINAL v3)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -87,8 +87,16 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
             alt="Logo AFA"
             className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0 header-interactive-item"
           />
+          {/* Ikon Forum untuk desktop dipindah ke sini */}
+          <Link
+            to="/forum"
+            className="p-2 w-10 h-10 hidden md:flex items-center justify-center header-interactive-item ml-2"
+            aria-label="Forum"
+          >
+            <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
+          </Link>
           {onlineUsers > 0 && (
-            <div className="ml-4 flex items-center">
+            <div className="ml-2 flex items-center">
                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -99,14 +107,6 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
               </span>
             </div>
           )}
-          {/* Tambahkan ikon Forum di sini, hanya terlihat di desktop */}
-          <Link
-            to="/forum"
-            className="p-2 w-10 h-10 hidden md:flex items-center justify-center header-interactive-item ml-2"
-            aria-label="Forum"
-          >
-            <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
-          </Link>
         </div>
         {/* === AKHIR PERUBAHAN BAGIAN KIRI === */}
 
@@ -117,7 +117,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           {title}
         </h1>
         
-        {/* === [PERUBAHAN] BAGIAN KANAN HEADER === */}
+        {/* === BAGIAN KANAN HEADER === */}
         <div className="flex-1 flex justify-end items-center gap-2">
           <DesktopNav currentUser={currentUser} />
           
@@ -177,7 +177,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
             </div>
           </div>
         </div>
-        {/* === AKHIR PERUBAHAN BAGIAN KANAN === */}
+        {/* === AKHIR BAGIAN KANAN === */}
       </header>
     </div>
   );
