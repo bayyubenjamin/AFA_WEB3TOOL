@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons"; // Menambahkan faUserCircle
+import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -12,11 +12,36 @@ const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 // [MODIFIKASI] Terima prop onLogout
 export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true); // State untuk auto-hide
+  const lastScrollY = useRef(0); // Ref untuk menyimpan posisi scroll terakhir
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
   const navigate = useNavigate();
+
+  // [DITAMBAHKAN] Logika untuk auto-hiding header
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Sembunyikan header jika scroll ke bawah dan sudah melewati tinggi header (lebih dari 80px)
+      if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+        setIsHeaderVisible(false);
+      } else { // Tampilkan header jika scroll ke atas
+        setIsHeaderVisible(true);
+      }
+      // Perbarui posisi scroll terakhir
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Hapus event listener saat komponen di-unmount
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
 
   const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
@@ -79,7 +104,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism">
+    <header className={`fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
       <div className="flex items-center flex-1 min-w-0">
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
