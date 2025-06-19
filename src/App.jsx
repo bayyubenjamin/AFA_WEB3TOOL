@@ -1,13 +1,12 @@
-// src/App.jsx (MODIFIKASI UNTUK LOGIKA ADAPTIF)
+// src/App.jsx (VERSI FINAL DENGAN PERBAIKAN AUTO-HIDE DAN NAVIGASI RESPONSIF)
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 
-// Impor komponen halaman
+// Impor semua komponen halaman
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-// ... (impor komponen lainnya tetap sama)
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
@@ -26,16 +25,12 @@ import WalletConnectModal from "./components/WalletConnectModal";
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
-
 // Impor utilitas
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
-// [PERUBAHAN] Impor hook baru kita
-import { useMediaQuery } from "./hooks/useMediaQuery";
 
-// ... (semua konstanta dan fungsi helper lainnya tetap sama)
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
 const defaultGuestUserForApp = {
@@ -59,7 +54,6 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-
 export default function App() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
@@ -67,24 +61,21 @@ export default function App() {
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  
-  // [PERUBAHAN] State baru untuk mendeteksi header yang "sesak"
-  const [isHeaderCompacted, setIsHeaderCompacted] = useState(false);
 
-  // [PERUBAHAN] Gunakan hook untuk mendeteksi layar mobile secara umum
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  
+  // [DITAMBAHKAN] State dan Ref untuk auto-hide header
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
+  
   const pageContentRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
 
-  // ... (semua useEffect dan fungsi lainnya tetap sama di sini)
+  // [DITAMBAHKAN] Fungsi untuk handle scroll PADA ELEMEN <main>
   const handleScroll = (event) => {
     const currentScrollY = event.currentTarget.scrollTop;
+
     if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
       setIsHeaderVisible(false);
     } else {
@@ -92,6 +83,7 @@ export default function App() {
     }
     lastScrollY.current = currentScrollY;
   };
+
   useEffect(() => {
     const updateOnlineCount = () => {
       const min = 15;
@@ -103,6 +95,7 @@ export default function App() {
     const intervalId = setInterval(updateOnlineCount, 7000);
     return () => clearInterval(intervalId);
   }, []);
+
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleAuthChange = async (session) => {
@@ -113,9 +106,11 @@ export default function App() {
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
+
           if (location.pathname === '/login-telegram' || location.pathname === '/login' || location.pathname === '/register') {
             navigate('/profile', { replace: true });
           }
+
         } else {
           setCurrentUser(defaultGuestUserForApp);
           localStorage.removeItem(LS_CURRENT_USER_KEY);
@@ -127,16 +122,20 @@ export default function App() {
         setTimeout(() => setLoadingInitialSession(false), 500); 
       }
     };
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleAuthChange(session);
     });
+
     return () => {
       subscription?.unsubscribe();
     };
   }, [navigate]);
+
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
     const pathSegments = location.pathname.split('/');
@@ -152,6 +151,7 @@ export default function App() {
     const currentTitles = language === 'id' ? titles_id : titles_en;
     setHeaderTitle(currentTitles[titleKey] || "AFA WEB3TOOL");
   }, [location, language]);
+
   useEffect(() => {
     if (loadingInitialSession) return;
     if (pageContentRef.current) {
@@ -163,11 +163,13 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [location.pathname, loadingInitialSession]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     disconnect();
     navigate('/login');
   };
+
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
@@ -175,37 +177,24 @@ export default function App() {
       localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
   };
-  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
 
+  const mainPaddingBottomClass = location.pathname === '/forum' 
+    ? 'pb-0' 
+    : 'pb-[var(--bottomnav-height)] md:pb-0';
 
-  // [PERUBAHAN] Logika untuk menampilkan navigasi utama dan bawah
-  const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)] md:pb-0';
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
+  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
   
-  // BottomNav akan ditampilkan jika kita berada di layar mobile ATAU jika header menjadi sesak
-  const showBottomNav = showNav && (isMobile || isHeaderCompacted);
-
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
-      {/* [PERUBAHAN] Prop baru ditambahkan di sini */}
-      {showNav && <Header 
-        title={headerTitle} 
-        currentUser={userForHeader} 
-        onLogout={handleLogout} 
-        navigateTo={navigate} 
-        onlineUsers={onlineUsers} 
-        isHeaderVisible={isHeaderVisible}
-        isCompacted={isHeaderCompacted} 
-        setIsCompacted={setIsHeaderCompacted}
-      />}
+      
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
       
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
       
-      {/* [PERUBAHAN] Logika padding diubah agar lebih dinamis */}
-      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showBottomNav ? 'pb-[var(--bottomnav-height)]' : ''} overflow-y-auto`}>
+      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
-          {/* ... (semua Route Anda tetap sama) ... */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
@@ -226,11 +215,16 @@ export default function App() {
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
-      
-      {/* [PERUBAHAN] Kondisi untuk menampilkan BottomNav diperbarui */}
-      {showBottomNav && <BottomNav currentUser={currentUser} />}
+      {showNav && <BottomNav currentUser={currentUser} />}
 
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
+      <div 
+        className={`
+          fixed inset-0 z-[9999] flex flex-col items-center justify-center
+          transition-opacity duration-500
+          ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        `}
+      >
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-white">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
