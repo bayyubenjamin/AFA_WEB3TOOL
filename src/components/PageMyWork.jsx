@@ -1,5 +1,4 @@
-// src/components/PageMyWork.jsx - VERSI PERBAIKAN LOADING
-
+// src/components/PageMyWork.jsx - VERSI LENGKAP DENGAN PERBAIKAN
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -11,7 +10,7 @@ import { faCheckCircle as farFaCheckCircle } from "@fortawesome/free-regular-svg
 import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext"; // <-- [PERBAIKAN 1]: Path impor sudah benar
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
@@ -19,15 +18,20 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
+// Komponen helper ConfirmDeleteModal
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancelText, confirmText }) => {
   if (!isOpen) return null;
   return (
     <div className="modal active">
+      {/* [EDIT] Class .modal-content sudah theme-aware */}
       <div className="modal-content max-w-sm">
         <div className="modal-header">
+          {/* [EDIT] Class .modal-title sudah theme-aware */}
           <h3 className="modal-title">{title}</h3>
+          {/* [EDIT] Class .modal-close-btn sudah theme-aware */}
           <button className="modal-close-btn" onClick={onClose}>&times;</button>
         </div>
+        {/* [EDIT] Tambahkan class untuk warna teks */}
         <p className="text-light-subtle dark:text-gray-300 my-4">{message}</p>
         <div className="modal-footer">
           <button onClick={onClose} className="btn-secondary">{cancelText}</button>
@@ -38,6 +42,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancel
   );
 };
 
+// ... (sisa helper function tidak perlu diubah) ...
 const getIconObjectFromString = (iconString) => {
   if (!iconString || typeof iconString !== 'string') return faTag;
   const iconName = iconString.replace('fas fa-', '');
@@ -78,6 +83,7 @@ export default function PageMyWork({ currentUser }) {
   const pageMyWorkT = t.myWorkPage;
   const modalAirdropT = t.modalManageAirdrop;
 
+  // ... (semua state dan hooks tidak berubah) ...
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,6 +99,7 @@ export default function PageMyWork({ currentUser }) {
   const [openDropdownKey, setOpenDropdownKey] = useState(null);
   const dropdownRefs = useRef({});
 
+  // ... (semua fungsi handle... tidak berubah) ...
   const fetchData = useCallback(async () => {
     if (!currentUser || !currentUser.id) {
         setLoading(false);
@@ -304,6 +311,7 @@ export default function PageMyWork({ currentUser }) {
   const openEditAirdropModal = useCallback((item) => { setEditingAirdrop(item); setCategoryForNewAirdrop(item.category_id); setShowManageAirdropModal(true); }, []);
   const confirmDeleteAirdropItem = useCallback((item) => { setDeleteTarget({ type: 'item', id: item.id, name: item.name }); setShowConfirmDeleteModal(true); }, []);
 
+  if (loading) { return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>; }
   if (error) { return <div className="flex flex-col justify-center items-center h-full text-center text-red-400 pt-20"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>; }
 
   return (
@@ -316,90 +324,81 @@ export default function PageMyWork({ currentUser }) {
         />
       )}
       <section className="page-content space-y-6 pt-6">
+        {/* [EDIT] Class .card sudah theme-aware */}
         <div className="card rounded-xl p-4 md:p-6">
           <div className="main-category-header">
-            <h2 className="text-xl font-semibold text-light-text dark:text-white flex items-center">
-              <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5 text-primary" />
-              {pageMyWorkT.mainHeader}
-            </h2>
-            <div className="flex space-x-2">
-              <button onClick={openNewCategoryModal} className="btn-secondary text-xs px-3 py-1.5 rounded-md flex items-center">
-                <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-3 h-3" />{pageMyWorkT.addCategory}
-              </button>
-            </div>
+            {/* [EDIT] Ganti warna h2 dari text-primary menjadi text-light-text dark:text-white */}
+            <h2 className="text-xl font-semibold text-light-text dark:text-white flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-2 w-5 h-5 text-primary" /> {pageMyWorkT.mainHeader} </h2>
+            <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-xs px-3 py-1.5 rounded-md flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-3 h-3" />{pageMyWorkT.addCategory} </button> </div>
           </div>
-          
-          {/* ============ INI BAGIAN UTAMA YANG BERUBAH ============ */}
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/>
-            </div>
-          ) : categories.length === 0 ? (
-            <p className="text-light-subtle dark:text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p>
-          ) : (
-            <div className="space-y-4">
-              {categories.map((category, index) => {
-                const itemsInCategory = category.user_airdrops || [];
-                const categoryIsEmpty = itemsInCategory.length === 0;
-                const iconObject = getIconObjectFromString(category.icon);
-                const isExpanded = expandedCategories.has(category.id);
-                const categoryColorClass = category.iconColor || 'text-gray-400';
+          {/* [EDIT] Tambahkan class warna teks */}
+          {categories.length === 0 && ( <p className="text-light-subtle dark:text-gray-400 text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
+          <div className="space-y-4">
+            {categories.map((category, index) => {
+              const itemsInCategory = category.user_airdrops || [];
+              const categoryIsEmpty = itemsInCategory.length === 0;
+              const iconObject = getIconObjectFromString(category.icon);
+              const isExpanded = expandedCategories.has(category.id);
+              const categoryColorClass = category.iconColor || 'text-gray-400';
 
-                return (
-                  <div key={category.id} className="category-wrapper">
-                    <div
-                        className="category-header"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleToggleCategory(category.id)}
-                    >
-                      <div className="category-title-container flex items-center">
-                        <FontAwesomeIcon icon={iconObject} className={`mr-2 w-4 h-4 ${categoryColorClass}`} />
-                        <span className="category-title-text text-light-text dark:text-white">{category.name}</span>
-                        <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
-                      </div>
-                      <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
-                        <button onClick={(e) => { e.stopPropagation(); handleToggleDropdown(category.id); }} className="category-settings-dropdown-button" title={pageMyWorkT.categorySettings}><FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" /></button>
-                        <div className={`category-settings-dropdown-content ${openDropdownKey === category.id ? 'active' : ''}`}>
-                            <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'up');}} disabled={index === 0}> <FontAwesomeIcon icon={faArrowUp} /> {pageMyWorkT.moveUp} </button>
-                            <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'down');}} disabled={index === categories.length - 1}> <FontAwesomeIcon icon={faArrowDown} /> {pageMyWorkT.moveDown} </button>
-                            <button onClick={(e) => {e.stopPropagation(); openEditCategoryModal(category);}} className="edit-option"> <FontAwesomeIcon icon={faEdit} /> {pageMyWorkT.editCategory} </button>
-                            <button onClick={(e) => {e.stopPropagation(); openNewAirdropModal(category.id);}} className="add-option"> <FontAwesomeIcon icon={faPlus} /> {pageMyWorkT.addAirdrop} </button>
-                            <button onClick={(e) => {e.stopPropagation(); confirmDeleteCategory(category);}} className="delete-option"> <FontAwesomeIcon icon={faTrashAlt} /> {pageMyWorkT.deleteCategory} </button>
-                        </div>
+              return (
+                <div key={category.id} className="category-wrapper">
+                  <div
+                      className="category-header"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleToggleCategory(category.id)}
+                  >
+                    <div className={`category-title-container flex items-center`}>
+                       {/* [EDIT] Hapus categoryColorClass dari sini agar tidak menimpa warna teks */}
+                      <FontAwesomeIcon icon={iconObject} className={`mr-2 w-4 h-4 ${categoryColorClass}`} />
+                      {/* [EDIT] Tambahkan class warna teks */}
+                      <span className="category-title-text text-light-text dark:text-white">{category.name}</span>
+                      <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
+                    </div>
+                    <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleDropdown(category.id); }} className="category-settings-dropdown-button" title={pageMyWorkT.categorySettings}><FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" /></button>
+                      <div className={`category-settings-dropdown-content ${openDropdownKey === category.id ? 'active' : ''}`}>
+                          <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'up');}} disabled={index === 0}> <FontAwesomeIcon icon={faArrowUp} /> {pageMyWorkT.moveUp} </button>
+                          <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'down');}} disabled={index === categories.length - 1}> <FontAwesomeIcon icon={faArrowDown} /> {pageMyWorkT.moveDown} </button>
+                          <button onClick={(e) => {e.stopPropagation(); openEditCategoryModal(category);}} className="edit-option"> <FontAwesomeIcon icon={faEdit} /> {pageMyWorkT.editCategory} </button>
+                          <button onClick={(e) => {e.stopPropagation(); openNewAirdropModal(category.id);}} className="add-option"> <FontAwesomeIcon icon={faPlus} /> {pageMyWorkT.addAirdrop} </button>
+                          <button onClick={(e) => {e.stopPropagation(); confirmDeleteCategory(category);}} className="delete-option"> <FontAwesomeIcon icon={faTrashAlt} /> {pageMyWorkT.deleteCategory} </button>
                       </div>
                     </div>
-                    <ul className={`airdrop-list-container ${isExpanded ? 'expanded' : 'collapsed'}`}>
-                      {categoryIsEmpty ? ( 
-                        <p className="empty-category-message">{pageMyWorkT.noTasksInCategory}</p> 
-                      ) : ( itemsInCategory.map(item => ( 
-                        <li key={item.id} className="airdrop-list-item"> 
-                          <div className="airdrop-item-main"> 
-                            <button onClick={() => handleToggleDailyDone(item)} className={`btn-done-today ${item.daily_done ? 'marked' : ''}`} > 
-                              <FontAwesomeIcon icon={item.daily_done ? fasFaCheckCircle : farFaCheckCircle} className="w-4 h-4" /> 
-                            </button> 
-                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="airdrop-link"> 
-                              <div className="ml-1"> 
-                                <span className="name">{item.name}</span> 
-                                <p className="task-desc">{item.description || pageMyWorkT.descriptionPlaceholder}</p> 
-                              </div> 
-                            </a> 
-                          </div> 
-                          <span className={`status-badge ${item.status === 'completed' ? 'status-completed' : 'status-inprogress'}`}> {item.status === 'completed' ? pageMyWorkT.statusCompleted : pageMyWorkT.statusInProgress} </span> 
-                          <div className="airdrop-item-actions"> 
-                            <button onClick={() => openEditAirdropModal(item)} className="edit-btn" title={pageMyWorkT.editTask}> <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" /> </button> 
-                            <button onClick={() => confirmDeleteAirdropItem(item)} className="delete-btn" title={pageMyWorkT.deleteTask}> <FontAwesomeIcon icon={faTrashAlt} className="w-3.5 h-3.5" /> </button> 
-                          </div> 
-                        </li> 
-                      )))}
-                    </ul>
                   </div>
-                );
-              })}
-            </div>
-          )}
-          {/* ============ AKHIR DARI BAGIAN YANG BERUBAH ============ */}
-
+                  <ul className={`airdrop-list-container ${isExpanded ? 'expanded' : 'collapsed'}`}>
+                    {categoryIsEmpty ? ( 
+                      // [EDIT] Class empty-category-message sudah di-update di CSS
+                      <p className="empty-category-message">{pageMyWorkT.noTasksInCategory}</p> 
+                    ) : ( itemsInCategory.map(item => ( 
+                      // [EDIT] Class airdrop-list-item sudah di-update di CSS
+                      <li key={item.id} className="airdrop-list-item"> 
+                        <div className="airdrop-item-main"> 
+                          {/* [EDIT] Class btn-done-today sudah di-update di CSS */}
+                          <button onClick={() => handleToggleDailyDone(item)} className={`btn-done-today ${item.daily_done ? 'marked' : ''}`} > 
+                            <FontAwesomeIcon icon={item.daily_done ? fasFaCheckCircle : farFaCheckCircle} className="w-4 h-4" /> 
+                          </button> 
+                          <a href={item.link} target="_blank" rel="noopener noreferrer" className="airdrop-link"> 
+                            <div className="ml-1"> 
+                              {/* [EDIT] Class .name dan .task-desc sudah di-update di CSS */}
+                              <span className="name">{item.name}</span> 
+                              <p className="task-desc">{item.description || pageMyWorkT.descriptionPlaceholder}</p> 
+                            </div> 
+                          </a> 
+                        </div> 
+                        <span className={`status-badge ${item.status === 'completed' ? 'status-completed' : 'status-inprogress'}`}> {item.status === 'completed' ? pageMyWorkT.statusCompleted : pageMyWorkT.statusInProgress} </span> 
+                        <div className="airdrop-item-actions"> 
+                          <button onClick={() => openEditAirdropModal(item)} className="edit-btn" title={pageMyWorkT.editTask}> <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" /> </button> 
+                          <button onClick={() => confirmDeleteAirdropItem(item)} className="delete-btn" title={pageMyWorkT.deleteTask}> <FontAwesomeIcon icon={faTrashAlt} className="w-3.5 h-3.5" /> </button> 
+                        </div> 
+                      </li> 
+                    )))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
         {showManageCategoryModal && ( <ModalManageCategory language={language} isOpen={showManageCategoryModal} onClose={() => setShowManageCategoryModal(false)} onSave={handleSaveCategory} initialData={editingCategory} /> )}
         {showManageAirdropModal && (
