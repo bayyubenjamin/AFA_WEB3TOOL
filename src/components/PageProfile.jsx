@@ -18,7 +18,8 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect } from 'wagmi';
-import TelegramLoginWidget from './TelegramLoginWidget';
+// TelegramLoginWidget is no longer needed for this flow, but we keep it for other potential uses
+import TelegramLoginWidget from './TelegramLoginWidget'; 
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -107,7 +108,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       user_metadata: authUser.user_metadata || {}
     };
   };
-
+  
+  // This function is no longer called by a widget on this page, but kept for potential future use
   const handleTelegramAuth = async (telegramUser) => {
     setIsTelegramConnecting(true);
     clearMessages();
@@ -369,13 +371,19 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
               </div>
             ) : (
               // --- [PERUBAHAN UTAMA DI SINI] ---
-              // Menambahkan instruksi dan mengganti widget
               <>
                 <p className="text-light-subtle dark:text-gray-400 mb-4 max-w-md">
-                  Link your Telegram account to get notifications and access exclusive features.
-                  Click the button below to authorize via our official bot, <strong className="text-light-text dark:text-white">@afaweb3tool_bot</strong>.
+                  LINK YOUR TELEGRAM VIA AFA WEB3TOOL BOT
                 </p>
-                <TelegramLoginWidget onTelegramAuth={handleTelegramAuth} loading={isTelegramConnecting} />
+                <a 
+                  href="https://t.me/afaweb3tool_bot" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn-primary bg-[#37AEE2] border-[#37AEE2] hover:bg-[#2a8bb7] py-2 px-6 rounded-lg text-white font-semibold inline-flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faTelegram} />
+                  <span>Link Your Telegram</span>
+                </a>
               </>
               // --- Akhir Perubahan Utama ---
             )}
