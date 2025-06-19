@@ -1,4 +1,4 @@
-// src/components/Header.jsx (VERSI DESAIN OVAL PREMIUM)
+// src/components/Header.jsx (VERSI FINAL REVISI)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -77,10 +77,10 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
-    // [MODIFIKASI] Wrapper div untuk membuat header melayang
-    <div className={`fixed top-0 left-0 right-0 z-[60] px-2 sm:px-4 pt-3 transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
-      {/* [MODIFIKASI] Header kini berbentuk oval (rounded-full) dengan shadow */}
-      <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
+    // [MODIFIKASI] Wrapper kini tanpa spasi atas (padding atas dihapus)
+    <div className={`fixed top-0 left-0 right-0 z-[60] px-2 sm:px-4 py-2 transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
+      {/* [MODIFIKASI] Bentuk diubah menjadi rounded-3xl (tidak terlalu oval) */}
+      <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-3xl shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         <div className="flex items-center flex-1 min-w-0">
           <img
             src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
@@ -101,9 +101,10 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           )}
         </div>
 
+        {/* [MODIFIKASI] font-bold ditambahkan untuk judul yang lebih tegas */}
         <h1
           id="headerTitle"
-          className="text-xl sm:text-2xl mx-4 text-center header-title-premium"
+          className="text-xl sm:text-2xl font-bold mx-4 text-center header-title-premium"
         >
           {title}
         </h1>
