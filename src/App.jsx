@@ -197,11 +197,10 @@ export default function App() {
       </main>
       {showNav && <BottomNav currentUser={currentUser} />}
 
-      {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
+    {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
       <div 
         className={`
           fixed inset-0 z-[9999] flex flex-col items-center justify-center 
-          bg-dark/70 backdrop-blur-sm 
           transition-opacity duration-500
           ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
