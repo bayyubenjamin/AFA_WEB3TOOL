@@ -17,12 +17,13 @@ export default {
         'primary': '#7F5AF0',
         'secondary': '#2CB67D',
         'dark': '#16161A',
-        'dark-card': '#242629',
+        // [PERBAIKAN]: Mengubah 'dark-card' menjadi 'card' agar cocok dengan CSS
+        'card': '#242629', 
         'dark-stroke': '#72757E',
         'dark-text': '#FFFFFE',
         'dark-subtle': '#94A1B2',
 
-        // [PERBAIKAN]: Mengubah 'light' menjadi 'light-bg' agar cocok dengan CSS
+        // Skema Warna Light Mode
         'light-bg': '#F9F9F9', 
         'light-card': '#ffffff',
         'light-text': '#242629',
