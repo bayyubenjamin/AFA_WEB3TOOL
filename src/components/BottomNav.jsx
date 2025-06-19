@@ -1,4 +1,4 @@
-// src/components/BottomNav.jsx (Layout Lebar Penuh)
+// src/components/BottomNav.jsx (Perbaikan Warna Teks)
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
@@ -26,9 +26,6 @@ export default function BottomNav({ currentUser }) {
   return (
     // Container luar ini sudah memiliki padding (px-2 sm:px-4) yang akan memberi jarak dari tepi layar
     <div className="fixed bottom-0 left-0 right-0 z-50 w-full px-2 sm:px-4 pb-2 lg-desktop:hidden">
-      {/* [PERUBAHAN]: Menghapus 'max-w-md' dan 'mx-auto'.
-        Sekarang <nav> akan mengisi lebar penuh dari container induknya.
-      */}
       <nav className={`h-16 px-2 grid ${gridColsClass} glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         {navItems.map((item) => (
           <NavLink
@@ -47,12 +44,12 @@ export default function BottomNav({ currentUser }) {
                   <FontAwesomeIcon 
                     icon={item.icon} 
                     className={`relative z-10 text-lg transition-colors duration-200
-                               ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-subtle group-hover:text-primary'}`} 
+                               ${isActive ? 'text-white' : 'text-light-text dark:text-dark-text group-hover:text-primary'}`} 
                   />
                 </div>
                 <span 
                   className={`text-xs mt-1 font-semibold transition-colors duration-200
-                             ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}
+                             ${isActive ? 'text-primary' : 'text-light-text dark:text-dark-text'}`}
                 >
                   {getLabel(item)}
                 </span>
