@@ -11,21 +11,21 @@ import { useLanguage } from '../context/LanguageContext';
  */
 export default function DesktopNav({ currentUser }) {
   const { language } = useLanguage();
+  const isLoggedIn = currentUser && currentUser.id;
 
-  const navItems = [
-    { to: '/', label_id: 'Beranda', label_en: 'Home' },
-    { to: '/events', label_id: 'Event', label_en: 'Events' },
-    { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops' },
-    { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work' },
+  // Definisikan semua kemungkinan item navigasi
+  const navItemsList = [
+    { to: '/', label_id: 'Beranda', label_en: 'Home', isPrivate: false },
+    { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
+    { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false },
+    { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: true },
     { to: '/profile', label_id: 'profil', label_en: 'Profile' },
   ];
 
-  const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
+  // Filter item yang akan ditampilkan berdasarkan status login
+  const navItems = navItemsList.filter(item => !item.isPrivate || isLoggedIn);
 
-  // Jangan render navigasi jika pengguna tidak login
-  if (!currentUser || !currentUser.id) {
-    return null;
-  }
+  const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
   return (
     // 'hidden' secara default, dan 'flex' pada layar medium (md) ke atas
