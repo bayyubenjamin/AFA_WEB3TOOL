@@ -1,12 +1,13 @@
-// src/components/PageLoginWithTelegram.jsx (Versi Mandiri dengan Form Internal)
+// src/components/AuthForm.jsx
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle, faEnvelope, faLock, faUser, faUserPlus, faIdBadge, faEye, faEyeSlash, faSignInAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+  faIdBadge, faUserPlus, faEnvelope, faLock, faUser,
+  faEye, faEyeSlash, faSpinner, faSignInAlt, faKey, faWallet
+} from '@fortawesome/free-solid-svg-icons';
+import TelegramLoginWidget from './TelegramLoginWidget'; // Widget untuk web
 
-// Kita ambil komponen InputField dari PageProfile agar bisa dipakai di sini
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -21,204 +22,91 @@ const InputField = React.memo(({ id, type = "text", label, value, onChange, icon
 ));
 InputField.displayName = 'InputField';
 
-
-export default function PageLoginWithTelegram() {
-  const [status, setStatus] = useState('initializing'); // initializing, login, register, error
-  const [error, setError] = useState('');
-  const [telegramUser, setTelegramUser] = useState(null);
-  const navigate = useNavigate();
-
-  // State untuk form internal
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Fungsi untuk memeriksa apakah pengguna sudah ada atau belum
-    const checkUserAndRedirect = async (tgUser) => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('telegram_user_id', tgUser.id)
-        .single();
-        
-      if (profile) {
-        setStatus('login');
-      } else {
-        setStatus('register');
-      }
-    };
-    
-    // Inisialisasi utama
-    const initialize = () => {
-      if (typeof window === 'undefined' || !window.Telegram || !window.Telegram.WebApp) {
-        setStatus('error');
-        setError('Halaman ini hanya dapat diakses melalui Telegram Mini App.');
-        return;
-      }
-      window.Telegram.WebApp.ready();
-      
-      const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (!tgUser?.id) {
-        setStatus('error');
-        setError('Gagal mendapatkan data pengguna dari Telegram.');
-        return;
-      }
-      setTelegramUser(tgUser);
-      checkUserAndRedirect(tgUser);
-    };
-
-    initialize();
-  }, []);
-
-  const handleRegisterAndLink = async (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-        setError("Password dan konfirmasi password tidak cocok.");
-        return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-            options: { data: { name: username, username: username, avatar_url: telegramUser.photo_url || `https://ui-avatars.com/api/?name=${username.substring(0,1).toUpperCase()}&background=7f5af0&color=fff` } }
-        });
-
-        if (signUpError) throw signUpError;
-        if (!authData.user) throw new Error("Registrasi berhasil tetapi data pengguna tidak ditemukan.");
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ telegram_user_id: telegramUser.id })
-            .eq('id', authData.user.id);
-        
-        if (updateError) throw updateError;
-        
-        await supabase.auth.signInWithPassword({ email: email, password: password });
-        alert("Registrasi dan penautan akun Telegram berhasil!");
-        navigate('/profile', { replace: true });
-
-    } catch(err) {
-        setError(err.message);
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  const handleLoginAndLink = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({ email: email, password: password });
-
-        if (signInError) throw signInError;
-        if (!authData.user) throw new Error("Login berhasil tetapi data pengguna tidak ditemukan.");
-
-        const { data: existingLink, error: checkError } = await supabase.from('profiles').select('telegram_user_id').eq('id', authData.user.id).single();
-        if (checkError) throw checkError;
-
-        if (existingLink && existingLink.telegram_user_id && existingLink.telegram_user_id !== telegramUser.id) {
-             throw new Error("Akun email ini sudah tertaut ke akun Telegram yang lain.");
-        }
-        
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ telegram_user_id: telegramUser.id })
-            .eq('id', authData.user.id);
-        
-        if (updateError) throw updateError;
-        
-        alert("Login dan penautan akun Telegram berhasil!");
-        navigate('/profile', { replace: true });
-
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  const renderContent = () => {
-    switch (status) {
-      case 'initializing':
-        return <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary" />;
-      
-      case 'error':
-        return (
-          <div className="text-center text-red-400 p-4 card">
-            <FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4" />
-            <p>{error}</p>
-          </div>
-        );
-
-      case 'login':
-        return (
-          <div className="w-full max-w-md card p-8">
-            <div className="text-center mb-6">
-              <FontAwesomeIcon icon={faIdBadge} className="text-6xl text-primary mb-4" />
-              <h2 className="text-3xl font-bold">Welcome Back!</h2>
-              <p className="text-light-subtle dark:text-gray-400 mt-2">
-                Kami mendeteksi akun Telegram Anda. Silakan login dengan email dan password untuk menautkan akun.
-              </p>
-            </div>
-            {error && <p className="text-red-400 text-center mb-4">{error}</p>}
-            <form onSubmit={handleLoginAndLink} className="space-y-4">
-                <InputField id="loginEmail" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} icon={faEnvelope} placeholder="email@example.com" parentLoading={loading} />
-                <div className="relative">
-                    <InputField id="loginPassword" type={showPassword ? "text" : "password"} label="Password" value={password} onChange={(e) => setPassword(e.target.value)} icon={faLock} parentLoading={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
-                </div>
-                <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-lg">
-                    {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Login & Tautkan'}
-                </button>
-            </form>
-          </div>
-        );
-      
-      case 'register':
-        return (
-          <div className="w-full max-w-md card p-8">
-             <div className="text-center mb-6">
-              <FontAwesomeIcon icon={faUserPlus} className="text-6xl text-primary mb-4" />
-              <h2 className="text-3xl font-bold">Buat Akun Baru</h2>
-              <p className="text-light-subtle dark:text-gray-400 mt-2">
-                Daftar dengan email dan password untuk menautkan akun Telegram Anda secara otomatis.
-              </p>
-            </div>
-            {error && <p className="text-red-400 text-center mb-4">{error}</p>}
-            <form onSubmit={handleRegisterAndLink} className="space-y-4">
-                <InputField id="regUsername" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} icon={faUser} placeholder="username_unik" parentLoading={loading} />
-                <InputField id="regEmail" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} icon={faEnvelope} placeholder="email@example.com" parentLoading={loading} />
-                <div className="relative">
-                    <InputField id="regPassword" type={showPassword ? "text" : "password"} label="Password" value={password} onChange={(e) => setPassword(e.target.value)} icon={faLock} placeholder="Minimal 6 karakter" parentLoading={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
-                </div>
-                <div className="relative">
-                    <InputField id="regConfirmPassword" type={showConfirmPassword ? "text" : "password"} label="Konfirmasi Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} icon={faLock} placeholder="Ulangi password" parentLoading={loading} />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
-                </div>
-                 <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-lg">
-                    {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Daftar & Tautkan'}
-                </button>
-            </form>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
+export default function AuthForm({
+  isLoginForm,
+  onFormSubmit,
+  onWalletLogin,
+  loading,
+  isWalletActionLoading,
+  t,
+  loginEmail, setLoginEmail,
+  loginPassword, setLoginPassword,
+  signupStage,
+  signupUsername, setSignupUsername,
+  signupEmail, setSignupEmail,
+  signupPassword, setSignupPassword,
+  signupConfirmPassword, setSignupConfirmPassword,
+  otpCode, setOtpCode,
+  handleBackToDetails,
+  showPassword, setShowPassword,
+  showConfirmPassword, setShowConfirmPassword,
+  // Prop untuk widget Telegram
+  onTelegramAuth,
+  isTelegramLoading,
+}) {
   return (
-    <div className="page-content flex flex-col items-center justify-center p-4 min-h-screen">
-      {renderContent()}
+    <div className="card rounded-xl p-6 md:p-8 shadow-2xl">
+      <div className="text-center mb-6">
+        <FontAwesomeIcon icon={isLoginForm ? faIdBadge : faUserPlus} className="text-6xl text-primary mb-4" />
+        <h2 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{isLoginForm ? t.welcomeBack : t.createAccount}</h2>
+        <p className="text-light-subtle dark:text-gray-400 mt-2">{isLoginForm ? t.loginPrompt : (signupStage === 'collectingDetails' ? t.signupPromptDetails : t.signupPromptVerify)}</p>
+      </div>
+      
+      {isLoginForm ? (
+         <form onSubmit={onFormSubmit} className="space-y-4">
+            <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
+            <div className="relative">
+                <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6 disabled:opacity-50" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
+            </button>
+         </form>
+      ) : (
+        <>
+          {signupStage === 'collectingDetails' ? (
+            <form onSubmit={onFormSubmit} className="space-y-4">
+              <InputField id="signupUsername" label={t.formLabelUsername} value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} icon={faUser} placeholder={t.formPlaceholderUsername} parentLoading={loading} />
+              <InputField id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
+              <div className="relative">
+                <InputField id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} parentLoading={loading} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+              </div>
+              <div className="relative">
+                <InputField id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} parentLoading={loading} />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
+              </div>
+              <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}</button>
+            </form>
+          ) : (
+            <form onSubmit={onFormSubmit} className="space-y-4">
+              <InputField id="otpCode" type="text" label={t.otpRequired} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} icon={faKey} placeholder={t.otpRequired} parentLoading={loading} />
+              <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.verifyBtn}</button>
+              <button type="button" onClick={handleBackToDetails} disabled={loading} className="text-center w-full text-sm text-light-subtle dark:text-gray-400 hover:text-primary disabled:opacity-50">{t.backToDetails}</button>
+            </form>
+          )}
+        </>
+      )}
+
+      <div className="relative my-6 flex items-center">
+          <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
+          <span className="flex-shrink mx-4 text-light-subtle dark:text-gray-400 text-sm">OR</span>
+          <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
+      </div>
+
+      <button
+        onClick={onWalletLogin}
+        disabled={isWalletActionLoading}
+        className="bg-transparent border-2 border-primary text-primary font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-70"
+      >
+        {isWalletActionLoading ? (<FontAwesomeIcon icon={faSpinner} spin className="mr-2" />) : (<FontAwesomeIcon icon={faWallet} className="mr-2" />)}
+        {t.loginWithWallet || "Login with Wallet"}
+      </button>
+
+      <div className="mt-4 flex justify-center">
+        <TelegramLoginWidget onTelegramAuth={onTelegramAuth} loading={isTelegramLoading} />
+      </div>
     </div>
   );
 }

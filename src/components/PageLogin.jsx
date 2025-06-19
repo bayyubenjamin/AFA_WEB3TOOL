@@ -9,8 +9,7 @@ import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import AuthForm from './AuthForm';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faPaperPlane, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { faTelegram } from "@fortawesome/free-brands-svg-icons";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
@@ -28,9 +27,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
   const [isTelegramLoading, setIsTelegramLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-
-  // --- [TAMBAHAN] State untuk menampilkan pesan "Cek bot Anda" ---
-  const [telegramStatus, setTelegramStatus] = useState('idle'); // idle, waiting
 
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -66,6 +62,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     setIsWalletActionLoading(true);
     try {
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
+      // Gunakan fungsi login-with-wallet yang sudah ada
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { body: { address, signature } });
       if (functionError) throw new Error(functionError.message);
       if (session.error) throw new Error(session.error);
@@ -82,40 +79,35 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     }
   };
 
-  // --- [PERUBAHAN UTAMA] Fungsi untuk memicu alur login via bot ---
-  const handleTelegramBotLogin = async () => {
-    if (typeof window === 'undefined' || !window.Telegram || !window.Telegram.WebApp) {
-        setError('Fitur ini hanya dapat digunakan di dalam Telegram Mini App.');
-        return;
-    }
-    
-    window.Telegram.WebApp.ready();
-    const telegramUser = window.Telegram.WebApp.initDataUnsafe?.user;
-    if (!telegramUser?.id) {
-        setError('Tidak dapat mendeteksi ID pengguna Telegram. Coba muat ulang Mini App.');
-        return;
-    }
-    
+  const handleTelegramAuth = async (telegramUser) => {
     clearMessages();
     setIsTelegramLoading(true);
-    setTelegramStatus('loading');
-    
     try {
-        const { error: functionError } = await supabase.functions.invoke('request-telegram-login', {
-            body: { telegram_id: telegramUser.id },
-        });
+      // Fungsi ini akan membuat/mencari pengguna berdasarkan data widget
+      const { data, error } = await supabase.functions.invoke('login-with-telegram', {
+        body: telegramUser
+      });
 
-        if (functionError) throw functionError;
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
 
-        setTelegramStatus('waiting'); // Ubah status untuk menampilkan pesan
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
 
-    } catch(err) {
-        setError(err.message || 'Gagal memulai proses login via bot.');
-        setTelegramStatus('idle'); // Kembali ke status awal jika error
+      if (sessionError) throw sessionError;
+      
+      setSuccessMessage("Berhasil login dengan Telegram!");
+      navigate('/profile');
+
+    } catch (err) {
+      console.error("Telegram login error:", err);
+      setError(err.message || "Gagal login dengan Telegram.");
     } finally {
-        setIsTelegramLoading(false);
+      setIsTelegramLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
       if (isConnected && address && !isWalletActionLoading) {
@@ -123,21 +115,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, address]);
-  
-  if (telegramStatus === 'waiting') {
-    return (
-        <div className="page-content flex items-center justify-center text-center h-full">
-            <div className="card max-w-sm p-8 space-y-4">
-                <FontAwesomeIcon icon={faTelegram} className="text-6xl text-sky-400" />
-                <h2 className="text-2xl font-bold">Cek Telegram Anda!</h2>
-                <FontAwesomeIcon icon={faPaperPlane} size="2x" className="text-primary" />
-                <p className="text-light-subtle dark:text-gray-400 text-sm">
-                Kami telah mengirimkan tombol login ke bot <span className="font-bold">@afaweb3tool_bot</span>. Silakan buka chat tersebut untuk melanjutkan.
-                </p>
-            </div>
-        </div>
-    )
-  }
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
@@ -163,7 +140,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
           setLoginPassword={setLoginPassword}
           showPassword={showPassword}
           setShowPassword={setShowPassword}
-          onTelegramBotLogin={handleTelegramBotLogin}
+          onTelegramAuth={handleTelegramAuth}
           isTelegramLoading={isTelegramLoading}
         />
          <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
