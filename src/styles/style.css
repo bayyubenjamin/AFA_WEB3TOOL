@@ -7,8 +7,8 @@
 
 /* Variabel CSS Global untuk tinggi Header dan BottomNav */
 :root {
-  --header-height: 55px; /* Sesuaikan jika tinggi header Anda berbeda */
-  --bottomnav-height: 55px; /* Sesuaikan jika tinggi bottomnav Anda berbeda */
+  --header-height: 60px;
+  --bottomnav-height: 60px;
 }
 
 /* Layer kustom Anda didefinisikan SETELAH direktif dasar Tailwind */
