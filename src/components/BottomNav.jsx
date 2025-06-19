@@ -1,76 +1,54 @@
-// src/components/BottomNav.jsx
-import React from "react";
-import { NavLink } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHome,
-  faBriefcase,
-  faParachuteBox,
-  faCalendarCheck,
-  faUserCircle,
-  // faShieldHalved // Ikon tidak lagi digunakan di sini
-} from "@fortawesome/free-solid-svg-icons";
-import { useLanguage } from "../context/LanguageContext";
-import translationsId from "../translations/id.json";
-import translationsEn from "../translations/en.json";
+// src/components/BottomNav.jsx (VERSI DESAIN PREMIUM)
 
-const getTranslations = (lang) => {
-  return lang === 'id' ? translationsId : translationsEn;
-};
-
-// ID Admin dan logika terkait tidak lagi diperlukan di komponen ini
-// const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHome, faRocket, faTasks, faCalendarAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function BottomNav({ currentUser }) {
   const { language } = useLanguage();
-  const t = getTranslations(language).bottomNav;
-  // const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
-  // Daftar item navigasi sekarang statis
   const navItems = [
-    { id: "home", path: "/", icon: faHome, label: t.home },
-    { id: "myWork", path: "/my-work", icon: faBriefcase, label: t.myWork },
-    { id: "airdrops", path: "/airdrops", icon: faParachuteBox, label: t.airdrops },
-    { id: "events", path: "/events", icon: faCalendarCheck, label: t.events },
-    { id: "profile", path: "/profile", icon: faUserCircle, label: t.profile },
+    { to: '/', icon: faHome, label_id: 'Beranda', label_en: 'Home' },
+    { to: '/airdrops', icon: faRocket, label_id: 'Airdrop', label_en: 'Airdrops' },
+    { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work' },
+    { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events' },
+    { to: '/profile', icon: faUser, label_id: 'Profil', label_en: 'Profile' }
   ];
 
-  // Grid selalu 5 kolom
-  const gridColsClass = 'grid-cols-5';
+  const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
   return (
-    <nav
-      aria-label="Main navigation"
-      className={`fixed bottom-0 left-0 w-full h-[var(--bottomnav-height)] pb-[env(safe-area-inset-bottom)] glassmorphism z-50 grid ${gridColsClass}`}
-    >
-      {navItems.map((item) => {
-        const isProfileItem = item.id === "profile";
-        return (
+    // [MODIFIKASI] Wrapper div untuk membuat BottomNav melayang
+    <div className="fixed bottom-0 left-0 right-0 z-50 w-full px-2 sm:px-4 pb-2">
+      {/* [MODIFIKASI] Navigasi kini berbentuk sedikit oval (rounded-2xl) dengan shadow, dan berada di tengah */}
+      <nav className="max-w-md mx-auto h-[var(--bottomnav-height)] grid grid-cols-5 glassmorphism rounded-2xl shadow-lg shadow-black/5 dark:shadow-primary/10">
+        {navItems.map((item) => (
           <NavLink
-            key={item.id}
-            to={item.path}
-            end={item.path === "/"}
+            key={item.to}
+            to={item.to}
+            // [MODIFIKASI] Menghapus kelas 'nav-item', styling langsung di sini
             className={({ isActive }) => 
-              `nav-item flex flex-col items-center justify-center h-full hover:text-primary transition-colors duration-200 ${isActive ? "active" : ""}`
+              `flex flex-col items-center justify-center transition-colors duration-300 
+               ${isActive ? 'text-primary' : 'text-light-subtle dark:text-gray-400 hover:text-light-text dark:hover:text-white'}`
             }
           >
             {({ isActive }) => (
               <>
-                {isProfileItem && currentUser?.id ? (
-                  <img
-                    src={currentUser.avatar_url || `https://placehold.co/100x100/7f5af0/FFFFFF?text=${currentUser.name ? currentUser.name.substring(0,1).toUpperCase() : "U"}`}
-                    alt={currentUser.name || "User Avatar"}
-                    className={`h-6 w-6 rounded-full object-cover mb-1 border-2 transition-all ${isActive ? 'border-primary' : 'border-transparent'}`}
-                  />
-                ) : (
-                  <FontAwesomeIcon icon={item.icon} className="text-xl mb-1" />
-                )}
-                <span className="text-xs font-medium">{item.label}</span>
+                {/* [MODIFIKASI] Wrapper ikon untuk efek latar belakang saat aktif */}
+                <div 
+                  className={`w-14 h-8 flex items-center justify-center rounded-lg transition-all duration-300 ease-in-out
+                            ${isActive ? 'bg-primary/10 scale-110' : 'scale-100'}`}
+                >
+                  <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                </div>
+                <span className="text-xs mt-1 font-medium">{getLabel(item)}</span>
               </>
             )}
           </NavLink>
-        );
-      })}
-    </nav>
+        ))}
+      </nav>
+    </div>
   );
 }
