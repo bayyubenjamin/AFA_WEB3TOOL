@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx (Versi Final dengan Pengecekan Sesi)
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -22,10 +22,8 @@ import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
 import WalletConnectModal from "./components/WalletConnectModal";
-// --- [TAMBAHAN] Impor halaman baru untuk alur login Telegram ---
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
-
 
 // Impor utilitas
 import { supabase } from './supabaseClient';
@@ -51,7 +49,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
     stats: profileData?.stats || defaultGuestUserForApp.stats,
     address: profileData?.web3_address || null,
-    telegram_user_id: profileData?.telegram_user_id || null, // <-- Menambahkan telegram_id ke state pengguna
+    telegram_user_id: profileData?.telegram_user_id || null, 
     user_metadata: authUser.user_metadata || {}
   };
 };
@@ -92,6 +90,15 @@ function MainAppContent() {
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
+
+          // --- [PERUBAHAN UTAMA DI SINI] ---
+          // Jika pengguna sudah login dan secara tidak sengaja masuk ke halaman login,
+          // arahkan mereka langsung ke profil.
+          if (location.pathname === '/login-telegram' || location.pathname === '/login') {
+            navigate('/profile', { replace: true });
+          }
+          // --- Akhir Perubahan Utama ---
+
         } else {
           setCurrentUser(defaultGuestUserForApp);
           localStorage.removeItem(LS_CURRENT_USER_KEY);
@@ -107,15 +114,14 @@ function MainAppContent() {
       handleAuthChange(session);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setLoadingInitialSession(false);
-        setCurrentUser(defaultGuestUserForApp);
-      }
+      // Panggil handleAuthChange juga di sini untuk menangani sesi yang sudah ada saat pertama kali memuat
+      handleAuthChange(session);
     });
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+    // Tambahkan location.pathname dan navigate sebagai dependency
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
@@ -168,7 +174,7 @@ function MainAppContent() {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-white bg-[#0a0a1a]">
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-        {language === 'id' ? 'Memuat Aplikasi...' : 'Loading Application...'}
+        {language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}
       </div>
     );
   }
@@ -191,14 +197,11 @@ function MainAppContent() {
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
           <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-          
-          {/* --- [TAMBAHAN] Rute baru untuk alur login Telegram --- */}
-          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
-          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
         </Routes>
       </main>
@@ -207,7 +210,6 @@ function MainAppContent() {
   );
 }
 
-// Komponen App default sekarang terpisah
 export default function App() {
   return (
     <MainAppContent />
