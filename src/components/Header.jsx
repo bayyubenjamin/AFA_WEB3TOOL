@@ -79,7 +79,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] p-4 flex items-center justify-between glassmorphism">
+    <header className="fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism">
       <div className="flex items-center flex-1 min-w-0">
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
