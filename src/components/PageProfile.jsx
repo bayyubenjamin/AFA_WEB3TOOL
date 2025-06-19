@@ -6,11 +6,13 @@ import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartBar, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
   faSignOutAlt,
-  faSignInAlt
+  faSignInAlt,
+  faEnvelope, // Tambahan
+  faLock      // Tambahan
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // useNavigate ditambahkan
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -82,9 +84,14 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [successMessage, setSuccessMessage] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
   const [isTelegramConnecting, setIsTelegramConnecting] = useState(false);
+  // State baru untuk menautkan email/password
+  const [isLinkingEmail, setIsLinkingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const navigate = useNavigate();
   
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
@@ -118,7 +125,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       
-      // [PERBAIKAN] Menggunakan nama fungsi yang benar
       onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
 
     } catch (err) {
@@ -192,7 +198,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     }
   };
 
-  // [DITAMBAHKAN] Fungsi untuk unlink Telegram
   const handleUnlinkTelegram = async () => {
     if (!window.confirm("Apakah Anda yakin ingin melepas tautan akun Telegram ini?")) return;
     setIsTelegramConnecting(true);
@@ -217,12 +222,46 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     }
   };
 
+  // --- [TAMBAHAN] Fungsi untuk menautkan email/password ---
+  const handleLinkEmailPassword = async (e) => {
+    e.preventDefault();
+    if (!newEmail || !newPassword) {
+      setError("Silakan isi email dan password baru.");
+      return;
+    }
+    if (newPassword.length < 6) {
+        setError("Password harus terdiri dari minimal 6 karakter.");
+        return;
+    }
+    setIsLinkingEmail(true);
+    clearMessages();
+    try {
+      const { data, error } = await supabase.functions.invoke('link-email-password', {
+        body: { new_email: newEmail, new_password: newPassword },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setSuccessMessage(data.message);
+      // Paksa logout agar pengguna bisa login kembali dengan kredensial baru
+      // dan sesi mereka diperbarui dengan email yang benar.
+      alert('Berhasil! Silakan login kembali dengan email dan password baru Anda.');
+      onLogout(); 
+      navigate('/login');
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLinkingEmail(false);
+    }
+  };
 
   useEffect(() => {
     if (isConnected && address && !currentUser.address) {
       handleLinkWallet();
     }
-  }, [isConnected, address, currentUser.address, handleLinkWallet]);
+  }, [isConnected, address, currentUser, handleLinkWallet]);
 
   useEffect(() => {
       if (isLoggedIn && currentUser) {
@@ -251,6 +290,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
+  
+  // Cek apakah email pengguna adalah email dummy
+  const isDummyEmail = currentUser?.email?.endsWith('@telegram.user') || currentUser?.email?.endsWith('@wallet.afa-web3.com');
 
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
@@ -258,6 +300,28 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
 
       <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={onLogout} loading={loading} t={t} />
+
+      {/* --- [TAMBAHAN] Kartu untuk menambah email/password --- */}
+      {isDummyEmail && (
+        <div className="card rounded-xl p-6 md:p-8 shadow-xl">
+           <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
+             <FontAwesomeIcon icon={faEnvelope} className="mr-3 text-primary" />
+             Amankan Akun Anda
+           </h3>
+           <p className="text-sm text-light-subtle dark:text-gray-400 mb-4">
+             Akun Anda dibuat melalui Telegram/Wallet. Tambahkan email dan password agar bisa login di berbagai perangkat.
+           </p>
+           <form onSubmit={handleLinkEmailPassword} className="space-y-4">
+             <InputField id="new_email" type="email" label="Email Baru" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="email.anda@example.com" parentLoading={isLinkingEmail} />
+             <InputField id="new_password" type="password" label="Password Baru" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimal 6 karakter" parentLoading={isLinkingEmail} />
+             <div className="text-right">
+                <button type="submit" disabled={isLinkingEmail} className="btn-primary px-5 py-2">
+                  {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : 'Simpan Email & Password'}
+                </button>
+             </div>
+           </form>
+        </div>
+      )}
       
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
