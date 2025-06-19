@@ -6,9 +6,8 @@ import {
   faIdBadge, faUserPlus, faEnvelope, faLock, faUser,
   faEye, faEyeSlash, faSpinner, faSignInAlt, faKey, faWallet
 } from '@fortawesome/free-solid-svg-icons';
-import { faTelegram } from '@fortawesome/free-brands-svg-icons'; // Tetap impor ikon
+import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
-// Komponen InputField tidak berubah...
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1"> {label} </label>
@@ -41,8 +40,7 @@ export default function AuthForm({
   handleBackToDetails,
   showPassword, setShowPassword,
   showConfirmPassword, setShowConfirmPassword,
-  // --- [PERUBAHAN] Ganti prop untuk Telegram ---
-  onTelegramBotLogin, // Prop baru untuk tombol kustom
+  onTelegramBotLogin,
   isTelegramLoading,
 }) {
   return (
@@ -52,7 +50,7 @@ export default function AuthForm({
         <h2 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{isLoginForm ? t.welcomeBack : t.createAccount}</h2>
         <p className="text-light-subtle dark:text-gray-400 mt-2">{isLoginForm ? t.loginPrompt : (signupStage === 'collectingDetails' ? t.signupPromptDetails : t.signupPromptVerify)}</p>
       </div>
-      {/* ... Form untuk login/register tidak berubah ... */}
+      
       {isLoginForm ? (
          <form onSubmit={onFormSubmit} className="space-y-4">
             <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
@@ -64,7 +62,34 @@ export default function AuthForm({
                 {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
             </button>
          </form>
-      ) : ( /* ... Form register ... */ )}
+      ) : (
+          // --- [PERBAIKAN UTAMA DI SINI] ---
+          // Mengembalikan kode form registrasi yang lengkap
+          <>
+            {signupStage === 'collectingDetails' ? (
+              <form onSubmit={onFormSubmit} className="space-y-4">
+                <InputField id="signupUsername" label={t.formLabelUsername} value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} icon={faUser} placeholder={t.formPlaceholderUsername} parentLoading={loading} />
+                <InputField id="signupEmail" type="email" label={t.formLabelEmail} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
+                <div className="relative">
+                    <InputField id="signupPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordSignup} parentLoading={loading} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} /></button>
+                </div>
+                <div className="relative">
+                    <InputField id="signupConfirmPassword" type={showConfirmPassword ? "text" : "password"} label={t.formLabelConfirmPassword} value={signupConfirmPassword} onChange={(e) => setSignupConfirmPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderConfirmPassword} parentLoading={loading} />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-light-subtle dark:text-gray-400 hover:text-primary top-6" disabled={loading}><FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} /></button>
+                </div>
+                <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.signupBtn}</button>
+              </form>
+            ) : (
+              <form onSubmit={onFormSubmit} className="space-y-4">
+                <InputField id="otpCode" type="text" label={t.otpRequired} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} icon={faKey} placeholder={t.otpRequired} parentLoading={loading} />
+                <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">{loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faUserPlus} className="mr-2" />} {t.verifyBtn}</button>
+                <button type="button" onClick={handleBackToDetails} disabled={loading} className="text-center w-full text-sm text-light-subtle dark:text-gray-400 hover:text-primary disabled:opacity-50">{t.backToDetails}</button>
+              </form>
+            )}
+          </>
+          // --- Akhir Perbaikan ---
+      )}
 
       <div className="relative my-6 flex items-center">
           <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
@@ -81,8 +106,6 @@ export default function AuthForm({
         {t.loginWithWallet || "Login with Wallet"}
       </button>
 
-      {/* --- [PERUBAHAN UTAMA] --- */}
-      {/* Ganti TelegramLoginWidget dengan button biasa */}
       <button
         type="button"
         onClick={onTelegramBotLogin}
