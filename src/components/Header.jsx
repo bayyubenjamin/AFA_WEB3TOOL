@@ -1,4 +1,4 @@
-// src/components/Header.jsx (VERSI DESAIN OVAL PREMIUM)
+// src/components/Header.jsx (MODIFIKASI UNTUK NAVIGASI DESKTOP)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,6 +6,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
+// Import komponen navigasi desktop yang baru kita buat
+import DesktopNav from './DesktopNav';
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
@@ -77,9 +79,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
-    // [MODIFIKASI] Wrapper div untuk membuat header melayang
     <div className={`fixed top-0 left-0 right-0 z-[60] px-2 sm:px-4 pt-3 transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
-      {/* [MODIFIKASI] Header kini berbentuk oval (rounded-full) dengan shadow */}
       <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         <div className="flex items-center flex-1 min-w-0">
           <img
@@ -101,14 +101,24 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           )}
         </div>
 
-        <h1
-          id="headerTitle"
-          className="text-xl sm:text-2xl mx-4 text-center header-title-premium"
-        >
-          {title}
-        </h1>
+        {/* --- [PERUBAHAN UTAMA DI SINI] --- */}
+        {/* Tampilkan judul di mobile, dan navigasi di desktop */}
+        <div className="flex-1 text-center">
+          <h1 id="headerTitle" className="text-xl sm:text-2xl header-title-premium md:hidden">
+            {title}
+          </h1>
+          <DesktopNav currentUser={currentUser} />
+        </div>
+        {/* --- AKHIR PERUBAHAN --- */}
         
         <div className="flex-1 flex justify-end items-center gap-2">
+          {/* --- [PERUBAHAN] Tampilkan ikon profil di mobile --- */}
+          {currentUser && currentUser.id && (
+            <Link to="/profile" className="p-2 w-10 h-10 md:hidden flex items-center justify-center header-interactive-item" aria-label="Profile">
+              <img src={currentUser.avatar_url} alt="Avatar" className="w-7 h-7 rounded-full object-cover" />
+            </Link>
+          )}
+
           <Link
             to="/forum"
             className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item"
@@ -134,7 +144,8 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
                   </li>
                 )}
                  {currentUser && currentUser.id && (
-                  <li onClick={handleProfileNav}>
+                  // --- [PERUBAHAN] Sembunyikan di mobile karena sudah ada ikon avatar
+                  <li onClick={handleProfileNav} className="hidden md:flex">
                     <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
                   </li>
                 )}
@@ -168,3 +179,4 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     </div>
   );
 }
+

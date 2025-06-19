@@ -1,4 +1,4 @@
-// src/App.jsx (VERSI FINAL DENGAN PERBAIKAN AUTO-HIDE)
+// src/App.jsx (VERSI FINAL DENGAN PERBAIKAN AUTO-HIDE DAN NAVIGASI RESPONSIF)
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -178,7 +178,15 @@ export default function App() {
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
   };
 
-  const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)]';
+  // --- [PERUBAHAN UTAMA DI SINI] ---
+  // Terapkan padding bawah hanya di mobile (sampai breakpoint `md`)
+  // Jika di forum, padding bawah 0. Jika tidak, terapkan padding untuk bottom nav,
+  // tapi set ke 0 untuk layar desktop (md:pb-0)
+  const mainPaddingBottomClass = location.pathname === '/forum' 
+    ? 'pb-0' 
+    : 'pb-[var(--bottomnav-height)] md:pb-0';
+  // --- AKHIR PERUBAHAN ---
+
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => setIsWalletModalOpen(true);
@@ -186,12 +194,10 @@ export default function App() {
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
       
-      {/* [MODIFIKASI] Prop isHeaderVisible ditambahkan di sini */}
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
       
       <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
       
-      {/* [MODIFIKASI] Event onScroll ditambahkan di sini */}
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
@@ -230,3 +236,4 @@ export default function App() {
     </div>
   );
 }
+
