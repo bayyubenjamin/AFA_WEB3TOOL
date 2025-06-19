@@ -1,4 +1,4 @@
-// src/components/Header.jsx (MODIFIKASI FINAL)
+// src/components/Header.jsx (MODIFIKASI FINAL v2)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,7 +6,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-// Import komponen navigasi desktop
 import DesktopNav from './DesktopNav';
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
@@ -81,6 +80,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   return (
     <div className={`fixed top-0 left-0 right-0 z-[60] px-2 sm:px-4 pt-3 transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
       <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
+        {/* === [PERUBAHAN] BAGIAN KIRI HEADER === */}
         <div className="flex items-center flex-1 min-w-0">
           <img
             src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
@@ -99,9 +99,17 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
               </span>
             </div>
           )}
+          {/* Tambahkan ikon Forum di sini, hanya terlihat di desktop */}
+          <Link
+            to="/forum"
+            className="p-2 w-10 h-10 hidden md:flex items-center justify-center header-interactive-item ml-2"
+            aria-label="Forum"
+          >
+            <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
+          </Link>
         </div>
+        {/* === AKHIR PERUBAHAN BAGIAN KIRI === */}
 
-        {/* Judul sekarang selalu di tengah */}
         <h1
           id="headerTitle"
           className="text-xl sm:text-2xl mx-4 text-center header-title-premium"
@@ -109,20 +117,19 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           {title}
         </h1>
         
-        {/* Kontainer untuk semua item di sebelah kanan */}
+        {/* === [PERUBAHAN] BAGIAN KANAN HEADER === */}
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* Navigasi Desktop ditaruh di sini */}
           <DesktopNav currentUser={currentUser} />
           
+          {/* Ikon Forum di sini hanya untuk mobile */}
           <Link
             to="/forum"
-            className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item"
+            className="p-2 w-10 h-10 flex md:hidden items-center justify-center header-interactive-item"
             aria-label="Forum"
           >
             <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
           </Link>
           
-          {/* Tombol Menu Dropdown */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={toggleOptionsMenu}
@@ -140,7 +147,6 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
                   </li>
                 )}
                  {currentUser && currentUser.id && (
-                  // Tombol profil di menu dropdown sekarang selalu ada (jika login)
                   <li onClick={handleProfileNav}>
                     <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
                   </li>
@@ -171,6 +177,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
             </div>
           </div>
         </div>
+        {/* === AKHIR PERUBAHAN BAGIAN KANAN === */}
       </header>
     </div>
   );

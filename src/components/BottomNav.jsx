@@ -1,9 +1,9 @@
-// src/components/BottomNav.jsx (MODIFIKASI FINAL)
+// src/components/BottomNav.jsx (MODIFIKASI FINAL v2)
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faRocket, faTasks, faCalendarAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faRocket, faTasks, faCalendarAlt, faUser, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function BottomNav({ currentUser }) {
@@ -12,9 +12,9 @@ export default function BottomNav({ currentUser }) {
   // [PERUBAHAN] Kembalikan item 'Profile' ke navigasi
   const navItems = [
     { to: '/', icon: faHome, label_id: 'Beranda', label_en: 'Home' },
-    { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events' },
     { to: '/airdrops', icon: faRocket, label_id: 'Airdrop', label_en: 'Airdrops' },
     { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work' },
+    { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events' },
     { to: '/profile', icon: faUser, label_id: 'Profil', label_en: 'Profile' }
   ];
 
