@@ -9,15 +9,15 @@ serve(async (req) => {
   try {
     const payload = await req.json()
 
-    // Pastikan ada pesan teks di dalam payload
+    // Ensure there is a text message in the payload
     if (payload.message && payload.message.text) {
       const message = payload.message
       const chat_id = message.chat.id
       const text = message.text.toLowerCase()
 
-      // Cek apakah pesan adalah perintah /start
+      // Check if the message is the /start command
       if (text === '/start') {
-        const replyText = `🎉 Selamat Datang di AFA Web3Tool!\n\nKlik tombol di bawah ini untuk memulai petualangan airdrop Anda.`
+        const replyText = `🎉 **Welcome to AFA Web3Tool!**\n\nClick the button below to start your airdrop adventure, or join our community.`
 
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
@@ -25,10 +25,21 @@ serve(async (req) => {
           body: JSON.stringify({
             chat_id: chat_id,
             text: replyText,
+            parse_mode: 'Markdown', // Enable bold formatting
             reply_markup: {
-              // Membuat tombol yang langsung membuka Mini App
               inline_keyboard: [
-                [{ text: '🚀 Buka Aplikasi', web_app: { url: `${APP_URL}/login-telegram` } }],
+                // First row: Button to open the Mini App
+                [
+                  { 
+                    text: '🚀 Open App', 
+                    web_app: { url: `${APP_URL}/login-telegram` } 
+                  }
+                ],
+                // Second row: Buttons for the channel and group
+                [
+                  { text: '📣 Follow Channel', url: 'https://t.me/Airdrop4ll' },
+                  { text: '💬 Join Group', url: 'https://t.me/afadiskusi' }
+                ]
               ],
             },
           }),
@@ -36,11 +47,11 @@ serve(async (req) => {
       }
     }
 
-    // Selalu kembalikan status 200 OK ke Telegram untuk menandakan webhook berhasil
+    // Always return a 200 OK response to Telegram to acknowledge receipt
     return new Response('ok', { status: 200 })
   } catch (error) {
     console.error('Error processing webhook:', error)
-    // Jika ada error, tetap kembalikan status 200 agar Telegram tidak terus mencoba mengirim update yang sama
+    // If an error occurs, still return 200 OK so Telegram doesn't retry the same failed update
     return new Response('ok', { status: 200 })
   }
 })
