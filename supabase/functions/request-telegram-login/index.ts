@@ -1,4 +1,4 @@
-// supabase/functions/request-telegram-login/index.ts
+// supabase/functions/request-telegram-login/index.ts (Perbaikan Tombol)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -50,7 +50,7 @@ serve(async (req) => {
     if (insertError) throw insertError;
 
     // 3. Buat URL Login untuk tombol di bot
-    const APP_URL = Deno.env.get('VITE_SITE_URL') || 'https://afatestweb.vercel.app'; // Ganti dengan URL aplikasi Anda
+    const APP_URL = Deno.env.get('VITE_SITE_URL') || 'https://afatestweb.vercel.app';
     const loginUrl = `${APP_URL}/auth/telegram/callback?token=${token}`;
     
     // 4. Kirim pesan ke pengguna melalui bot
@@ -63,20 +63,21 @@ serve(async (req) => {
       body: JSON.stringify({
         chat_id: telegram_id,
         text: `🔥 Klik tombol di bawah ini untuk masuk ke AFA Web3Tool.\n\nURL ini akan kedaluwarsa dalam 5 menit.`,
+        // --- [PERUBAHAN UTAMA DI SINI] ---
+        // Kita ganti 'login_url' menjadi 'web_app'
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: 'Log in to AFA Web3Tool',
-                login_url: {
-                  url: loginUrl,
-                  // Teks ini akan muncul di dialog konfirmasi
-                  forward_text: 'Buka untuk login', 
-                },
+                text: 'Buka Aplikasi & Login', // Teks tombol bisa diubah
+                web_app: { 
+                  url: loginUrl 
+                }
               },
             ],
           ],
         },
+        // --- Akhir Perubahan Utama ---
       }),
     });
     
