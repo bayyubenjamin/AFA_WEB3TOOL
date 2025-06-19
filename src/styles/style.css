@@ -1,4 +1,4 @@
-/* src/styles/style.css */
+/* src/styles/style.css (VERSI FINAL DENGAN OVAL HEADER) */
 
 /* Direktif dasar Tailwind HARUS di paling atas */
 @tailwind base;
@@ -72,33 +72,8 @@
   }
   /* --- Akhir Style Baru untuk Header Hamburger Menu --- */
 
-  /* === [TAMBAHAN BARU] Style untuk Header Premium === */
-  .header-premium {
-    @apply relative overflow-visible; /* Diperlukan untuk border gradien */
-  }
-
-  /* Efek Garis Bawah Gradien Aurora */
-  .header-premium::after {
-    content: '';
-    @apply absolute bottom-0 left-0 right-0 h-[1px] opacity-60;
-    background: linear-gradient(90deg, 
-      rgba(127,90,240,0), 
-      rgba(127,90,240,0.8), 
-      rgba(217,70,239,0.7),
-      rgba(239,68,68,0.7),
-      rgba(251,146,60,0.7),
-      rgba(127,90,240,0)
-    );
-    background-size: 200% 100%;
-    animation: aurora-border-animation 10s linear infinite;
-  }
-
-  @keyframes aurora-border-animation {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* Efek Interaksi untuk Ikon dan Logo di Header */
+  /* === [MODIFIKASI] Style untuk Header Premium Disederhanakan === */
+  /* Efek Interaksi untuk Ikon dan Logo di Header (Tetap Digunakan) */
   .header-interactive-item {
     @apply transition-all duration-300 ease-in-out;
   }
@@ -108,12 +83,11 @@
     filter: drop-shadow(0 0 8px theme('colors.primary/0.7'));
   }
   
-  /* Tipografi Premium untuk Judul Header */
+  /* Tipografi Premium untuk Judul Header (Tetap Digunakan) */
   .header-title-premium {
     @apply text-light-text dark:text-white font-semibold;
-    /* Menghapus gradien, menggunakan warna solid yang elegan */
   }
-  /* === Akhir Style Baru untuk Header Premium === */
+  /* === Akhir Style Header Premium === */
 
 
   /* === Style SPESIFIK untuk PageMyWork (Garapanku) dan Modals === */
