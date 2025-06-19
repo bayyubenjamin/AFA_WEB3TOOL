@@ -13,17 +13,18 @@ export default {
         'lg-desktop': '1100px',
       },
       colors: {
-        // Skema Warna Dark Mode
         'primary': '#7F5AF0',
         'secondary': '#2CB67D',
-        'dark': '#16161A',
-        // [PERBAIKAN]: Mengubah 'dark-card' menjadi 'card' agar cocok dengan CSS
-        'card': '#242629', 
+        
+        // [PERBAIKAN]: Mengembalikan warna dark mode ke hitam pekat asli
+        'dark': '#0a0a1a',      // Latar belakang utama
+        'card': '#101020',      // Latar belakang kartu/komponen
+
         'dark-stroke': '#72757E',
         'dark-text': '#FFFFFE',
         'dark-subtle': '#94A1B2',
 
-        // Skema Warna Light Mode
+        // Skema Warna Light Mode (sudah benar)
         'light-bg': '#F9F9F9', 
         'light-card': '#ffffff',
         'light-text': '#242629',
