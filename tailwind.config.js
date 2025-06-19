@@ -9,7 +9,6 @@ export default {
   ],
   theme: {
     extend: {
-      // Menambahkan breakpoint kustom dari versi sebelumnya
       screens: {
         'lg-desktop': '1100px',
       },
@@ -23,8 +22,8 @@ export default {
         'dark-text': '#FFFFFE',
         'dark-subtle': '#94A1B2',
 
-        // Skema Warna Light Mode
-        'light': '#F9F9F9',
+        // [PERBAIKAN]: Mengubah 'light' menjadi 'light-bg' agar cocok dengan CSS
+        'light-bg': '#F9F9F9', 
         'light-card': '#ffffff',
         'light-text': '#242629',
         'light-subtle': '#94A1B2',
