@@ -119,7 +119,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       if (functionError) throw functionError;
       if (result.error) throw new Error(result.error);
 
-      setSuccessMessage('Akun Telegram berhasil terhubung!');
+      setSuccessMessage('Telegram account linked successfully!');
       
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -127,7 +127,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
 
     } catch (err) {
-      setError(err.message || 'Gagal menghubungkan akun Telegram.');
+      setError(err.message || 'Failed to link Telegram account.');
     } finally {
       setIsTelegramConnecting(false);
     }
@@ -142,7 +142,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
         if (checkError && checkError.code !== 'PGRST116') throw checkError;
         if (existingProfile && existingProfile.id !== currentUser.id) {
-            throw new Error("Alamat wallet ini sudah terhubung ke akun lain.");
+            throw new Error("This wallet address is already linked to another account.");
         }
         
         const { data, error: updateError } = await supabase
@@ -154,9 +154,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
         if (updateError) throw updateError;
         onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
-        setSuccessMessage("Wallet berhasil ditautkan!");
+        setSuccessMessage("Wallet linked successfully!");
     } catch (err) {
-        setError(err.message || "Gagal menautkan wallet.");
+        setError(err.message || "Failed to link wallet.");
     } finally {
         setIsWalletActionLoading(false);
         disconnect();
@@ -164,7 +164,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
 
   const handleUnlinkWallet = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin melepas tautan wallet ini?")) return;
+    if (!window.confirm("Are you sure you want to unlink this wallet?")) return;
     setIsWalletActionLoading(true);
     clearMessages();
     try {
@@ -176,7 +176,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         if (updateError) throw updateError;
         
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) throw new Error("Sesi tidak ditemukan, silakan login ulang.");
+        if (!session?.user) throw new Error("Session not found, please log in again.");
         
         const { data: refreshedProfile, error: profileError } = await supabase
           .from('profiles')
@@ -188,17 +188,17 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
         onUpdateUser(mapSupabaseDataToAppUser(session.user, refreshedProfile));
 
-        setSuccessMessage("Tautan wallet berhasil dilepas.");
+        setSuccessMessage("Wallet unlinked successfully.");
         disconnect();
     } catch (err) {
-        setError(err.message || "Gagal melepas tautan wallet.");
+        setError(err.message || "Failed to unlink wallet.");
     } finally {
         setIsWalletActionLoading(false);
     }
   };
 
   const handleUnlinkTelegram = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin melepas tautan akun Telegram ini?")) return;
+    if (!window.confirm("Are you sure you want to unlink this Telegram account?")) return;
     setIsTelegramConnecting(true);
     clearMessages();
     try {
@@ -212,10 +212,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
-      setSuccessMessage('Tautan akun Telegram berhasil dilepas.');
+      setSuccessMessage('Telegram account unlinked successfully.');
 
     } catch (err) {
-      setError(err.message || 'Gagal melepas tautan Telegram.');
+      setError(err.message || 'Failed to unlink Telegram account.');
     } finally {
       setIsTelegramConnecting(false);
     }
@@ -224,11 +224,11 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const handleLinkEmailPassword = async (e) => {
     e.preventDefault();
     if (!newEmail || !newPassword) {
-      setError("Silakan isi email dan password baru.");
+      setError("Please fill in a new email and password.");
       return;
     }
     if (newPassword.length < 6) {
-        setError("Password harus terdiri dari minimal 6 karakter.");
+        setError("Password must be at least 6 characters long.");
         return;
     }
     setIsLinkingEmail(true);
@@ -242,7 +242,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       if (data.error) throw new Error(data.error);
 
       setSuccessMessage(data.message);
-      alert('Berhasil! Silakan login kembali dengan email dan password baru Anda.');
+      alert('Success! Please log in again with your new email and password.');
       onLogout();
       navigate('/login');
 
@@ -271,21 +271,21 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     return (
       <div className="page-content flex flex-col items-center justify-center text-center h-full pt-20">
         <FontAwesomeIcon icon={faSignInAlt} size="3x" className="mb-4 text-primary" />
-        <h2 className="text-2xl font-bold text-light-text dark:text-white">Anda Belum Login</h2>
+        <h2 className="text-2xl font-bold text-light-text dark:text-white">You Are Not Logged In</h2>
         <p className="text-light-subtle dark:text-gray-400 mt-2 mb-6">
-            Silakan login untuk melihat dan mengelola profil Anda.
+            Please log in to view and manage your profile.
         </p>
         <Link to="/login" className="btn-primary px-8 py-2">
-          Ke Halaman Login
+          Go to Login Page
         </Link>
       </div>
     );
   }
 
-  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profil berhasil diperbarui!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Gagal update profil."); } finally { setLoading(false); } };
+  const handleUpdateProfile = async (e) => { e.preventDefault(); clearMessages(); setLoading(true); try { const profileUpdate = { name: editName, username: editName, avatar_url: editAvatarUrl, updated_at: new Date() }; const { data, error: updateError } = await supabase.from('profiles').update(profileUpdate).eq('id', currentUser.id).select().single(); if (updateError) throw updateError; onUpdateUser(mapSupabaseDataToAppUser(currentUser, data)); setSuccessMessage(t.profileUpdateSuccess || "Profile updated successfully!"); setShowEditProfileModal(false); } catch (err) { setError(err.message || "Failed to update profile."); } finally { setLoading(false); } };
   const handleOpenEditProfileModal = () => { clearMessages(); setShowEditProfileModal(true); };
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
-  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Disalin!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Gagal'); }); };
+  const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Copied!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Failed'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
   
   const isDummyEmail = currentUser?.email?.endsWith('@telegram.user') || currentUser?.email?.endsWith('@wallet.afa-web3.com');
@@ -297,22 +297,21 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
       <ProfileHeader currentUser={currentUser} onEditClick={handleOpenEditProfileModal} onLogoutClick={onLogout} loading={loading} t={t} />
       
-      {/* --- [KARTU BARU] Tampil jika email adalah dummy --- */}
       {isDummyEmail && (
         <div className="card rounded-xl p-6 md:p-8 shadow-xl">
            <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
              <FontAwesomeIcon icon={faEnvelope} className="mr-3 text-primary" />
-             Amankan Akun Anda
+             Secure Your Account
            </h3>
            <p className="text-sm text-light-subtle dark:text-gray-400 mb-4">
-             Akun Anda dibuat melalui Telegram/Wallet. Tambahkan email dan password untuk bisa login di berbagai perangkat.
+             Your account was created via Telegram/Wallet. Add an email and password to enable traditional login.
            </p>
            <form onSubmit={handleLinkEmailPassword} className="space-y-4">
-             <InputField id="new_email" type="email" label="Email Baru" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="email.anda@example.com" parentLoading={isLinkingEmail} />
-             <InputField id="new_password" type="password" label="Password Baru" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimal 6 karakter" parentLoading={isLinkingEmail} />
+             <InputField id="new_email" type="email" label="New Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="your.email@example.com" parentLoading={isLinkingEmail} />
+             <InputField id="new_password" type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimum 6 characters" parentLoading={isLinkingEmail} />
              <div className="text-right">
                 <button type="submit" disabled={isLinkingEmail} className="btn-primary px-5 py-2">
-                  {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : 'Simpan Email & Password'}
+                  {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : 'Save Email & Password'}
                 </button>
              </div>
            </form>
@@ -322,12 +321,12 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
              <FontAwesomeIcon icon={faWallet} className="mr-3 text-primary" />
-             {t.walletManagementTitle || "Wallet Management"}
+             Wallet Management
          </h3>
          {currentUser.address ? (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex-grow">
-                    <p className="text-sm text-green-400 font-semibold">{t.walletConnected || "Wallet Connected"}</p>
+                    <p className="text-sm text-green-400 font-semibold">Wallet Connected</p>
                     <div className="flex items-center gap-2">
                        <p className="text-lg font-mono text-light-text dark:text-white break-all">{`${currentUser.address.substring(0, 6)}...${currentUser.address.substring(currentUser.address.length - 4)}`}</p>
                        <button onClick={() => handleCopyToClipboard(currentUser.address)} title={copySuccess || 'Copy address'} className="text-light-subtle dark:text-gray-400 hover:text-primary transition-colors">
@@ -337,21 +336,20 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 </div>
                 <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
-                    {t.unlinkWalletBtn || "Unlink Wallet"}
+                    Unlink Wallet
                 </button>
             </div>
          ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-light-subtle dark:text-gray-400">{t.walletNotLinked || "Your wallet is not linked."}</p>
+                <p className="text-light-subtle dark:text-gray-400">Your wallet is not linked.</p>
                 <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-primary text-white font-semibold py-2 px-5 rounded-lg flex items-center justify-center text-sm gap-2">
                     {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
-                    {t.linkWalletBtn || "Link Wallet"}
+                    Link Wallet
                 </button>
             </div>
          )}
       </div>
 
-      {/* --- [PERBAIKAN TAMPILAN] --- */}
       <div className="card rounded-xl p-6 md:p-8 shadow-xl">
          <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
              <FontAwesomeIcon icon={faTelegram} className="mr-3 text-sky-400" />
@@ -361,19 +359,25 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             {currentUser.telegram_user_id ? (
               <div className="w-full">
                 <div className="text-green-400 font-semibold text-center mb-4">
-                  <p>Akun Telegram sudah terhubung!</p>
-                  <p className="text-xs">(ID Pengguna: {currentUser.telegram_user_id})</p>
+                  <p>Telegram account linked!</p>
+                  <p className="text-xs">(User ID: {currentUser.telegram_user_id})</p>
                 </div>
                 <button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-300 font-semibold py-2 px-4 rounded-lg flex items-center justify-center text-sm gap-2 w-full max-w-xs mx-auto">
                     {isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
-                    Lepas Tautan Telegram
+                    Unlink Telegram
                 </button>
               </div>
             ) : (
+              // --- [PERUBAHAN UTAMA DI SINI] ---
+              // Menambahkan instruksi dan mengganti widget
               <>
-                <p className="text-light-subtle dark:text-gray-400 mb-4">Hubungkan akun Telegram Anda untuk mendapatkan notifikasi dan akses ke fitur eksklusif.</p>
+                <p className="text-light-subtle dark:text-gray-400 mb-4 max-w-md">
+                  Link your Telegram account to get notifications and access exclusive features.
+                  Click the button below to authorize via our official bot, <strong className="text-light-text dark:text-white">@afaweb3tool_bot</strong>.
+                </p>
                 <TelegramLoginWidget onTelegramAuth={handleTelegramAuth} loading={isTelegramConnecting} />
               </>
+              // --- Akhir Perubahan Utama ---
             )}
          </div>
       </div>
