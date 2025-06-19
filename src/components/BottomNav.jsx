@@ -1,4 +1,4 @@
-// src/components/BottomNav.jsx (Perbaikan Warna Teks)
+// src/components/BottomNav.jsx (Penyesuaian Warna Light Mode)
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
@@ -44,12 +44,12 @@ export default function BottomNav({ currentUser }) {
                   <FontAwesomeIcon 
                     icon={item.icon} 
                     className={`relative z-10 text-lg transition-colors duration-200
-                               ${isActive ? 'text-white' : 'text-light-text dark:text-dark-text group-hover:text-primary'}`} 
+                               ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-text group-hover:text-primary'}`} 
                   />
                 </div>
                 <span 
                   className={`text-xs mt-1 font-semibold transition-colors duration-200
-                             ${isActive ? 'text-primary' : 'text-light-text dark:text-dark-text'}`}
+                             ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-text'}`}
                 >
                   {getLabel(item)}
                 </span>
