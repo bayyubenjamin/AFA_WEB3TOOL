@@ -1,8 +1,7 @@
-// supabase/functions/verify-telegram-login/index.ts (Versi Final Diperbaiki)
+// supabase/functions/verify-telegram-login/index.ts (Versi Final dengan Pengambilan Profil)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-// --- [TAMBAHAN] Impor untuk membuat JWT ---
 import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.9.1/mod.ts'
 
 const corsHeaders = {
@@ -52,11 +51,10 @@ serve(async (req) => {
 
     let { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('id, email')
+      .select('*') // Ambil semua data profil untuk dikirim kembali
       .eq('telegram_user_id', telegramId)
       .single();
 
-    let userId: string;
     let authUser;
 
     if (profile) {
@@ -64,33 +62,43 @@ serve(async (req) => {
       const { data, error } = await supabaseAdmin.auth.admin.getUserById(profile.id);
       if (error) throw error;
       authUser = data.user;
-      userId = authUser.id;
     } else {
-      // Pengguna belum ada, buat pengguna baru
+      // --- [PERUBAHAN UTAMA] ---
+      // Pengguna belum ada, ambil detail profil dari Telegram sebelum membuat
       const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
       const tgUserRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChat?chat_id=${telegramId}`);
+      if (!tgUserRes.ok) throw new Error("Gagal mengambil data profil dari Telegram.");
       const tgUserData = await tgUserRes.json();
       
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: `${telegramId}@telegram.user`,
         email_confirm: true,
+        // Masukkan data awal ke user_metadata
+        user_metadata: {
+            name: `${tgUserData.result.first_name || ''} ${tgUserData.result.last_name || ''}`.trim(),
+            username: tgUserData.result.username,
+            // Anda bisa menyimpan URL foto profil di sini jika getChat memberikannya
+        }
       });
       if (createUserError) throw createUserError;
       
       authUser = newUser.user;
-      userId = authUser.id;
       
-      await supabaseAdmin.from('profiles').insert({
-        id: userId,
+      // Buat profil baru di tabel 'profiles' dengan data lengkap
+      const { data: newProfile, error: newProfileError } = await supabaseAdmin.from('profiles').insert({
+        id: authUser.id,
         telegram_user_id: telegramId,
-        name: `${tgUserData.result.first_name} ${tgUserData.result.last_name || ''}`.trim(),
-        username: tgUserData.result.username || `user${telegramId}`,
-        avatar_url: `https://ui-avatars.com/api/?name=${tgUserData.result.first_name}&background=7f5af0&color=fff`,
+        name: `${tgUserData.result.first_name || ''} ${tgUserData.result.last_name || ''}`.trim(),
+        username: tgUserData.result.username || `user_${telegramId}`,
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUserData.result.first_name || 'T')}&background=7f5af0&color=fff`,
         email: authUser.email,
-      });
+      }).select().single();
+
+      if (newProfileError) throw newProfileError;
+      profile = newProfile; // Set profil yang baru dibuat untuk digunakan di sesi
     }
 
-    // --- [PERUBAHAN UTAMA] Membuat JWT secara manual ---
+    // Buat JWT
     const jwtSecret = Deno.env.get('AFA_JWT_SECRET');
     if (!jwtSecret) throw new Error("Secret AFA_JWT_SECRET belum di-set.");
 
@@ -100,26 +108,24 @@ serve(async (req) => {
       false, ["sign", "verify"]
     );
     
-    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // Sesi berlaku 1 jam
+    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // 1 jam
 
     const accessToken = await create(
       { alg: "HS256", typ: "JWT" },
-      { sub: userId, aud: "authenticated", role: "authenticated", exp: expiration },
+      { sub: authUser.id, aud: "authenticated", role: "authenticated", exp: expiration },
       key
     );
-    // --- Akhir Perubahan Utama ---
 
-    // Buat objek sesi yang akan dikirim ke frontend
+    // Buat objek sesi lengkap
     const session = {
         access_token: accessToken,
         token_type: 'bearer',
         expires_in: 3600,
         expires_at: expiration,
-        user: authUser, // Kirim juga data pengguna
-        refresh_token: 'dummy-refresh-token' // Supabase-js butuh ini, bisa diisi dummy
+        user: { ...authUser, app_metadata: { ...authUser.app_metadata, profile } }, // Sisipkan profil ke dalam data user
+        refresh_token: 'dummy-refresh-token'
     }
 
-    // Kembalikan sesi yang sudah jadi
     return new Response(JSON.stringify(session), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
