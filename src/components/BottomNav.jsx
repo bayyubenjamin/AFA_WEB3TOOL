@@ -1,4 +1,4 @@
-// src/components/BottomNav.jsx
+// src/components/BottomNav.jsx (Perbaikan Tombol Hilang)
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
@@ -21,11 +21,14 @@ export default function BottomNav({ currentUser }) {
   const navItems = allNavItems.filter(item => !item.isPrivate || isLoggedIn);
   const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
+  // [PERBAIKAN]: Membuat nama class menjadi eksplisit agar terbaca oleh Tailwind.
+  // Ini akan menentukan apakah grid dibagi menjadi 3 atau 5 kolom.
+  const gridColsClass = navItems.length === 5 ? 'grid-cols-5' : 'grid-cols-3';
+
   return (
-    // [PERUBAHAN]: Ganti 'md:hidden' menjadi 'lg-desktop:hidden'
-    // Navigasi bawah ini sekarang akan hilang saat lebar layar mencapai 1100px atau lebih.
     <div className="fixed bottom-0 left-0 right-0 z-50 w-full px-2 sm:px-4 pb-2 lg-desktop:hidden">
-      <nav className={`max-w-md mx-auto h-16 px-2 grid grid-cols-${navItems.length} glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
+      {/* [PERBAIKAN]: Menggunakan variabel `gridColsClass` yang sudah pasti. */}
+      <nav className={`max-w-md mx-auto h-16 px-2 grid ${gridColsClass} glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
