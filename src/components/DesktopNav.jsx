@@ -18,8 +18,8 @@ export default function DesktopNav({ currentUser }) {
     { to: '/', label_id: 'Beranda', label_en: 'Home', isPrivate: false },
     { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
     { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false },
-    { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: true },
-    { to: '/profile', label_id: 'profil', label_en: 'Profile' },
+    { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
+    { to: '/profile', label_id: 'profil', label_en: 'Profile', isPrivate: false },
   ];
 
   // Filter item yang akan ditampilkan berdasarkan status login
