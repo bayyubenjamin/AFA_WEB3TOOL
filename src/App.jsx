@@ -103,7 +103,7 @@ export default function App() {
         console.error("Error during auth state change:", e);
         setCurrentUser(defaultGuestUserForApp);
       } finally {
-        setTimeout(() => setLoadingInitialSession(false), 300); 
+        setTimeout(() => setLoadingInitialSession(false), 500); 
       }
     };
     
@@ -168,40 +168,46 @@ export default function App() {
   const handleOpenWalletModal = () => setIsWalletModalOpen(true);
   
   return (
-    <div className="font-sans h-screen flex flex-col overflow-hidden">
-      {loadingInitialSession && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-dark/80 backdrop-blur-sm transition-opacity duration-300">
-          <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-          <span className="text-white">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
-        </div>
-      )}
+    <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
       
-      <div className={`h-full flex flex-col transition-opacity duration-300 ${loadingInitialSession ? 'opacity-0' : 'opacity-100'}`}>
-        {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
-        <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
-        <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
-          <Routes>
-            <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
-            <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-            <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
-            <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
-            <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-            <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
-            <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-            <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
-            <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-            <Route path="/admin" element={<PageAdminDashboard />} />
-            <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-            <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
-          </Routes>
-        </main>
-        {showNav && <BottomNav currentUser={currentUser} />}
+      {/* ===== Struktur Utama Aplikasi (selalu dirender) ===== */}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} />}
+      <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+      <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
+        <Routes>
+          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+          <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
+          <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+          <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+          <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+          <Route path="/admin" element={<PageAdminDashboard />} />
+          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+        </Routes>
+      </main>
+      {showNav && <BottomNav currentUser={currentUser} />}
+
+      {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
+      <div 
+        className={`
+          fixed inset-0 z-[9999] flex flex-col items-center justify-center 
+          bg-dark/70 backdrop-blur-sm 
+          transition-opacity duration-500
+          ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        `}
+      >
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
+        <span className="text-white">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
     </div>
   );
