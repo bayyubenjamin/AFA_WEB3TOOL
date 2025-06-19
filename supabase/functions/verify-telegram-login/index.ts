@@ -1,7 +1,9 @@
-// supabase/functions/verify-telegram-login/index.ts
+// supabase/functions/verify-telegram-login/index.ts (Versi Final Diperbaiki)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+// --- [TAMBAHAN] Impor untuk membuat JWT ---
+import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.9.1/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,7 +34,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // 1. Cari token di database
     const { data: request, error: requestError } = await supabaseAdmin
       .from('telegram_login_requests')
       .select('*')
@@ -41,31 +42,31 @@ serve(async (req) => {
 
     if (requestError || !request) throw new Error("Token tidak valid atau tidak ditemukan.");
     
-    // 2. Hapus token agar tidak bisa digunakan lagi
     await supabaseAdmin.from('telegram_login_requests').delete().eq('id', request.id);
 
-    // 3. Cek apakah token sudah kedaluwarsa
     if (new Date(request.expires_at) < new Date()) {
       throw new Error("Token sudah kedaluwarsa. Silakan coba lagi.");
     }
     
     const telegramId = request.telegram_id;
 
-    // 4. Logika untuk mencari atau membuat pengguna (mirip dengan fungsi sebelumnya)
     let { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('id, name, username, avatar_url, email')
+      .select('id, email')
       .eq('telegram_user_id', telegramId)
       .single();
 
     let userId: string;
-    let userEmail: string;
+    let authUser;
 
     if (profile) {
-      userId = profile.id;
-      userEmail = profile.email;
+      // Pengguna sudah ada, ambil data auth-nya
+      const { data, error } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+      if (error) throw error;
+      authUser = data.user;
+      userId = authUser.id;
     } else {
-      // Dapatkan data user dari Telegram API untuk membuat profil yang lebih baik
+      // Pengguna belum ada, buat pengguna baru
       const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
       const tgUserRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChat?chat_id=${telegramId}`);
       const tgUserData = await tgUserRes.json();
@@ -75,9 +76,9 @@ serve(async (req) => {
         email_confirm: true,
       });
       if (createUserError) throw createUserError;
-
-      userId = newUser.user.id;
-      userEmail = newUser.user.email!;
+      
+      authUser = newUser.user;
+      userId = authUser.id;
       
       await supabaseAdmin.from('profiles').insert({
         id: userId,
@@ -85,19 +86,41 @@ serve(async (req) => {
         name: `${tgUserData.result.first_name} ${tgUserData.result.last_name || ''}`.trim(),
         username: tgUserData.result.username || `user${telegramId}`,
         avatar_url: `https://ui-avatars.com/api/?name=${tgUserData.result.first_name}&background=7f5af0&color=fff`,
-        email: userEmail,
+        email: authUser.email,
       });
     }
 
-    // 5. Buat sesi untuk pengguna
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: userEmail,
-    });
-    
-    if (sessionError) throw sessionError;
+    // --- [PERUBAHAN UTAMA] Membuat JWT secara manual ---
+    const jwtSecret = Deno.env.get('AFA_JWT_SECRET');
+    if (!jwtSecret) throw new Error("Secret AFA_JWT_SECRET belum di-set.");
 
-    return new Response(JSON.stringify(sessionData), {
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(jwtSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false, ["sign", "verify"]
+    );
+    
+    const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // Sesi berlaku 1 jam
+
+    const accessToken = await create(
+      { alg: "HS256", typ: "JWT" },
+      { sub: userId, aud: "authenticated", role: "authenticated", exp: expiration },
+      key
+    );
+    // --- Akhir Perubahan Utama ---
+
+    // Buat objek sesi yang akan dikirim ke frontend
+    const session = {
+        access_token: accessToken,
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: expiration,
+        user: authUser, // Kirim juga data pengguna
+        refresh_token: 'dummy-refresh-token' // Supabase-js butuh ini, bisa diisi dummy
+    }
+
+    // Kembalikan sesi yang sudah jadi
+    return new Response(JSON.stringify(session), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
