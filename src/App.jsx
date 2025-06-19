@@ -178,14 +178,9 @@ export default function App() {
     } catch (e) { console.error("Error saving updated user to LS in App:", e); }
   };
 
-  // --- [PERUBAHAN UTAMA DI SINI] ---
-  // Terapkan padding bawah hanya di mobile (sampai breakpoint `md`)
-  // Jika di forum, padding bawah 0. Jika tidak, terapkan padding untuk bottom nav,
-  // tapi set ke 0 untuk layar desktop (md:pb-0)
   const mainPaddingBottomClass = location.pathname === '/forum' 
     ? 'pb-0' 
     : 'pb-[var(--bottomnav-height)] md:pb-0';
-  // --- AKHIR PERUBAHAN ---
 
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');

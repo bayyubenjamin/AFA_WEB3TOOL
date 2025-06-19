@@ -29,7 +29,7 @@ export default function DesktopNav({ currentUser }) {
 
   return (
     // 'hidden' secara default, dan 'flex' pada layar medium (md) ke atas
-    <nav className="hidden md:flex items-center gap-2 lg:gap-4">
+    <nav className="hidden md:flex items-center gap-1 lg:gap-2">
       {navItems.map((item) => (
         <NavLink
           key={item.to}
