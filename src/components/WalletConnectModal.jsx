@@ -23,7 +23,7 @@ const getConnectorName = (connector) => {
   if (name === 'MetaMask') return 'MetaMask';
   if (name === 'WalletConnect') return 'WalletConnect';
   if (name === 'Brave Wallet') return 'Brave Wallet';
-  // Fallback untuk dompet injected lain yang mungkin tidak memiliki rdns
+  // Fallback for other injected wallets that may not have rdns
   if (name === 'Injected') return 'Brave Wallet';
   return name;
 };
@@ -93,7 +93,7 @@ export default function WalletConnectModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // [PERBAIKAN] Logika untuk menyaring duplikat berdasarkan nama
+  // [CORRECTION] Logic to filter out duplicate names
   const uniqueConnectors = [];
   const seenNames = new Set();
   
@@ -116,7 +116,7 @@ export default function WalletConnectModal({ isOpen, onClose }) {
         </div>
         <div className="wallet-connect-body">
           <div className="flex flex-col gap-2">
-            {/* [MODIFIKASI] Gunakan array yang sudah disaring */}
+            {/* [MODIFICATION] Use the filtered array */}
             {uniqueConnectors.map((connector) => (
               <WalletButton key={connector.uid} connector={connector} onClose={onClose} />
             ))}
