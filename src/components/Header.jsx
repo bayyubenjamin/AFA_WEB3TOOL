@@ -1,4 +1,4 @@
-// src/components/Header.jsx (VERSI FINAL SETELAH DIPINDAHKAN)
+// src/components/Header.jsx (VERSI DESAIN PREMIUM)
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,7 +9,6 @@ import { useTheme } from "../context/ThemeContext";
 
 const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
 
-// [MODIFIKASI] Terima prop isHeaderVisible dari App.jsx
 export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -17,8 +16,6 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
   const navigate = useNavigate();
-
-  // [DIHAPUS] Logika scroll useEffect sudah tidak ada di sini lagi.
 
   const toggleOptionsMenu = () => setIsOptionsMenuOpen(prev => !prev);
 
@@ -80,13 +77,14 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
   };
 
   return (
-    // [MODIFIKASI] Menggunakan prop isHeaderVisible untuk menentukan class
-    <header className={`fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
+    // [MODIFIKASI] Menambahkan kelas .header-premium dan mengganti beberapa style
+    <header className={`header-premium fixed top-0 left-0 right-0 z-[60] h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
       <div className="flex items-center flex-1 min-w-0">
+        {/* [MODIFIKASI] Logo dibuat interaktif */}
         <img
           src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
           alt="Logo AFA"
-          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0"
+          className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0 header-interactive-item"
         />
         {onlineUsers > 0 && (
           <div className="ml-4 flex items-center">
@@ -102,29 +100,32 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
         )}
       </div>
 
+      {/* [MODIFIKASI] Mengganti style judul */}
       <h1
         id="headerTitle"
-        className="text-xl sm:text-2xl font-bold futuristic-text-gradient mx-4 text-center"
+        className="text-xl sm:text-2xl mx-4 text-center header-title-premium"
       >
         {title}
       </h1>
       
       <div className="flex-1 flex justify-end items-center gap-2">
+        {/* [MODIFIKASI] Ikon Forum dibuat interaktif */}
         <Link
           to="/forum"
-          className="p-2 w-10 h-10 flex items-center justify-center"
+          className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item"
           aria-label="Forum"
         >
-          <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
+          <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
         </Link>
         
         <div className="relative" ref={menuRef}>
+          {/* [MODIFIKASI] Tombol Menu dibuat interaktif */}
           <button
             onClick={toggleOptionsMenu}
-            className="p-2 w-10 h-10 flex items-center justify-center"
+            className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item"
             aria-label="Menu Opsi"
           >
-            <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white transition-colors duration-200" />
+            <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
           </button>
           
           <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
