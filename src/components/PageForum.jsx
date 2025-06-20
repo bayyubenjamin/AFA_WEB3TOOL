@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx (REDESIGNED V3 - Final Keyboard Fix)
+// src/components/PageForum.jsx (REDESIGNED V4 - Real-time Send Fix)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -106,13 +106,16 @@ export default function PageForum({ currentUser }) {
     fetchMessages();
     const channel = supabase.channel('forum-messages-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
-        fetchProfiles(new Set([payload.new.user_id]));
+        // Hanya tambahkan pesan jika bukan dari pengguna saat ini, karena kita sudah menanganinya secara lokal
+        if (payload.new.user_id !== currentUser?.id) {
+          setMessages(prev => [...prev, payload.new]);
+          fetchProfiles(new Set([payload.new.user_id]));
+        }
       })
       .subscribe();
       
     return () => supabase.removeChannel(channel);
-  }, [fetchMessages, fetchProfiles]);
+  }, [fetchMessages, fetchProfiles, currentUser?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -123,15 +126,25 @@ export default function PageForum({ currentUser }) {
     if (newMessage.trim() === "" || !currentUser || !currentUser.id || sending) return;
     
     setSending(true);
-    const { error: insertError } = await supabase.from('messages').insert([{
+    
+    const messageToSend = {
       content: newMessage.trim(),
       user_id: currentUser.id,
       channel_id: 'general' 
-    }]);
+    };
+
+    // PERBAIKAN KUNCI: Gunakan .select() untuk mendapatkan data yang baru saja dikirim
+    const { data: insertedMessage, error: insertError } = await supabase
+        .from('messages')
+        .insert(messageToSend)
+        .select()
+        .single(); // .single() untuk mendapatkan objek, bukan array
 
     if (insertError) {
       alert((t.sendMessageError || "Failed to send message: ") + insertError.message); 
-    } else {
+    } else if (insertedMessage) {
+      // PERBAIKAN KUNCI: Langsung tambahkan pesan baru ke state lokal
+      setMessages(prevMessages => [...prevMessages, insertedMessage]);
       setNewMessage("");
       setTimeout(() => scrollToBottom("smooth"), 100);
     }
@@ -139,10 +152,8 @@ export default function PageForum({ currentUser }) {
   };
 
   return (
-    // PERBAIKAN FINAL: Menghitung tinggi secara dinamis untuk mengakomodasi BottomNav di mobile.
     <div className="flex flex-col h-[calc(100%-var(--bottomnav-height))] lg-desktop:h-full overflow-hidden">
       
-      {/* Container Pesan */}
       <div className="flex-grow overflow-y-auto px-2 md:px-4 pt-4">
           {loading && (
               <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500">
@@ -177,7 +188,6 @@ export default function PageForum({ currentUser }) {
           <div ref={messagesEndRef} />
       </div>
 
-      {/* Form Input */}
       <div className="flex-shrink-0 p-3 md:p-4 mt-2 bg-light-bg dark:bg-dark">
           <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
               <input 
