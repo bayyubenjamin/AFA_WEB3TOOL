@@ -1,11 +1,11 @@
-// src/components/PageProfile.jsx (Desain Ulang Premium)
+// src/components/PageProfile.jsx (Desain Ulang Premium - Revisi Final)
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartSimple, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
-  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved
+  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear // <-- [TAMBAHKAN] Ikon baru
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
@@ -19,7 +19,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
 // ====================================================================================
-// SUB-KOMPONEN BARU UNTUK DESAIN YANG LEBIH BAIK
+// SUB-KOMPONEN
 // ====================================================================================
 
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
@@ -54,6 +54,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const isLoggedIn = !!(currentUser && currentUser.id);
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- [BARU] State untuk dropdown settings
   const [editName, setEditName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,20 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const navigate = useNavigate();
+  const settingsMenuRef = useRef(null); // <-- [BARU] Ref untuk menu dropdown
+
+  // [BARU] Logika untuk menutup dropdown saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
@@ -248,7 +263,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       
       {/* Kolom Kiri: Konten Utama */}
       <div className="lg:col-span-2 flex flex-col gap-6 md:gap-8">
-        {/* Pesan Error & Sukses */}
         {(error || successMessage) && (
             <div className={`max-w-full p-4 mb-0 text-sm rounded-lg text-center ${error ? 'text-red-300 bg-red-800/50' : 'text-green-300 bg-green-800/50'}`}>
                 {error || successMessage}
@@ -256,7 +270,31 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         )}
 
         {/* Header Profil */}
-        <div className="card rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
+        <div className="card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
+             {/* [REVISI] Tombol Setting di Pojok Kanan Atas */}
+             <div className="absolute top-4 right-4" ref={settingsMenuRef}>
+                 <button 
+                     onClick={() => setIsSettingsOpen(p => !p)}
+                     className="h-10 w-10 flex items-center justify-center text-light-subtle dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                     aria-label="Profile Settings"
+                 >
+                     <FontAwesomeIcon icon={faGear} />
+                 </button>
+                 {/* [REVISI] Dropdown Menu */}
+                 <div className={`options-menu ${isSettingsOpen ? 'active' : ''}`}>
+                    <ul>
+                        <li onClick={() => { handleOpenEditProfileModal(); setIsSettingsOpen(false); }}>
+                            <FontAwesomeIcon icon={faEdit} />
+                            {t.editProfileBtnSave || 'Edit Profile'}
+                        </li>
+                        <li onClick={() => { onLogout(); setIsSettingsOpen(false); }} className="text-red-500 dark:text-red-400">
+                            <FontAwesomeIcon icon={faSignOutAlt} />
+                            {t.logoutBtn || 'Logout'}
+                        </li>
+                    </ul>
+                 </div>
+             </div>
+
             <img
                 src={currentUser.avatar_url}
                 alt="User Avatar"
@@ -274,16 +312,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     </button>
                   </div>
                 )}
-            </div>
-            <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-center gap-3 mt-4 md:mt-0 ml-auto">
-                <button onClick={handleOpenEditProfileModal} className="btn-secondary text-sm px-5 py-2 w-full sm:w-auto flex items-center justify-center gap-2">
-                    <FontAwesomeIcon icon={faEdit} />
-                    <span>{t.editProfileBtnSave || 'Edit Profile'}</span>
-                </button>
-                <button onClick={onLogout} disabled={loading} className="btn-danger text-sm px-5 py-2 w-full sm:w-auto flex items-center justify-center gap-2">
-                    {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSignOutAlt} />}
-                    <span>{t.logoutBtn || 'Logout'}</span>
-                </button>
             </div>
         </div>
 
@@ -387,7 +415,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                      )}
                   </div>
                </li>
-
             </ul>
          </div>
       </div>
