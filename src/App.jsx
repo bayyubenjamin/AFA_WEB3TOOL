@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 
+// [PERBAIKAN] Impor hook `useWeb3Modal` untuk membuka modal resmi
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+
 // Impor semua komponen halaman
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -21,7 +24,7 @@ import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
-import WalletConnectModal from "./components/WalletConnectModal";
+// import WalletConnectModal from "./components/WalletConnectModal"; // [DIHAPUS] Tidak lagi digunakan
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
@@ -83,7 +86,6 @@ export default function App() {
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -92,6 +94,8 @@ export default function App() {
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  // [PERBAIKAN] Dapatkan fungsi `open` dari `useWeb3Modal`
+  const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
   const handleScroll = (event) => {
@@ -234,14 +238,16 @@ export default function App() {
 
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
-  const handleOpenWalletModal = () => setIsWalletModalOpen(true);
+  
+  // [PERBAIKAN] Handler ini sekarang langsung memanggil fungsi `open` dari `useWeb3Modal`
+  const handleOpenWalletModal = () => openWalletModal();
   
   return (
     <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
       
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
       
-      <WalletConnectModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
+      {/* [DIHAPUS] Modal kustom tidak lagi dirender di sini */}
       
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
