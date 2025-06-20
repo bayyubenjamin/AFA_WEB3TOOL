@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx (REDESIGNED FOR UNDERGROUND HACKER THEME)
+// src/components/PageForum.jsx (FINAL FIX - EXPLICIT QUERY)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -43,14 +43,25 @@ export default function PageForum({ currentUser }) {
   };
 
   const fetchMessages = useCallback(async () => {
-    // MODIFICATION: No need to fetch avatar_url anymore
+    // ========================================================================
+    // ======================= PERUBAHAN UTAMA DI SINI ========================
+    // ========================================================================
+    // Query ini lebih eksplisit dan tidak bergantung pada deteksi relasi otomatis
+    // oleh Supabase, sehingga lebih tahan terhadap masalah konfigurasi.
     const { data, error: fetchError } = await supabase
       .from('messages')
-      .select(`*, profiles (username)`) // Only select username
+      .select(`
+        *,
+        profile:profiles (username)
+      `)
       .order('created_at', { ascending: true })
       .limit(500);
+    // ========================================================================
+    // ======================= AKHIR PERUBAHAN UTAMA ==========================
+    // ========================================================================
 
     if (fetchError) {
+      console.error('PageForum - Error fetching messages:', fetchError);
       setError(t.errorFetch || "Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar.");
     } else {
       setMessages(data);
@@ -65,6 +76,7 @@ export default function PageForum({ currentUser }) {
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') { setError(null); }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.error(`PageForum: Realtime subscription failed! Status: ${status}`, err);
           setError(t.errorRealtime || "REALTIME CONNECTION FAILED");
         }
       });
@@ -72,7 +84,9 @@ export default function PageForum({ currentUser }) {
   }, [fetchMessages, t]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const handleSendMessage = async (e) => {
@@ -127,7 +141,8 @@ export default function PageForum({ currentUser }) {
                 <div className="space-y-2">
                     {messages.map(msg => {
                         const isCurrentUser = msg.user_id === currentUser?.id;
-                        const senderName = isCurrentUser ? (currentUser.username || 'you') : (msg.profiles?.username || 'guest');
+                        // PERUBAHAN KECIL: Mengakses username melalui alias 'profile'
+                        const senderName = isCurrentUser ? (currentUser.username || 'you') : (msg.profile?.username || 'guest');
                         return (
                             <div key={msg.id} className="flex text-sm leading-tight">
                                 <span className={`${terminalGray} flex-shrink-0`}>[{formatTimestamp(msg.created_at)}]</span>
