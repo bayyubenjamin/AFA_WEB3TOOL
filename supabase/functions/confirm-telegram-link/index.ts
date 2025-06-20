@@ -1,4 +1,4 @@
-// supabase/functions/confirm-telegram-link/index.ts (Versi Final)
+// supabase/functions/confirm-telegram-link/index.ts (Versi Final dengan Pengambilan Foto Profil)
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -30,8 +30,6 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // ================== PERUBAHAN KUNCI DI SINI ==================
-    // 1. Dapatkan user yang sedang login dari token otentikasi di header
     const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -39,8 +37,6 @@ serve(async (req) => {
     );
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error("Akses ditolak. Anda harus login untuk melakukan aksi ini.");
-    // Sekarang kita punya user.id yang pasti valid dari sisi server
-    // =============================================================
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -71,15 +67,32 @@ serve(async (req) => {
         throw new Error("Kode verifikasi tidak ditemukan. Pastikan Anda telah mengirim kode yang benar ke bot @afaweb3tool_bot.");
     }
 
+    // --- [LOGIKA BARU] ---
+    // Ambil detail profil dari Telegram untuk mendapatkan foto
+    const tgChatRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChat?chat_id=${foundTelegramUser.id}`);
+    if (!tgChatRes.ok) throw new Error("Gagal mengambil data profil dari Telegram.");
+    const tgChatData = await tgChatRes.json();
+
+    let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(foundTelegramUser.first_name || 'T')}&background=7f5af0&color=fff`; // Fallback
+    if (tgChatData.result.photo) {
+        const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${tgChatData.result.photo.small_file_id}`);
+        if(fileRes.ok) {
+            const fileData = await fileRes.json();
+            avatarUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
+        }
+    }
+    // --- [AKHIR LOGIKA BARU] ---
+
     const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({ 
             telegram_id: foundTelegramUser.id,
             telegram_handle: foundTelegramUser.username || null,
+            avatar_url: avatarUrl, // <-- [PERUBAHAN] Simpan URL foto profil
             telegram_verification_code: null, 
             telegram_code_expires_at: null
         })
-        .eq('id', user.id); // Gunakan user.id yang didapat dari server
+        .eq('id', user.id);
 
     if (updateError) throw updateError;
     
