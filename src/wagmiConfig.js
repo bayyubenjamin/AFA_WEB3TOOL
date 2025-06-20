@@ -3,7 +3,7 @@ import { http, createConfig, createStorage } from 'wagmi';
 import { mainnet, sepolia } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
-export const walletConnectProjectId = '3a2a849d44557c3d79a296d93333604a';
+export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
 
 const metadata = {
   name: 'AFA Web3Tool',
