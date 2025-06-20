@@ -17,40 +17,25 @@
     "events": "Event"
   },
   "homePage": {
-    // [REVISI] Judul utama yang lebih profesional
     "heroTitle": "Navigasi Masa Depan Reward Web3",
-    // [REVISI] Subjudul dengan gaya bahasa yang lebih premium
     "heroSubtitle": "Sebuah platform tunggal yang dirancang untuk para antusias sejati. Temukan, kelola, dan klaim airdrop paling menjanjikan dengan efisiensi dan wawasan tak tertandingi.",
     "mintCta": "Mint AFA Identity Anda",
-    // [REVISI] Judul bagian fitur
     "featuresTitle": "Direkayasa untuk Keunggulan",
-    // [REVISI] Subjudul bagian fitur
     "featuresSubtitle": "Fitur-fitur inti yang dirancang untuk meningkatkan strategi airdrop Anda dari hobi menjadi keahlian.",
-    // [REVISI] Judul fitur 1
     "feature1Title": "Airdrop Terkurasi",
-    // [REVISI] Deskripsi fitur 1
     "feature1Description": "Temukan dan berpartisipasi dalam airdrop dari proyek Web3 paling menjanjikan, yang telah terverifikasi potensinya.",
     "feature1Action": "Jelajahi Airdrop",
-    // [REVISI] Judul fitur 2
     "feature2Title": "Kelola Portofolio Anda",
-    // [REVISI] Deskripsi fitur 2
     "feature2Description": "Lacak semua progres airdrop dan tugas Anda dengan mudah dalam satu dasbor terpusat yang intuitif.",
     "feature2Action": "Lihat Garapanku",
-    // [REVISI] Judul fitur 3
     "feature3Title": "Wawasan Komunitas",
-    // [REVISI] Deskripsi fitur 3
     "feature3Description": "Bergabunglah dengan komunitas para pemikir maju. Diskusikan strategi dan dapatkan info 'alpha' terbaru.",
     "feature3Action": "Kunjungi Forum",
-    // [REVISI] Judul fitur 4
     "feature4Title": "Event Eksklusif",
-    // [REVISI] Deskripsi fitur 4
     "feature4Description": "Dapatkan akses ke giveaway token dan acara komunitas eksklusif, khusus untuk anggota kami.",
     "feature4Action": "Ikuti Event",
-    // [REVISI] Judul CTA terakhir
     "joinCtaTitle": "Gerbang Anda Menuju Dunia Terdesentralisasi",
-    // [REVISI] Subjudul CTA terakhir
     "joinCtaSubtitle": "Masa depan nilai ada di sini. Buat akun Anda dan mulailah perjalanan bersama AFA Web3Tool.",
-    // [REVISI] Teks tombol CTA terakhir
     "startNow": "Buat Akun Anda"
   },
   "myWorkPage": {
