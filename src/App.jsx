@@ -54,7 +54,6 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-// [FUNGSI BARU] Untuk membuat profil jika tidak ada
 const createProfileForUser = async (user) => {
     try {
         console.log(`Creating missing profile for user: ${user.id}`);
@@ -74,7 +73,7 @@ const createProfileForUser = async (user) => {
         return data;
     } catch (creationError) {
         console.error("Error creating missing profile:", creationError);
-        return null; // Return null jika gagal
+        return null;
     }
 };
 
@@ -118,29 +117,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const handleAuthChange = async (event, session) => {
-      // **[MODIFIKASI LOGOUT]** Tangani event SIGNED_OUT secara spesifik
-      if (event === 'SIGNED_OUT') {
-        setCurrentUser(defaultGuestUserForApp);
-        localStorage.removeItem(LS_CURRENT_USER_KEY);
-        
-        // Jika logout dilakukan secara manual di desktop, arahkan ke halaman login
-        if (sessionStorage.getItem('explicitlyLoggedOut') === 'true') {
-          sessionStorage.removeItem('explicitlyLoggedOut'); // Hapus penanda
-          
-          const isMiniApp = !!(window.Telegram && window.Telegram.WebApp);
-          if (!isMiniApp) {
-            navigate('/login', { replace: true });
-          }
-        }
-        return; // Hentikan proses
-      }
-
-      // Tangani event SIGNED_IN atau saat sesi awal terdeteksi
-      if (session && session.user) {
-        try {
+    setLoadingInitialSession(true);
+    
+    const handleAuthChange = async (session) => {
+      try {
+        if (session && session.user) {
           let { data: profile, error: profileError } = await supabase
-            .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
 
           if (profileError) throw profileError;
 
@@ -156,34 +142,35 @@ export default function App() {
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
-          
+
           if (location.pathname === '/login-telegram' || location.pathname === '/login' || location.pathname === '/register') {
             navigate('/', { replace: true });
           }
-        } catch (e) {
-          console.error("Error processing user session:", e);
+        } else {
           setCurrentUser(defaultGuestUserForApp);
           localStorage.removeItem(LS_CURRENT_USER_KEY);
         }
-      } else {
-        // Tidak ada sesi yang ditemukan
+      } catch (e) {
+        console.error("Error during auth state change:", e);
         setCurrentUser(defaultGuestUserForApp);
         localStorage.removeItem(LS_CURRENT_USER_KEY);
+      } finally {
+        setLoadingInitialSession(false);
       }
     };
     
-    setLoadingInitialSession(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      handleAuthChange(event, session);
-      // Hentikan loading setelah event otentikasi pertama diterima
-      setLoadingInitialSession(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleAuthChange(session);
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthChange(session);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [navigate, location.pathname]);
-
+  }, [navigate]);
 
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
@@ -213,17 +200,21 @@ export default function App() {
     }
   }, [location.pathname, loadingInitialSession]);
 
+  // **[FUNGSI LOGOUT DIPERBAIKI]**
   const handleLogout = async () => {
-    // Beri penanda bahwa logout ini disengaja oleh pengguna
-    sessionStorage.setItem('explicitlyLoggedOut', 'true');
     await supabase.auth.signOut();
     disconnect();
 
-    // **[MODIFIKASI LOGOUT]** Logika Mini App tetap di sini, tapi navigasi desktop dihapus
+    // Hapus data pengguna dari local storage untuk memastikan state bersih
+    localStorage.removeItem(LS_CURRENT_USER_KEY);
+    
+    // Logika untuk Mini App (tetap sama)
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close) {
       window.Telegram.WebApp.close();
+    } else {
+      // Untuk browser desktop, lakukan hard refresh ke halaman login
+      window.location.href = '/login';
     }
-    // Untuk desktop, onAuthStateChange listener yang akan menangani navigasi
   };
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
@@ -276,7 +267,7 @@ export default function App() {
       <div 
         className={`
           fixed inset-0 z-[9999] flex flex-col items-center justify-center
-          transition-opacity duration-500 bg-dark/80 backdrop-blur-sm
+          transition-opacity duration-500
           ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
       >
