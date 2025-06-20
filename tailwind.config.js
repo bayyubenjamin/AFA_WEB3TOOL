@@ -1,12 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // Mengaktifkan mode gelap berbasis class
+  // [BAGIAN PENTING 1] Opsi untuk mengaktifkan mode gelap via class 'dark'
   darkMode: 'class',
 
+  // [BAGIAN PENTING 2] Path ke file-file yang menggunakan class Tailwind
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+
+  // Bagian yang Anda berikan sudah benar
   theme: {
     extend: {
       screens: {
@@ -15,16 +18,11 @@ export default {
       colors: {
         'primary': '#7F5AF0',
         'secondary': '#2CB67D',
-        
-        // [PERBAIKAN]: Mengembalikan warna dark mode ke hitam pekat asli
         'dark': '#0a0a1a',      // Latar belakang utama
         'card': '#101020',      // Latar belakang kartu/komponen
-
         'dark-stroke': '#72757E',
         'dark-text': '#FFFFFE',
         'dark-subtle': '#94A1B2',
-
-        // Skema Warna Light Mode (sudah benar)
         'light-bg': '#F9F9F9', 
         'light-card': '#ffffff',
         'light-text': '#242629',
@@ -56,8 +54,9 @@ export default {
       }
     },
   },
+
+  // Bagian ini juga sudah benar
   plugins: [
     require('@tailwindcss/typography'),
   ],
 }
-

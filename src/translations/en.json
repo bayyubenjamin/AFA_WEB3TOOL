@@ -17,26 +17,26 @@
     "events": "Events"
   },
   "homePage": {
-    "heroTitle": "Maximize Your Airdrop Potential",
-    "heroSubtitle": "Welcome to AIRDROP FOR ALL! Your integrated platform to discover, manage, and claim Web3 airdrops smarter and more efficiently.",
+    "heroTitle": "Navigate the Future of Web3 Rewards",
+    "heroSubtitle": "A singular platform designed for the discerning enthusiast. Discover, manage, and claim the most promising airdrops with unparalleled efficiency and insight.",
     "mintCta": "Mint Your AFA Identity",
-    "featuresTitle": "At AFA WEB3TOOL!",
-    "featuresSubtitle": "We provide everything you need to succeed in the airdrop world.",
-    "feature1Title": "Latest Airdrops",
-    "feature1Description": "Discover and participate in airdrops from the most promising Web3 projects.",
+    "featuresTitle": "Engineered for Excellence",
+    "featuresSubtitle": "Core features designed to elevate your airdrop strategy from hobby to mastery.",
+    "feature1Title": "Curated Airdrops",
+    "feature1Description": "Discover and participate in airdrops from the most promising Web3 projects, vetted for potential.",
     "feature1Action": "Explore Airdrops",
-    "feature2Title": "Manage My Work",
-    "feature2Description": "Easily track all your airdrop progress in one centralized place.",
+    "feature2Title": "Manage Your Portfolio",
+    "feature2Description": "Effortlessly track all your airdrop progress and tasks in one centralized, intuitive dashboard.",
     "feature2Action": "View My Work",
-    "feature3Title": "Community Forum",
-    "feature3Description": "Join the community, discuss, and get the latest tips about airdrops.",
+    "feature3Title": "Community Insights",
+    "feature3Description": "Join a community of forward-thinkers. Discuss strategies and get the latest alpha on upcoming drops.",
     "feature3Action": "Visit Forum",
-    "feature4Title": "Special Events",
-    "feature4Description": "Don't miss our exclusive giveaways and events for community members!",
+    "feature4Title": "Exclusive Events",
+    "feature4Description": "Gain access to exclusive token giveaways and community events, reserved for our members.",
     "feature4Action": "Join Events",
-    "joinCtaTitle": "Ready to Start Your Airdrop Journey?",
-    "joinCtaSubtitle": "Don't miss out. Join Airdrop For All now!",
-    "startNow": "Start Now"
+    "joinCtaTitle": "Your Gateway to the Decentralized Frontier",
+    "joinCtaSubtitle": "The future of value is here. Create your account and begin your journey with AFA Web3Tool.",
+    "startNow": "Create Your Account"
   },
   "myWorkPage": {
     "loading": "Loading My Work Data...",
@@ -232,4 +232,3 @@
     "tasksCompleteMessage": "You have participated! Winners will be announced on our official channels."
   }
 }
-
