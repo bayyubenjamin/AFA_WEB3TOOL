@@ -1,7 +1,7 @@
-// src/components/PageForum.jsx (FINAL FIX 3 - STABLE QUERY + MOBILE KEYBOARD FIX)
+// src/components/PageForum.jsx (REDESIGNED FOR PREMIUM LOOK)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
+import { faPaperPlane, faSpinner, faExclamationTriangle, faComments } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from '../supabaseClient';
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -11,164 +11,198 @@ const getTranslations = (lang) => {
     return lang === 'id' ? translationsId : translationsEn;
 };
 
-// --- Helper Functions ---
-const formatTimestamp = (isoString) => {
-    if (!isoString) return '';
-    try {
-        return new Date(isoString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch (e) {
-        return "timestamp_error";
-    }
-};
+// --- Komponen Pesan (Message Bubble) ---
+const Message = React.memo(({ msg, isCurrentUser, profile }) => {
+    const senderName = isCurrentUser ? (profile?.username || 'You') : (profile?.username || 'guest');
+    const avatarUrl = profile?.avatar_url || `https://ui-avatars.com/api/?name=${senderName.charAt(0)}&background=random`;
 
-const GlitchText = ({ text }) => (
-    <span className="glitch" data-text={text}>{text}</span>
-);
+    return (
+        <div className={`flex items-start gap-3 my-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+            {!isCurrentUser && (
+                <img src={avatarUrl} alt={senderName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+            )}
+            <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                <div className={`
+                    px-4 py-2.5 rounded-2xl max-w-xs md:max-w-md
+                    ${isCurrentUser 
+                        ? 'bg-primary text-white rounded-br-none' 
+                        : 'bg-light-card dark:bg-card border border-black/10 dark:border-white/10 text-light-text dark:text-white rounded-bl-none'
+                    }
+                `}>
+                    {!isCurrentUser && (
+                         <p className="text-xs font-bold text-primary mb-1">{senderName}</p>
+                    )}
+                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                </div>
+                 <p className="text-xs text-light-subtle dark:text-gray-500 mt-1.5 px-1">
+                    {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+            </div>
+             {isCurrentUser && (
+                <img src={avatarUrl} alt={senderName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+            )}
+        </div>
+    );
+});
+Message.displayName = 'Message';
 
-// --- Main Component ---
+
+// --- Komponen Utama Forum ---
 export default function PageForum({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).forumPage || {}; 
 
   const [messages, setMessages] = useState([]);
+  const [profiles, setProfiles] = useState({});
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const messageInputRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  
+  const scrollToBottom = (behavior = "auto") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  const fetchProfiles = useCallback(async (userIds) => {
+    const idsToFetch = [...userIds].filter(id => !profiles[id]);
+    if (idsToFetch.length === 0) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', idsToFetch);
+
+    if (!error && data) {
+      const newProfiles = data.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {});
+      setProfiles(prev => ({ ...prev, ...newProfiles }));
+    }
+  }, [profiles]);
+
   const fetchMessages = useCallback(async () => {
-    // Menggunakan query yang lebih stabil dan eksplisit
     const { data, error: fetchError } = await supabase
       .from('messages')
       .select(`*`)
       .order('created_at', { ascending: true })
-      .limit(500);
+      .limit(100);
 
     if (fetchError) {
       console.error('PageForum - Error fetching messages:', fetchError);
-      setError(t.errorFetch || "Gagal memuat pesan. Pastikan RLS Policy untuk SELECT sudah benar.");
+      setError(t.errorFetch || "Failed to load messages.");
     } else {
       setMessages(data);
+      const userIds = new Set(data.map(m => m.user_id));
+      await fetchProfiles(userIds);
     }
     setLoading(false);
-  }, [t]);
+  }, [t, fetchProfiles]);
 
   useEffect(() => {
     fetchMessages();
-    const channel = supabase.channel('realtime:forum-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => fetchMessages())
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') { setError(null); }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.error(`PageForum: Realtime subscription failed! Status: ${status}`, err);
-          setError(t.errorRealtime || "REALTIME CONNECTION FAILED");
-        }
-      });
+    const channel = supabase.channel('forum-messages-channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        setMessages(prev => [...prev, payload.new]);
+        fetchProfiles(new Set([payload.new.user_id]));
+      })
+      .subscribe();
+      
     return () => supabase.removeChannel(channel);
-  }, [fetchMessages, t]);
+  }, [fetchMessages, fetchProfiles]);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (newMessage.trim() === "" || !currentUser || !currentUser.id) return;
+    if (newMessage.trim() === "" || !currentUser || !currentUser.id || sending) return;
+    
+    setSending(true);
 
     const { error: insertError } = await supabase.from('messages').insert([{
       content: newMessage.trim(),
       user_id: currentUser.id,
-      channel_id: 'general'
+      channel_id: 'general' 
     }]);
 
     if (insertError) {
-      alert((t.sendMessageError || "Gagal mengirim pesan: ") + insertError.message); 
+      alert((t.sendMessageError || "Failed to send message: ") + insertError.message); 
     } else {
       setNewMessage("");
+      // Memberi sedikit jeda agar pesan yang baru diterima bisa di-render sebelum scroll
+      setTimeout(() => scrollToBottom("smooth"), 100);
     }
+    setSending(false);
   };
 
-  // --- STYLING ---
-  const terminalGreen = 'text-green-400';
-  const terminalRed = 'text-red-400';
-  const terminalBlue = 'text-blue-400';
-  const terminalGray = 'text-gray-500';
-
   return (
-    // PERBAIKAN UTAMA UNTUK MOBILE KEYBOARD ADA DI SINI
-    // Kalkulasi tinggi berdasarkan viewport, bukan persentase dari parent.
-    <div className="h-[calc(100vh-var(--header-height)-var(--bottomnav-height))] w-full bg-black text-white font-mono flex flex-col overflow-hidden">
-        {/* Terminal Header */}
-        <div className="flex-shrink-0 border-b-2 border-green-500/50 pb-2 mb-2 text-center px-2 md:px-4 pt-2">
-            <h1 className="text-xl md:text-2xl font-bold tracking-widest uppercase">
-                <GlitchText text="AFA :: GENERAL-CHAT" />
-            </h1>
-            <p className={`${terminalGray} text-xs`}>[Status: Connected]</p>
-        </div>
+    <div className="page-content flex flex-col h-full overflow-hidden pt-6">
+      <div className="text-center mb-6">
+        <h1 className="text-4xl font-bold futuristic-text-gradient mb-2 flex items-center justify-center gap-3">
+            <FontAwesomeIcon icon={faComments}/> Forum Diskusi
+        </h1>
+        <p className="text-lg text-light-subtle dark:text-gray-400">Terhubung dengan komunitas AFA.</p>
+      </div>
+      
+      {/* Message Container */}
+      <div className="flex-grow overflow-y-auto px-1 md:px-4">
+          {loading && (
+              <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500">
+                  <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3" />
+                  <span>{t.loading || "Loading messages..."}</span>
+              </div>
+          )}
+          {error && (
+              <div className="flex flex-col items-center justify-center h-full text-red-400 text-center">
+                  <FontAwesomeIcon icon={faExclamationTriangle} className="text-3xl mb-3"/>
+                  <p className="font-bold">{t.errorTitle || "An Error Occurred"}</p>
+                  <p className="text-sm">{error}</p>
+              </div>
+          )}
+          {!loading && !error && messages.length === 0 && (
+             <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500 text-center">
+                <p>{t.noMessages || "No messages yet. Be the first to say hi!"}</p>
+            </div>
+          )}
+          {!loading && !error && (
+              <div>
+                  {messages.map(msg => (
+                      <Message
+                          key={msg.id}
+                          msg={msg}
+                          isCurrentUser={msg.user_id === currentUser?.id}
+                          profile={profiles[msg.user_id] || currentUser}
+                      />
+                  ))}
+              </div>
+          )}
+          <div ref={messagesEndRef} />
+      </div>
 
-        {/* Message Container */}
-        <div className="flex-grow overflow-y-auto px-2 md:px-4 pr-3">
-            {loading && (
-                <div className="flex items-center h-full">
-                    <FontAwesomeIcon icon={faSpinner} spin className={`${terminalGreen} mr-2`} />
-                    <span>Loading transmissions...</span>
-                </div>
-            )}
-            {error && (
-                <div className="text-center h-full text-red-400">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-2xl mb-2"/>
-                    <p className="font-bold">!! CRITICAL ERROR !!</p>
-                    <p className="text-sm">{error}</p>
-                </div>
-            )}
-            {!loading && !error && (
-                <div className="space-y-2">
-                    {messages.map(msg => {
-                        const isCurrentUser = msg.user_id === currentUser?.id;
-                        const senderName = isCurrentUser ? (currentUser.username || 'you') : (msg.profile?.username || 'guest');
-                        return (
-                            <div key={msg.id} className="flex text-sm leading-tight">
-                                <span className={`${terminalGray} flex-shrink-0`}>[{formatTimestamp(msg.created_at)}]</span>
-                                <span className={`mx-2 font-bold ${isCurrentUser ? terminalBlue : terminalRed}`}>{senderName}:</span>
-                                <p className="flex-grow whitespace-pre-wrap break-words">{msg.content}</p>
-                            </div>
-                        )
-                    })}
-                </div>
-            )}
-            <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Form */}
-        <div className="flex-shrink-0 p-3 md:p-4 mt-2 border-t-2 border-green-500/50">
-            <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                <span className={`${terminalGreen} font-bold`}>{currentUser?.username || 'anon'}>$&nbsp;</span>
-                <input 
-                    ref={messageInputRef}
-                    type="text" 
-                    value={newMessage} 
-                    onChange={(e) => setNewMessage(e.target.value)} 
-                    placeholder={!currentUser?.id ? "ACCESS DENIED" : "Enter command..."} 
-                    disabled={!currentUser?.id}
-                    className="flex-grow bg-transparent border-none focus:ring-0 text-green-400 placeholder-gray-600 p-1"
-                    autoComplete="off"
-                />
-                <button 
-                    type="submit" 
-                    className={`bg-green-500/80 text-black font-bold px-4 py-1 hover:bg-green-400 transition-colors disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed`}
-                    disabled={newMessage.trim() === "" || !currentUser?.id}>
-                    <FontAwesomeIcon icon={faPaperPlane} />
-                </button>
-            </form>
-        </div>
+      {/* Input Form */}
+      <div className="flex-shrink-0 p-3 md:p-4 mt-2">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
+              <input 
+                  type="text" 
+                  value={newMessage} 
+                  onChange={(e) => setNewMessage(e.target.value)} 
+                  placeholder={!currentUser?.id ? (t.inputPlaceholderLoggedOut || "You must be logged in to chat") : (t.inputPlaceholderLoggedIn || "Type your message...")} 
+                  disabled={!currentUser?.id || sending}
+                  className="flex-grow bg-transparent border-none focus:ring-0 text-light-text dark:text-white placeholder-light-subtle dark:placeholder-gray-500 p-2"
+                  autoComplete="off"
+              />
+              <button 
+                  type="submit" 
+                  className="btn-primary flex-shrink-0 w-11 h-11 rounded-lg flex items-center justify-center text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={newMessage.trim() === "" || !currentUser?.id || sending}>
+                  {sending ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+              </button>
+          </form>
+      </div>
     </div>
   );
 }
