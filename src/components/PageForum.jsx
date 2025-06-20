@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx (FINAL FIX - EXPLICIT QUERY)
+// src/components/PageForum.jsx (FINAL FIX 2 - MOBILE KEYBOARD FIX)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -43,17 +43,14 @@ export default function PageForum({ currentUser }) {
   };
 
   const fetchMessages = useCallback(async () => {
-    // ========================================================================
-    // ======================= PERUBAHAN UTAMA DI SINI ========================
-    // ========================================================================
-    // Query ini lebih eksplisit dan tidak bergantung pada deteksi relasi otomatis
-    // oleh Supabase, sehingga lebih tahan terhadap masalah konfigurasi.
-     const { data, error: fetchError } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('messages')
-      .select(`*`) // <-- Kita hapus join ke 'profiles' untuk sementara
-    // ========================================================================
-    // ======================= AKHIR PERUBAHAN UTAMA ==========================
-    // ========================================================================
+      .select(`
+        *,
+        profile:profiles (username)
+      `)
+      .order('created_at', { ascending: true })
+      .limit(500);
 
     if (fetchError) {
       console.error('PageForum - Error fetching messages:', fetchError);
@@ -108,9 +105,15 @@ export default function PageForum({ currentUser }) {
   const terminalGray = 'text-gray-500';
 
   return (
-    <div className="h-full w-full bg-black text-white font-mono flex flex-col p-2 md:p-4 overflow-hidden">
+    // ========================================================================
+    // ======================= PERUBAHAN UTAMA DI SINI ========================
+    // ========================================================================
+    // Mengganti `h-full` dengan kalkulasi tinggi viewport yang benar.
+    // Menghapus `p-2 md:p-4` karena akan diatur oleh parent di App.jsx
+    <div className="h-[calc(100vh-var(--header-height)-var(--bottomnav-height))] w-full bg-black text-white font-mono flex flex-col overflow-hidden">
+    {/* ======================= AKHIR PERUBAHAN UTAMA ========================== */}
         {/* Terminal Header */}
-        <div className="flex-shrink-0 border-b-2 border-green-500/50 pb-2 mb-2 text-center">
+        <div className="flex-shrink-0 border-b-2 border-green-500/50 pb-2 mb-2 text-center px-2 md:px-4 pt-2">
             <h1 className="text-xl md:text-2xl font-bold tracking-widest uppercase">
                 <GlitchText text="AFA :: GENERAL-CHAT" />
             </h1>
@@ -118,7 +121,7 @@ export default function PageForum({ currentUser }) {
         </div>
 
         {/* Message Container */}
-        <div className="flex-grow overflow-y-auto pr-2">
+        <div className="flex-grow overflow-y-auto px-2 md:px-4 pr-3">
             {loading && (
                 <div className="flex items-center h-full">
                     <FontAwesomeIcon icon={faSpinner} spin className={`${terminalGreen} mr-2`} />
@@ -136,7 +139,6 @@ export default function PageForum({ currentUser }) {
                 <div className="space-y-2">
                     {messages.map(msg => {
                         const isCurrentUser = msg.user_id === currentUser?.id;
-                        // PERUBAHAN KECIL: Mengakses username melalui alias 'profile'
                         const senderName = isCurrentUser ? (currentUser.username || 'you') : (msg.profile?.username || 'guest');
                         return (
                             <div key={msg.id} className="flex text-sm leading-tight">
@@ -152,7 +154,7 @@ export default function PageForum({ currentUser }) {
         </div>
 
         {/* Input Form */}
-        <div className="flex-shrink-0 pt-2 mt-2 border-t-2 border-green-500/50">
+        <div className="flex-shrink-0 p-3 md:p-4 mt-2 border-t-2 border-green-500/50">
             <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                 <span className={`${terminalGreen} font-bold`}>{currentUser?.username || 'anon'}>$&nbsp;</span>
                 <input 
