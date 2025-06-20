@@ -49,10 +49,11 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
     stats: profileData?.stats || defaultGuestUserForApp.stats,
     address: profileData?.web3_address || null,
-    telegram_user_id: profileData?.telegram_user_id || null, 
+    telegram_user_id: profileData?.telegram_user_id || null,
+    // [PERBAIKAN] Tambahkan baris ini untuk mengambil URL foto dari Telegram
+    telegram_avatar_url: profileData?.telegram_avatar_url || null,
     user_metadata: authUser.user_metadata || {}
   };
-};
 
 // [FUNGSI BARU] Untuk membuat profil jika tidak ada
 const createProfileForUser = async (user) => {

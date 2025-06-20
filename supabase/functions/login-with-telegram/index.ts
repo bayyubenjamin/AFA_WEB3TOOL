@@ -1,14 +1,9 @@
-// supabase/functions/login-with-telegram/index.ts
+// supabase/functions/login-with-telegram/index.ts (Pastikan sudah seperti ini)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Fungsi untuk memverifikasi hash dari Telegram
+// ... (fungsi verifyTelegramAuth tetap sama) ...
 async function verifyTelegramAuth(botToken: string, authData: Record<string, any>): Promise<boolean> {
   const encoder = new TextEncoder();
   const checkString = Object.keys(authData)
@@ -34,7 +29,7 @@ async function verifyTelegramAuth(botToken: string, authData: Record<string, any
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } });
   }
 
   try {
@@ -55,7 +50,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Cek apakah pengguna dengan ID Telegram ini sudah ada
     let { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('id')
@@ -66,23 +60,18 @@ serve(async (req) => {
     let authUserResponse;
 
     if (userId) {
-      // Pengguna sudah ada, ambil data auth-nya
       const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (error) throw error;
       authUserResponse = data;
 
-      // --- [EDIT 1] ---
-      // Perbarui URL foto profil Telegram jika pengguna login kembali
-      // untuk memastikan data selalu yang terbaru.
       await supabaseAdmin
         .from('profiles')
         .update({ telegram_avatar_url: telegramUser.photo_url || null })
         .eq('id', userId)
 
     } else {
-      // Pengguna belum ada, buat pengguna baru di Supabase Auth dan profilnya
       const { data, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-        email: `${telegramUser.id}@telegram.user`, // Email dummy
+        email: `${telegramUser.id}@telegram.user`,
         email_confirm: true,
       });
 
@@ -91,8 +80,6 @@ serve(async (req) => {
       authUserResponse = data;
       userId = authUserResponse.user.id;
 
-      // --- [EDIT 2] ---
-      // Buat profil baru dan langsung simpan URL foto Telegram ke kolom baru
       const { error: newProfileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -101,14 +88,13 @@ serve(async (req) => {
           name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
           username: telegramUser.username || `user${telegramUser.id}`,
           avatar_url: telegramUser.photo_url || `https://ui-avatars.com/api/?name=${telegramUser.first_name}&background=7f5af0&color=fff`,
-          telegram_avatar_url: telegramUser.photo_url || null, // <-- TAMBAHKAN BARIS INI
+          telegram_avatar_url: telegramUser.photo_url || null, // INI YANG PENTING
           email: authUserResponse.user.email,
         });
 
       if (newProfileError) throw newProfileError;
     }
 
-    // Buat sesi JWT untuk pengguna
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: authUserResponse.user.email!,
@@ -116,16 +102,15 @@ serve(async (req) => {
     
     if(sessionError) throw sessionError;
 
-    // Kembalikan sesi ke frontend
     return new Response(JSON.stringify(sessionData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in login-with-telegram function:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
     });
   }
 });
