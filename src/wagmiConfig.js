@@ -18,10 +18,10 @@ export const config = createConfig({
     walletConnect({
       projectId: walletConnectProjectId,
       metadata,
-      // [PERBAIKAN] Web3Modal menangani tampilan QR, jadi ini harus false untuk menghindari konflik.
+      // [PERBAIKAN PENTING] Web3Modal menangani tampilan QR, jadi ini harus false untuk menghindari konflik.
       showQrModal: false,
     }),
-    // [PERBAIKAN] Konfigurasi ini lebih umum, tidak hanya menargetkan MetaMask.
+    // [PERBAIKAN PENTING] Konfigurasi ini lebih umum untuk mendeteksi berbagai wallet browser (MetaMask, Brave, dll).
     injected({ shimDisconnect: true }),
     coinbaseWallet({
       appName: metadata.name,
