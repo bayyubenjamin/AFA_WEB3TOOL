@@ -48,14 +48,9 @@ export default function PageForum({ currentUser }) {
     // ========================================================================
     // Query ini lebih eksplisit dan tidak bergantung pada deteksi relasi otomatis
     // oleh Supabase, sehingga lebih tahan terhadap masalah konfigurasi.
-    const { data, error: fetchError } = await supabase
+     const { data, error: fetchError } = await supabase
       .from('messages')
-      .select(`
-        *,
-        profile:profiles (username)
-      `)
-      .order('created_at', { ascending: true })
-      .limit(500);
+      .select(`*`) // <-- Kita hapus join ke 'profiles' untuk sementara
     // ========================================================================
     // ======================= AKHIR PERUBAHAN UTAMA ==========================
     // ========================================================================
