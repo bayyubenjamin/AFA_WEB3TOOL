@@ -6,7 +6,7 @@ import AirdropUpdateForm from './AirdropUpdateForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
 export default function PageManageUpdate({ currentUser }) {
   const { airdropSlug, updateId } = useParams();

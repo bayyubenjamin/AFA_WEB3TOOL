@@ -8,7 +8,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import DesktopNav from './DesktopNav';
 
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
 export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);

@@ -7,7 +7,7 @@ import { faGift, faSpinner, faExclamationTriangle, faCalendarDays, faShieldHalve
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../supabaseClient';
 
-const ADMIN_USER_ID = '9a405075-260e-407b-a7fe-2f05b9bb5766';
+const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
 // =================================================================
 // [REDESIGNED] EventCard Component
