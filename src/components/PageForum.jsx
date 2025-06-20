@@ -43,14 +43,10 @@ export default function PageForum({ currentUser }) {
   };
 
   const fetchMessages = useCallback(async () => {
+    const fetchMessages = useCallback(async () => {
     const { data, error: fetchError } = await supabase
       .from('messages')
-      .select(`
-        *,
-        profile:profiles (username)
-      `)
-      .order('created_at', { ascending: true })
-      .limit(500);
+      .select(`*`)
 
     if (fetchError) {
       console.error('PageForum - Error fetching messages:', fetchError);
