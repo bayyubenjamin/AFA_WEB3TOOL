@@ -1,4 +1,4 @@
-// src/App.jsx (VERSI FINAL DENGAN PERBAIKAN AUTO-HIDE DAN NAVIGASI RESPONSIF)
+// src/App.jsx (VERSI FINAL DENGAN LOGIKA PEMULIHAN PROFIL OTOMATIS)
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -54,6 +54,30 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
+// [FUNGSI BARU] Untuk membuat profil jika tidak ada
+const createProfileForUser = async (user) => {
+    try {
+        console.log(`Creating missing profile for user: ${user.id}`);
+        const { data, error } = await supabase
+            .from('profiles')
+            .insert({
+                id: user.id,
+                email: user.email,
+                username: user.user_metadata?.username || user.email.split('@')[0],
+                name: user.user_metadata?.name || user.email.split('@')[0],
+                avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=7f5af0&color=fff`,
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (creationError) {
+        console.error("Error creating missing profile:", creationError);
+        return null; // Return null jika gagal
+    }
+};
+
 export default function App() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
@@ -62,7 +86,6 @@ export default function App() {
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
-  // [DITAMBAHKAN] State dan Ref untuk auto-hide header
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
   
@@ -72,10 +95,8 @@ export default function App() {
   const navigate = useNavigate();
   const { disconnect } = useDisconnect();
 
-  // [DITAMBAHKAN] Fungsi untuk handle scroll PADA ELEMEN <main>
   const handleScroll = (event) => {
     const currentScrollY = event.currentTarget.scrollTop;
-
     if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
       setIsHeaderVisible(false);
     } else {
@@ -98,11 +119,30 @@ export default function App() {
 
   useEffect(() => {
     setLoadingInitialSession(true);
+    
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
-          const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          // [LOGIKA BARU DIMULAI DI SINI]
+          let { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
           if (profileError) throw profileError;
+
+          // Jika profil tidak ditemukan, buat profil baru secara otomatis
+          if (!profile) {
+            profile = await createProfileForUser(session.user);
+            if (!profile) {
+              // Jika pembuatan profil gagal, logout pengguna untuk menghindari state aneh
+              await handleLogout();
+              return;
+            }
+          }
+          // [LOGIKA BARU SELESAI DI SINI]
+
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
@@ -134,6 +174,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   useEffect(() => {
@@ -217,7 +258,6 @@ export default function App() {
       </main>
       {showNav && <BottomNav currentUser={currentUser} />}
 
-      {/* ===== Lapisan Loading Overlay (di atas segalanya) ===== */}
       <div 
         className={`
           fixed inset-0 z-[9999] flex flex-col items-center justify-center
@@ -231,4 +271,3 @@ export default function App() {
     </div>
   );
 }
-
