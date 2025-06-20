@@ -1,10 +1,8 @@
 // src/wagmiConfig.js
-import { http, createConfig, createStorage } from 'wagmi'; // [MODIFIKASI] Impor 'createStorage'
+import { http, createConfig, createStorage } from 'wagmi';
 import { mainnet, sepolia } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
-// [PENTING] Ganti dengan WalletConnect Project ID Anda sendiri
-// Anda bisa mendapatkannya secara gratis dari https://cloud.walletconnect.com/
 export const walletConnectProjectId = '3a2a849d44557c3d79a296d93333604a';
 
 const metadata = {
@@ -20,14 +18,16 @@ export const config = createConfig({
     walletConnect({
       projectId: walletConnectProjectId,
       metadata,
+      // [PERBAIKAN] Web3Modal menangani tampilan QR, jadi ini harus false untuk menghindari konflik.
+      showQrModal: false,
     }),
-    injected({ target: 'metaMask' }),
+    // [PERBAIKAN] Konfigurasi ini lebih umum, tidak hanya menargetkan MetaMask.
+    injected({ shimDisconnect: true }),
     coinbaseWallet({
       appName: metadata.name,
       appLogoUrl: metadata.icons[0],
     }),
   ],
-  // [PERBAIKAN] Tambahkan baris ini untuk mengaktifkan penyimpanan sesi permanen
   storage: createStorage({ storage: window.localStorage }),
   transports: {
     [mainnet.id]: http(),

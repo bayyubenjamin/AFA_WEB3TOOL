@@ -24,7 +24,6 @@ import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
-// import WalletConnectModal from "./components/WalletConnectModal"; // [DIHAPUS] Tidak lagi digunakan
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
@@ -205,21 +204,13 @@ export default function App() {
   }, [location.pathname, loadingInitialSession]);
 
   const handleLogout = async () => {
-    // Jalankan signOut untuk server dan disconnect wallet
     await supabase.auth.signOut();
     disconnect();
-    
-    // Hapus data pengguna dari local storage untuk memastikan state bersih
     localStorage.removeItem(LS_CURRENT_USER_KEY);
-
-    // Bedakan logika untuk Mini App dan Desktop
     const isMiniApp = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close);
-
     if (isMiniApp) {
-      // Untuk Mini App, langsung tutup setelah membersihkan local storage
       window.Telegram.WebApp.close();
     } else {
-      // Untuk desktop, lakukan hard refresh ke halaman login untuk memastikan semua state bersih
       window.location.href = '/login';
     }
   };
@@ -247,7 +238,7 @@ export default function App() {
       
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
       
-      {/* [DIHAPUS] Modal kustom tidak lagi dirender di sini */}
+      {/* Modal kustom tidak lagi dirender di sini */}
       
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
