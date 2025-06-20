@@ -121,9 +121,18 @@ export default function App() {
     setLoadingInitialSession(true);
     
     const handleAuthChange = async (session) => {
+      // ===== [PERUBAHAN 1] Cek penanda logout eksplisit =====
+      if (sessionStorage.getItem('explicitlyLoggedOut') === 'true') {
+          setCurrentUser(defaultGuestUserForApp);
+          localStorage.removeItem(LS_CURRENT_USER_KEY);
+          setLoadingInitialSession(false);
+          // Hapus penanda agar pengecekan berikutnya (jika user merefresh halaman) bisa berjalan normal
+          sessionStorage.removeItem('explicitlyLoggedOut');
+          return; // Hentikan proses login otomatis
+      }
+      
       try {
         if (session && session.user) {
-          // [LOGIKA BARU DIMULAI DI SINI]
           let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -132,16 +141,13 @@ export default function App() {
 
           if (profileError) throw profileError;
 
-          // Jika profil tidak ditemukan, buat profil baru secara otomatis
           if (!profile) {
             profile = await createProfileForUser(session.user);
             if (!profile) {
-              // Jika pembuatan profil gagal, logout pengguna untuk menghindari state aneh
               await handleLogout();
               return;
             }
           }
-          // [LOGIKA BARU SELESAI DI SINI]
 
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
@@ -205,10 +211,21 @@ export default function App() {
     }
   }, [location.pathname, loadingInitialSession]);
 
+  // ===== [PERUBAHAN 2] Modifikasi handleLogout =====
   const handleLogout = async () => {
+    // Set penanda di sessionStorage SEBELUM melakukan signOut
+    sessionStorage.setItem('explicitlyLoggedOut', 'true');
+
     await supabase.auth.signOut();
     disconnect();
-    navigate('/login');
+
+    // Untuk UX yang lebih baik di Mini App, kita bisa menutupnya.
+    // Jika tidak di dalam Mini App, ia akan bernavigasi seperti biasa.
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close) {
+      window.Telegram.WebApp.close();
+    } else {
+      navigate('/login');
+    }
   };
 
   const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };

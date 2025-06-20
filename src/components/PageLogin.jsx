@@ -47,6 +47,10 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
       if (error) throw error;
+      
+      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
+      sessionStorage.removeItem('explicitlyLoggedOut');
+
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
       navigate('/profile');
     } catch (err) {
@@ -68,6 +72,10 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       if (session.error) throw new Error(session.error);
       const { error: sessionError } = await supabase.auth.setSession(session);
       if (sessionError) throw sessionError;
+
+      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
+      sessionStorage.removeItem('explicitlyLoggedOut');
+
       setSuccessMessage("Berhasil login dengan wallet!");
       navigate('/profile');
     } catch (err) {
@@ -98,6 +106,9 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
 
       if (sessionError) throw sessionError;
       
+      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
+      sessionStorage.removeItem('explicitlyLoggedOut');
+
       setSuccessMessage("Berhasil login dengan Telegram!");
       navigate('/profile');
 

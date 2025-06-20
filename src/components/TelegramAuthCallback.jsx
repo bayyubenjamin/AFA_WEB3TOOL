@@ -37,6 +37,9 @@ export default function TelegramAuthCallback() {
         
         if (sessionError) throw sessionError;
 
+        // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
+        sessionStorage.removeItem('explicitlyLoggedOut');
+
         setStatus('success');
         // Redirect ke halaman profil setelah beberapa saat
         setTimeout(() => navigate('/profile'), 1500);
