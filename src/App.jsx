@@ -200,19 +200,22 @@ export default function App() {
     }
   }, [location.pathname, loadingInitialSession]);
 
-  // **[FUNGSI LOGOUT DIPERBAIKI]**
   const handleLogout = async () => {
+    // Jalankan signOut untuk server dan disconnect wallet
     await supabase.auth.signOut();
     disconnect();
-
+    
     // Hapus data pengguna dari local storage untuk memastikan state bersih
     localStorage.removeItem(LS_CURRENT_USER_KEY);
-    
-    // Logika untuk Mini App (tetap sama)
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close) {
+
+    // Bedakan logika untuk Mini App dan Desktop
+    const isMiniApp = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close);
+
+    if (isMiniApp) {
+      // Untuk Mini App, langsung tutup setelah membersihkan local storage
       window.Telegram.WebApp.close();
     } else {
-      // Untuk browser desktop, lakukan hard refresh ke halaman login
+      // Untuk desktop, lakukan hard refresh ke halaman login untuk memastikan semua state bersih
       window.location.href = '/login';
     }
   };
