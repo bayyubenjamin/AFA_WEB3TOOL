@@ -122,7 +122,7 @@ export default function PageLoginWithTelegram() {
         if (updateError) throw updateError;
         
         alert("Registration and Telegram account linking successful!");
-        navigate('/profile', { replace: true });
+        navigate('/', { replace: true });
 
     } catch(err) {
         setError(err.message);
@@ -150,7 +150,7 @@ export default function PageLoginWithTelegram() {
         if (updateError) throw updateError;
         
         alert("Login and Telegram account linking successful!");
-        navigate('/profile', { replace: true });
+        navigate('/', { replace: true });
 
     } catch (err) {
         setError(err.message);

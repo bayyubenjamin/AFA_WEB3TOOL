@@ -154,7 +154,7 @@ export default function App() {
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
 
           if (location.pathname === '/login-telegram' || location.pathname === '/login' || location.pathname === '/register') {
-            navigate('/profile', { replace: true });
+            navigate('/', { replace: true });
           }
 
         } else {

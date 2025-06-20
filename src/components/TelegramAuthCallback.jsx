@@ -41,8 +41,8 @@ export default function TelegramAuthCallback() {
         sessionStorage.removeItem('explicitlyLoggedOut');
 
         setStatus('success');
-        // Redirect ke halaman profil setelah beberapa saat
-        setTimeout(() => navigate('/profile'), 1500);
+        // Redirect ke halaman beranda setelah beberapa saat
+        setTimeout(() => navigate('/'), 1500);
 
       } catch (err) {
         setError(err.message || 'Verifikasi gagal. Token mungkin sudah kedaluwarsa.');

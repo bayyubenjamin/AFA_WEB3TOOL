@@ -44,7 +44,7 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
 
   useEffect(() => {
     if (currentUser && currentUser.id) {
-      navigate('/profile');
+      navigate('/');
     }
   }, [currentUser, navigate]);
   
@@ -104,7 +104,7 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
       if (otpError) throw otpError;
       if (!session?.user) throw new Error(t.sessionNotFound || "Sesi tidak ditemukan setelah verifikasi OTP.");
       setSuccessMessage(t.signupSuccess || "Pendaftaran berhasil!");
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.message || "Verifikasi OTP atau pembuatan profil gagal.");
     } finally {
@@ -129,7 +129,7 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
       const { error: sessionError } = await supabase.auth.setSession(session);
       if (sessionError) throw sessionError;
       setSuccessMessage("Berhasil login dengan wallet!");
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       console.error("Wallet login error:", err);
       setError(err.message || "Gagal login dengan wallet.");

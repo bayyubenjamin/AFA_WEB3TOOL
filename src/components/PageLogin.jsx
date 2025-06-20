@@ -36,7 +36,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
 
   useEffect(() => {
     if (currentUser && currentUser.id) {
-      navigate('/profile');
+      navigate('/');
     }
   }, [currentUser, navigate]);
 
@@ -52,7 +52,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.message || "Gagal login.");
     } finally {
@@ -77,7 +77,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage("Berhasil login dengan wallet!");
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       console.error("Wallet login error:", err);
       setError(err.message || "Gagal login dengan wallet.");
@@ -110,7 +110,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage("Berhasil login dengan Telegram!");
-      navigate('/profile');
+      navigate('/');
 
     } catch (err) {
       console.error("Telegram login error:", err);
