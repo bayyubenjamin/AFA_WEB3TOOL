@@ -17,26 +17,41 @@
     "events": "Event"
   },
   "homePage": {
-    "heroTitle": "Maksimalkan Potensi Airdrop Anda",
-    "heroSubtitle": "Selamat datang di AIRDROP FOR ALL! Platform terpadu untuk menemukan, mengelola, dan mengklaim airdrop Web3 dengan lebih cerdas dan efisien.",
+    // [REVISI] Judul utama yang lebih profesional
+    "heroTitle": "Navigasi Masa Depan Reward Web3",
+    // [REVISI] Subjudul dengan gaya bahasa yang lebih premium
+    "heroSubtitle": "Sebuah platform tunggal yang dirancang untuk para antusias sejati. Temukan, kelola, dan klaim airdrop paling menjanjikan dengan efisiensi dan wawasan tak tertandingi.",
     "mintCta": "Mint AFA Identity Anda",
-    "featuresTitle": "Di AFA WEB3TOOL!",
-    "featuresSubtitle": "Kami menyediakan semua yang Anda butuhkan untuk sukses di dunia airdrop.",
-    "feature1Title": "Airdrop Terbaru",
-    "feature1Description": "Temukan dan ikuti partisipasi dalam airdrop dari proyek Web3 paling menjanjikan.",
+    // [REVISI] Judul bagian fitur
+    "featuresTitle": "Direkayasa untuk Keunggulan",
+    // [REVISI] Subjudul bagian fitur
+    "featuresSubtitle": "Fitur-fitur inti yang dirancang untuk meningkatkan strategi airdrop Anda dari hobi menjadi keahlian.",
+    // [REVISI] Judul fitur 1
+    "feature1Title": "Airdrop Terkurasi",
+    // [REVISI] Deskripsi fitur 1
+    "feature1Description": "Temukan dan berpartisipasi dalam airdrop dari proyek Web3 paling menjanjikan, yang telah terverifikasi potensinya.",
     "feature1Action": "Jelajahi Airdrop",
-    "feature2Title": "Kelola Garapan",
-    "feature2Description": "Lacak semua progres garapan airdrop Anda dengan mudah di satu tempat terpusat.",
+    // [REVISI] Judul fitur 2
+    "feature2Title": "Kelola Portofolio Anda",
+    // [REVISI] Deskripsi fitur 2
+    "feature2Description": "Lacak semua progres airdrop dan tugas Anda dengan mudah dalam satu dasbor terpusat yang intuitif.",
     "feature2Action": "Lihat Garapanku",
-    "feature3Title": "Forum Komunitas",
-    "feature3Description": "Bergabunglah dengan komunitas, diskusi, dan dapatkan tips terbaru seputar airdrop.",
+    // [REVISI] Judul fitur 3
+    "feature3Title": "Wawasan Komunitas",
+    // [REVISI] Deskripsi fitur 3
+    "feature3Description": "Bergabunglah dengan komunitas para pemikir maju. Diskusikan strategi dan dapatkan info 'alpha' terbaru.",
     "feature3Action": "Kunjungi Forum",
-    "feature4Title": "Event Spesial",
-    "feature4Description": "Jangan lewatkan giveaway eksklusif dan event komunitas kami!",
+    // [REVISI] Judul fitur 4
+    "feature4Title": "Event Eksklusif",
+    // [REVISI] Deskripsi fitur 4
+    "feature4Description": "Dapatkan akses ke giveaway token dan acara komunitas eksklusif, khusus untuk anggota kami.",
     "feature4Action": "Ikuti Event",
-    "joinCtaTitle": "Siap Memulai Perjalanan Airdrop Anda?",
-    "joinCtaSubtitle": "Jangan lewatkan. Bergabunglah dengan Airdrop For All sekarang!",
-    "startNow": "Mulai Sekarang"
+    // [REVISI] Judul CTA terakhir
+    "joinCtaTitle": "Gerbang Anda Menuju Dunia Terdesentralisasi",
+    // [REVISI] Subjudul CTA terakhir
+    "joinCtaSubtitle": "Masa depan nilai ada di sini. Buat akun Anda dan mulailah perjalanan bersama AFA Web3Tool.",
+    // [REVISI] Teks tombol CTA terakhir
+    "startNow": "Buat Akun Anda"
   },
   "myWorkPage": {
     "loading": "Memuat Data Garapan...",
@@ -232,4 +247,3 @@
     "tasksCompleteMessage": "Anda telah berpartisipasi! Pemenang akan diumumkan di channel resmi kami."
   }
 }
-
