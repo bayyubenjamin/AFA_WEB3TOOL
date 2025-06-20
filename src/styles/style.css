@@ -1,4 +1,4 @@
-/* src/styles/style.css (VERSI FINAL DENGAN OVAL HEADER) */
+/* src/styles/style.css (VERSI FINAL DENGAN OVAL HEADER & HACKER FORUM) */
 
 /* Direktif dasar Tailwind HARUS di paling atas */
 @tailwind base;
@@ -274,5 +274,76 @@
 
   .separator-or {
     @apply text-center text-xs font-semibold text-gray-400 dark:text-gray-600 my-2;
+  }
+
+  /* === [BARU] Style untuk "Hacker Forum" === */
+  .glitch {
+    position: relative;
+    text-shadow: 0.05em 0 0 rgba(255,0,0,.75),
+                  -0.025em -0.05em 0 rgba(0,255,0,.75),
+                  0.025em 0.05em 0 rgba(0,0,255,.75);
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black; /* atau theme('colors.dark') jika ingin konsisten */
+    overflow: hidden;
+    clip: rect(0, 900px, 0, 0); 
+  }
+
+  .glitch::before {
+    left: -2px;
+    text-shadow: 1px 0 blue;
+    animation: glitch-anim-1 2s infinite linear alternate-reverse;
+  }
+
+  .glitch::after {
+    left: 2px;
+    text-shadow: -1px 0 red;
+    animation: glitch-anim-2 2s infinite linear alternate-reverse;
+  }
+
+  @keyframes glitch-anim-1 {
+    0% { clip: rect(42px, 9999px, 44px, 0); }
+    5% { clip: rect(12px, 9999px, 60px, 0); }
+    10% { clip: rect(40px, 9999px, 42px, 0); }
+    15% { clip: rect(32px, 9999px, 80px, 0); }
+    20% { clip: rect(15px, 9999px, 92px, 0); }
+    25% { clip: rect(4px, 9999px, 70px, 0); }
+    30% { clip: rect(55px, 9999px, 33px, 0); }
+    35% { clip: rect(23px, 9999px, 45px, 0); }
+    40% { clip: rect(67px, 9999px, 23px, 0); }
+    45% { clip: rect(81px, 9999px, 54px, 0); }
+    50% { clip: rect(28px, 9999px, 38px, 0); }
+    55% { clip: rect(77px, 9999px, 85px, 0); }
+    60% { clip: rect(35px, 9999px, 20px, 0); }
+    65% { clip: rect(70px, 9999px, 80px, 0); }
+    70% { clip: rect(30px, 9999px, 75px, 0); }
+    75% { clip: rect(88px, 9999px, 43px, 0); }
+    80% { clip: rect(45px, 9999px, 99px, 0); }
+    85% { clip: rect(13px, 9999px, 55px, 0); }
+    90% { clip: rect(57px, 9999px, 65px, 0); }
+    95% { clip: rect(90px, 9999px, 3px, 0); }
+    100% { clip: rect(50px, 9999px, 30px, 0); }
+  }
+
+  @keyframes glitch-anim-2 {
+    0% { clip: rect(5px, 9999px, 50px, 0); }
+    10% { clip: rect(2px, 9999px, 78px, 0); }
+    20% { clip: rect(65px, 9999px, 22px, 0); }
+    30% { clip: rect(45px, 9999px, 55px, 0); }
+    40% { clip: rect(11px, 9999px, 77px, 0); }
+    50% { clip: rect(80px, 9999px, 4px, 0); }
+    60% { clip: rect(25px, 9999px, 35px, 0); }
+    70% { clip: rect(95px, 9999px, 81px, 0); }
+    80% { clip: rect(18px, 9999px, 90px, 0); }
+    90% { clip: rect(5px, 9999px, 60px, 0); }
+    100% { clip: rect(20px, 9999px, 60px, 0); }
   }
 }
