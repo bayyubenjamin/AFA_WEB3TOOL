@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx (REDESIGNED V2 - With Mobile Keyboard Fix & Usernames)
+// src/components/PageForum.jsx (REDESIGNED V3 - Final Keyboard Fix)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -45,6 +45,7 @@ const Message = React.memo(({ msg, isCurrentUser, profile }) => {
     );
 });
 Message.displayName = 'Message';
+
 
 // --- Komponen Utama Forum ---
 export default function PageForum({ currentUser }) {
@@ -138,9 +139,8 @@ export default function PageForum({ currentUser }) {
   };
 
   return (
-    // PERBAIKAN UTAMA: Layout diubah untuk menangani keyboard mobile
-    // h-full pada parent dan flex-grow pada container pesan memastikan area input terdorong ke atas.
-    <div className="page-content flex flex-col h-full overflow-hidden p-0">
+    // PERBAIKAN FINAL: Menghitung tinggi secara dinamis untuk mengakomodasi BottomNav di mobile.
+    <div className="flex flex-col h-[calc(100%-var(--bottomnav-height))] lg-desktop:h-full overflow-hidden">
       
       {/* Container Pesan */}
       <div className="flex-grow overflow-y-auto px-2 md:px-4 pt-4">
@@ -178,7 +178,7 @@ export default function PageForum({ currentUser }) {
       </div>
 
       {/* Form Input */}
-      <div className="flex-shrink-0 p-3 md:p-4 mt-2">
+      <div className="flex-shrink-0 p-3 md:p-4 mt-2 bg-light-bg dark:bg-dark">
           <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
               <input 
                   type="text" 
