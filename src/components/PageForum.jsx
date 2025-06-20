@@ -1,7 +1,7 @@
-// src/components/PageForum.jsx (REDESIGNED FOR PREMIUM LOOK)
+// src/components/PageForum.jsx (REDESIGNED V2 - With Mobile Keyboard Fix & Usernames)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPaperPlane, faSpinner, faExclamationTriangle, faComments } from "@fortawesome/free-solid-svg-icons";
+import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from '../supabaseClient';
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
@@ -46,7 +46,6 @@ const Message = React.memo(({ msg, isCurrentUser, profile }) => {
 });
 Message.displayName = 'Message';
 
-
 // --- Komponen Utama Forum ---
 export default function PageForum({ currentUser }) {
   const { language } = useLanguage();
@@ -66,7 +65,7 @@ export default function PageForum({ currentUser }) {
   };
 
   const fetchProfiles = useCallback(async (userIds) => {
-    const idsToFetch = [...userIds].filter(id => !profiles[id]);
+    const idsToFetch = [...userIds].filter(id => id && !profiles[id]);
     if (idsToFetch.length === 0) return;
 
     const { data, error } = await supabase
@@ -84,6 +83,7 @@ export default function PageForum({ currentUser }) {
   }, [profiles]);
 
   const fetchMessages = useCallback(async () => {
+    setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('messages')
       .select(`*`)
@@ -122,7 +122,6 @@ export default function PageForum({ currentUser }) {
     if (newMessage.trim() === "" || !currentUser || !currentUser.id || sending) return;
     
     setSending(true);
-
     const { error: insertError } = await supabase.from('messages').insert([{
       content: newMessage.trim(),
       user_id: currentUser.id,
@@ -133,23 +132,18 @@ export default function PageForum({ currentUser }) {
       alert((t.sendMessageError || "Failed to send message: ") + insertError.message); 
     } else {
       setNewMessage("");
-      // Memberi sedikit jeda agar pesan yang baru diterima bisa di-render sebelum scroll
       setTimeout(() => scrollToBottom("smooth"), 100);
     }
     setSending(false);
   };
 
   return (
-    <div className="page-content flex flex-col h-full overflow-hidden pt-6">
-      <div className="text-center mb-6">
-        <h1 className="text-4xl font-bold futuristic-text-gradient mb-2 flex items-center justify-center gap-3">
-            <FontAwesomeIcon icon={faComments}/> Forum Diskusi
-        </h1>
-        <p className="text-lg text-light-subtle dark:text-gray-400">Terhubung dengan komunitas AFA.</p>
-      </div>
+    // PERBAIKAN UTAMA: Layout diubah untuk menangani keyboard mobile
+    // h-full pada parent dan flex-grow pada container pesan memastikan area input terdorong ke atas.
+    <div className="page-content flex flex-col h-full overflow-hidden p-0">
       
-      {/* Message Container */}
-      <div className="flex-grow overflow-y-auto px-1 md:px-4">
+      {/* Container Pesan */}
+      <div className="flex-grow overflow-y-auto px-2 md:px-4 pt-4">
           {loading && (
               <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500">
                   <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3" />
@@ -183,7 +177,7 @@ export default function PageForum({ currentUser }) {
           <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
+      {/* Form Input */}
       <div className="flex-shrink-0 p-3 md:p-4 mt-2">
           <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
               <input 
