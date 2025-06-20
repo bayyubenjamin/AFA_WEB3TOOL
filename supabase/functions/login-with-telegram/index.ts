@@ -2,7 +2,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.9.1/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +70,15 @@ serve(async (req) => {
       const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (error) throw error;
       authUserResponse = data;
+
+      // --- [EDIT 1] ---
+      // Perbarui URL foto profil Telegram jika pengguna login kembali
+      // untuk memastikan data selalu yang terbaru.
+      await supabaseAdmin
+        .from('profiles')
+        .update({ telegram_avatar_url: telegramUser.photo_url || null })
+        .eq('id', userId)
+
     } else {
       // Pengguna belum ada, buat pengguna baru di Supabase Auth dan profilnya
       const { data, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
@@ -83,7 +91,8 @@ serve(async (req) => {
       authUserResponse = data;
       userId = authUserResponse.user.id;
 
-      // Buat profil baru
+      // --- [EDIT 2] ---
+      // Buat profil baru dan langsung simpan URL foto Telegram ke kolom baru
       const { error: newProfileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -92,6 +101,7 @@ serve(async (req) => {
           name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
           username: telegramUser.username || `user${telegramUser.id}`,
           avatar_url: telegramUser.photo_url || `https://ui-avatars.com/api/?name=${telegramUser.first_name}&background=7f5af0&color=fff`,
+          telegram_avatar_url: telegramUser.photo_url || null, // <-- TAMBAHKAN BARIS INI
           email: authUserResponse.user.email,
         });
 
@@ -99,15 +109,15 @@ serve(async (req) => {
     }
 
     // Buat sesi JWT untuk pengguna
-    const session = await supabaseAdmin.auth.admin.generateLink({
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: authUserResponse.user.email!,
     });
     
-    if(session.error) throw session.error;
+    if(sessionError) throw sessionError;
 
     // Kembalikan sesi ke frontend
-    return new Response(JSON.stringify(session.data), {
+    return new Response(JSON.stringify(sessionData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

@@ -1,11 +1,11 @@
-// src/components/PageProfile.jsx (Desain Ulang Premium - Revisi Final)
+// src/components/PageProfile.jsx (Desain Ulang Premium - Dengan Opsi Foto Profil)
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartSimple, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
-  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear // <-- [TAMBAHKAN] Ikon baru
+  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
@@ -54,7 +54,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const isLoggedIn = !!(currentUser && currentUser.id);
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- [BARU] State untuk dropdown settings
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,9 +70,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const navigate = useNavigate();
-  const settingsMenuRef = useRef(null); // <-- [BARU] Ref untuk menu dropdown
+  const settingsMenuRef = useRef(null);
 
-  // [BARU] Logika untuk menutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
@@ -87,6 +86,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
+  // [PENTING] Pastikan fungsi ini mengambil `telegram_avatar_url` dari data profil
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return {};
     return {
@@ -94,6 +94,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
       name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
       avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url,
+      telegram_avatar_url: profileData?.telegram_avatar_url || null, // <-- AMBIL URL FOTO TELEGRAM
       stats: profileData?.stats || { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
       address: profileData?.web3_address || null,
       telegram_user_id: profileData?.telegram_user_id || null,
@@ -102,6 +103,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   };
   
   const handleLinkWallet = useCallback(async () => {
+    // ... (fungsi ini tetap sama)
     if (!address || !currentUser?.id) return;
     setIsWalletActionLoading(true);
     clearMessages();
@@ -132,6 +134,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
 
   const handleUnlinkWallet = async () => {
+    // ... (fungsi ini tetap sama)
     if (!window.confirm("Are you sure you want to unlink this wallet?")) return;
     setIsWalletActionLoading(true);
     clearMessages();
@@ -166,13 +169,14 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   };
 
   const handleUnlinkTelegram = async () => {
+    // ... (fungsi ini tetap sama)
     if (!window.confirm("Are you sure you want to unlink this Telegram account?")) return;
     setIsTelegramConnecting(true);
     clearMessages();
     try {
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ telegram_user_id: null })
+        .update({ telegram_user_id: null, telegram_avatar_url: null }) // Juga hapus avatar telegram
         .eq('id', currentUser.id);
 
       if (updateError) throw updateError;
@@ -190,6 +194,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   };
 
   const handleLinkEmailPassword = async (e) => {
+    // ... (fungsi ini tetap sama)
     e.preventDefault();
     if (!newEmail || !newPassword) {
       setError("Please fill in a new email and password.");
@@ -271,7 +276,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
         {/* Header Profil */}
         <div className="card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
-             {/* [REVISI] Tombol Setting di Pojok Kanan Atas */}
              <div className="absolute top-4 right-4" ref={settingsMenuRef}>
                  <button 
                      onClick={() => setIsSettingsOpen(p => !p)}
@@ -280,7 +284,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                  >
                      <FontAwesomeIcon icon={faGear} />
                  </button>
-                 {/* [REVISI] Dropdown Menu */}
                  <div className={`options-menu ${isSettingsOpen ? 'active' : ''}`}>
                     <ul>
                         <li onClick={() => { handleOpenEditProfileModal(); setIsSettingsOpen(false); }}>
@@ -430,7 +433,37 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             {successMessage && !error && <div className="p-3 mb-3 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
             <form onSubmit={handleUpdateProfile} className="space-y-5">
               <InputField id="editName" label={t.editProfileLabelName} value={editName} onChange={(e) => setEditName(e.target.value)} icon={faUser} parentLoading={loading} />
-              <InputField id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} parentLoading={loading} />
+              
+              {/* --- [PERUBAHAN DI SINI] --- */}
+              <div>
+                <InputField id="editAvatarUrl" label={t.editProfileLabelAvatar} value={editAvatarUrl} onChange={(e) => setEditAvatarUrl(e.target.value)} icon={faImage} parentLoading={loading} />
+
+                {currentUser.telegram_user_id && currentUser.telegram_avatar_url && (
+                    <div className="mt-2">
+                        <div className="relative flex items-center my-3">
+                            <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
+                            <span className="flex-shrink mx-4 text-light-subtle dark:text-gray-400 text-xs">OR</span>
+                            <div className="flex-grow border-t border-black/10 dark:border-white/10"></div>
+                        </div>
+                        <div className="flex items-center gap-3 p-2 rounded-lg bg-black/5 dark:bg-dark">
+                            <img src={currentUser.telegram_avatar_url} className="w-10 h-10 rounded-full object-cover border-2 border-primary/30" alt="Telegram Avatar"/>
+                            <div className="flex-grow">
+                                <p className="text-sm font-semibold text-light-text dark:text-white">Your Telegram Photo</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn-secondary text-xs px-3 py-1.5"
+                                onClick={() => setEditAvatarUrl(currentUser.telegram_avatar_url)}
+                                disabled={loading}
+                            >
+                                Use this
+                            </button>
+                        </div>
+                    </div>
+                )}
+              </div>
+              {/* --- AKHIR PERUBAHAN --- */}
+
               <div className="flex justify-end gap-4 pt-4">
                 <button disabled={loading} type="button" onClick={handleCloseEditProfileModal} className="btn-secondary px-6 py-2.5 rounded-lg text-sm">{t.editProfileBtnCancel}</button>
                 <button disabled={loading} type="submit" className="btn-primary text-white px-6 py-2.5 rounded-lg text-sm flex items-center">
