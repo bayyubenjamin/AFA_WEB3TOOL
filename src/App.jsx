@@ -1,4 +1,4 @@
-// src/App.jsx (VERSI FINAL DENGAN LOGIKA PEMULIHAN PROFIL OTOMATIS - FIX)
+// src/App.jsx
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -37,7 +37,6 @@ const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=G`,
   address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
-  telegram_avatar_url: null,
   user_metadata: {}
 };
 
@@ -51,11 +50,11 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     stats: profileData?.stats || defaultGuestUserForApp.stats,
     address: profileData?.web3_address || null,
     telegram_user_id: profileData?.telegram_user_id || null, 
-    telegram_avatar_url: profileData?.telegram_avatar_url || null,
     user_metadata: authUser.user_metadata || {}
   };
 };
 
+// [FUNGSI BARU] Untuk membuat profil jika tidak ada
 const createProfileForUser = async (user) => {
     try {
         console.log(`Creating missing profile for user: ${user.id}`);
@@ -75,9 +74,9 @@ const createProfileForUser = async (user) => {
         return data;
     } catch (creationError) {
         console.error("Error creating missing profile:", creationError);
-        return null;
+        return null; // Return null jika gagal
     }
-}; // <-- [PERBAIKAN] Kurung kurawal penutup yang hilang ada di sini.
+};
 
 export default function App() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
@@ -124,6 +123,7 @@ export default function App() {
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
+          // [LOGIKA BARU DIMULAI DI SINI]
           let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -132,13 +132,16 @@ export default function App() {
 
           if (profileError) throw profileError;
 
+          // Jika profil tidak ditemukan, buat profil baru secara otomatis
           if (!profile) {
             profile = await createProfileForUser(session.user);
             if (!profile) {
+              // Jika pembuatan profil gagal, logout pengguna untuk menghindari state aneh
               await handleLogout();
               return;
             }
           }
+          // [LOGIKA BARU SELESAI DI SINI]
 
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
@@ -171,6 +174,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   useEffect(() => {
