@@ -9,19 +9,36 @@ import "./styles/style.css";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 
-// --- [MODIFIKASI] UNTUK WALLET ---
+// --- Konfigurasi Wallet ---
 import { createWeb3Modal } from '@web3modal/wagmi/react'
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { config as wagmiConfig, walletConnectProjectId } from './wagmiConfig' // Impor config & projectId
-// --- AKHIR MODIFIKASI ---
+import { config as wagmiConfig, walletConnectProjectId } from './wagmiConfig'
 
 const queryClient = new QueryClient()
 
-// --- [DITAMBAHKAN] Inisialisasi Web3Modal ---
+// [PERBAIKAN FINAL] Menambahkan daftar wallet secara manual.
+// Ini untuk mengatasi masalah di mana daftar wallet dari server WalletConnect tidak termuat.
+const featuredWalletIds = [
+  // ID untuk MetaMask
+  'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96',
+  // ID untuk Trust Wallet
+  '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875DA31A0',
+  // ID untuk Coinbase Wallet
+  'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3CFb6b3a38bd033AA',
+  // ID untuk OKX Wallet
+  '8a0ee50d1f22f6661afbab629e501d12791967911b96a8175A2da456ed12c969',
+  // ID untuk Rainbow Wallet
+  '1ae92b26df02f0ABC630420F30a8C928049a9DE970E340E3053D50C209AE990A',
+];
+
+
+// Inisialisasi Web3Modal
 createWeb3Modal({
   wagmiConfig: wagmiConfig,
   projectId: walletConnectProjectId,
+  // [PERBAIKAN FINAL] Tambahkan ID wallet yang ingin Anda tampilkan di sini
+  featuredWalletIds,
   themeMode: 'dark',
   themeVariables: {
     '--w3m-color-mix': '#0a0a1a',
@@ -29,7 +46,6 @@ createWeb3Modal({
     '--w3m-accent': '#7f5af0'
   }
 })
-// --- AKHIR TAMBAHAN ---
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
