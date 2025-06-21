@@ -1,4 +1,4 @@
-// src/components/AirdropUpdateForm.jsx
+// src/components/AirdropUpdateForm.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -62,7 +62,8 @@ export default function AirdropUpdateForm({ airdropId, onUpdateAdded, initialDat
     }
   };
   
-  const formInputClass = "w-full bg-light-bg dark:bg-dark border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
+  // PERBAIKAN DI SINI: Mengubah dark:bg-dark menjadi dark:bg-dark-bg
+  const formInputClass = "w-full bg-light-bg dark:bg-dark-bg border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
   const formLabelClass = "block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1";
 
   return (

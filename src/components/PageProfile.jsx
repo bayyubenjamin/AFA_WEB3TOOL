@@ -1,11 +1,11 @@
-// src/components/PageProfile.jsx (Desain Ulang Premium - Revisi Final)
+// src/components/PageProfile.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartSimple, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
-  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear // <-- [TAMBAHKAN] Ikon baru
+  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 
@@ -17,10 +17,6 @@ import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect } from 'wagmi';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
-
-// ====================================================================================
-// SUB-KOMPONEN
-// ====================================================================================
 
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
@@ -37,16 +33,13 @@ const InputField = React.memo(({ id, type = "text", label, value, onChange, icon
 InputField.displayName = 'InputField';
 
 const StatCard = ({ icon, label, value }) => (
-  <div className="bg-light-bg dark:bg-dark p-4 rounded-xl border border-black/10 dark:border-white/10 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/50">
+  // PERBAIKAN DI SINI: Mengubah dark:bg-dark menjadi dark:bg-dark-bg
+  <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-black/10 dark:border-white/10 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/50">
     <FontAwesomeIcon icon={icon} className="text-primary text-xl mb-2" />
     <p className="text-2xl font-bold text-light-text dark:text-white">{value}</p>
     <p className="text-light-subtle dark:text-gray-400 text-xs uppercase tracking-wider">{label}</p>
   </div>
 );
-
-// ====================================================================================
-// KOMPONEN UTAMA
-// ====================================================================================
 
 export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [], onOpenWalletModal }) {
   const { language } = useLanguage();
@@ -54,7 +47,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const isLoggedIn = !!(currentUser && currentUser.id);
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- [BARU] State untuk dropdown settings
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,9 +63,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const navigate = useNavigate();
-  const settingsMenuRef = useRef(null); // <-- [BARU] Ref untuk menu dropdown
+  const settingsMenuRef = useRef(null);
 
-  // [BARU] Logika untuk menutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
@@ -261,7 +253,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   return (
     <section className="page-content grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 py-6">
       
-      {/* Kolom Kiri: Konten Utama */}
       <div className="lg:col-span-2 flex flex-col gap-6 md:gap-8">
         {(error || successMessage) && (
             <div className={`max-w-full p-4 mb-0 text-sm rounded-lg text-center ${error ? 'text-red-300 bg-red-800/50' : 'text-green-300 bg-green-800/50'}`}>
@@ -269,9 +260,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             </div>
         )}
 
-        {/* Header Profil */}
         <div className="card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
-             {/* [REVISI] Tombol Setting di Pojok Kanan Atas */}
              <div className="absolute top-4 right-4" ref={settingsMenuRef}>
                  <button 
                      onClick={() => setIsSettingsOpen(p => !p)}
@@ -280,7 +269,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                  >
                      <FontAwesomeIcon icon={faGear} />
                  </button>
-                 {/* [REVISI] Dropdown Menu */}
                  <div className={`options-menu ${isSettingsOpen ? 'active' : ''}`}>
                     <ul>
                         <li onClick={() => { handleOpenEditProfileModal(); setIsSettingsOpen(false); }}>
@@ -315,7 +303,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             </div>
         </div>
 
-        {/* Kartu Statistik */}
         <div className="card rounded-xl p-6 md:p-8 shadow-xl">
             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
                 <FontAwesomeIcon icon={faChartSimple} className="mr-3 text-primary" /> 
@@ -330,7 +317,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         </div>
       </div>
 
-      {/* Kolom Kanan: Keamanan & Koneksi */}
       <div className="lg:col-span-1">
          <div className="card rounded-xl p-6 md:p-8 shadow-xl sticky top-24">
             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
@@ -338,7 +324,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 Account Connections
             </h3>
             <ul className="space-y-4">
-               {/* Koneksi Email */}
                <li className="flex items-start gap-4">
                   <div className="bg-blue-500/10 text-blue-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
                      <FontAwesomeIcon icon={faEnvelope} />
@@ -362,7 +347,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                   </div>
                </li>
                
-               {/* Koneksi Wallet */}
                <li className="flex items-start gap-4">
                   <div className="bg-purple-500/10 text-purple-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
                      <FontAwesomeIcon icon={faWallet} />
@@ -389,7 +373,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                   </div>
                </li>
 
-               {/* Koneksi Telegram */}
                 <li className="flex items-start gap-4">
                   <div className="bg-sky-500/10 text-sky-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
                      <FontAwesomeIcon icon={faTelegram} />

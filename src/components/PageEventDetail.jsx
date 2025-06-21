@@ -1,4 +1,4 @@
-// src/components/PageEventDetail.jsx
+// src/components/PageEventDetail.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -18,11 +18,11 @@ const taskIcons = {
   discord: faDiscord,
 };
 
-// Komponen baru untuk menampilkan Task dengan rapi
+// Komponen SocialTask dengan kelas yang sudah diperbaiki
 const SocialTask = ({ task, onVerify, isVerified, isLoading }) => {
     return (
         <div className={`w-full flex items-center justify-between p-4 rounded-lg transition-all duration-300 ${
-            isVerified ? 'bg-green-500/20 border-green-500/50' : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
+            isVerified ? 'bg-green-500/20 border-green-500/50' : 'bg-light-bg dark:bg-dark-bg hover:bg-gray-200/60 dark:hover:bg-dark'
         } border`}>
             <div className="flex items-center gap-4">
                 <FontAwesomeIcon icon={taskIcons[task.task_type] || faTasks} className="text-2xl text-primary" />
@@ -92,12 +92,11 @@ export default function PageEventDetail({ currentUser }) {
   }, [eventSlug, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser?.id) { // Hanya fetch data jika user sudah ada
+    if (currentUser?.id) {
         fetchEventData();
     }
   }, [fetchEventData, currentUser?.id]);
 
-  // Fungsi untuk memverifikasi task
   const handleVerifyTask = async (task) => {
       if (task.task_type !== 'telegram') {
           alert("Verifikasi untuk tipe task ini belum diimplementasikan.");
@@ -176,10 +175,12 @@ export default function PageEventDetail({ currentUser }) {
         Kembali ke Daftar Event
       </Link>
 
-      <div className="card max-w-3xl mx-auto p-0 overflow-hidden">
+      {/* PERBAIKAN: Mengganti className 'card' dengan kelas spesifik untuk memastikan warna gelap diterapkan */}
+      <div className="bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl shadow-subtle dark:shadow-subtle-dark max-w-3xl mx-auto p-0 overflow-hidden">
         <div className="relative">
           <img src={event.banner_image_url || 'https://placehold.co/800x400/101020/7f5af0?text=AFA+Event'} alt={event.title} className="w-full h-48 md:h-64 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
+          {/* PERBAIKAN: Mengganti dark:from-card menjadi dark:from-dark-card */}
+          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-dark-card via-light-card/70 dark:via-dark-card/70 to-transparent"></div>
         </div>
         
         <div className="p-6 md:p-8 space-y-6">

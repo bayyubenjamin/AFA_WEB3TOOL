@@ -1,4 +1,4 @@
-// src/components/PageHome.jsx
+// src/components/PageHome.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 
 import React from "react";
 import { Link } from "react-router-dom";
@@ -15,7 +15,8 @@ const getTranslations = (lang) => {
 };
 
 const FeatureCard = ({ icon, title, description, actionText, actionTarget, color }) => (
-  <div className="relative bg-light-card dark:bg-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
+  // PERBAIKAN DI SINI: Mengubah dark:bg-card menjadi dark:bg-dark-card
+  <div className="relative bg-light-card dark:bg-dark-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
     <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/20 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500 animate-spin-slow"></div>
     <div className="relative z-10 flex flex-col h-full">
@@ -81,7 +82,6 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
     if (isLoggedIn) {
       onMintNft();
     } else {
-      // [MODIFIKASI] Navigasi ke halaman /login jika belum login
       navigate('/login');
     }
   };

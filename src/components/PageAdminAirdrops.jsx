@@ -1,4 +1,5 @@
-// src/components/PageAdminAirdrops.jsx - LENGKAP DENGAN THEME
+// src/components/PageAdminAirdrops.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -37,8 +38,7 @@ const AirdropCard = ({ airdrop, onEdit, onDelete }) => {
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
 
   return (
-    // [EDIT]
-    <div className="bg-light-card dark:bg-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
+    <div className="bg-light-card dark:bg-dark-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
         <div className="absolute top-2 right-2 z-30 flex gap-2">
           <button onClick={(e) => { e.preventDefault(); onEdit(airdrop); }} className="bg-blue-500/80 hover:bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faEdit} /></button>
           <button onClick={(e) => { e.preventDefault(); onDelete(airdrop); }} className="bg-red-500/80 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-lg"><FontAwesomeIcon icon={faTrash} /></button>
@@ -49,7 +49,7 @@ const AirdropCard = ({ airdrop, onEdit, onDelete }) => {
         </div>
         <div className="relative w-full h-48 overflow-hidden">
           <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-dark-card to-transparent"></div>
         </div>
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-light-text dark:text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
@@ -193,13 +193,13 @@ export default function PageAdminAirdrops({ currentUser }) {
         />
       ) : (
         <>
-          <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+          <Link to="/admin" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
               <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-              Back to Airdrop List
+              Kembali ke Admin Dashboard
           </Link>
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-3 flex items-center justify-center gap-3">
-               <FontAwesomeIcon icon={faShieldHalved}/> Admin Panel
+               <FontAwesomeIcon icon={faShieldHalved}/> {t.adminPanelTitle}
             </h1>
             <p className="text-lg text-light-subtle dark:text-gray-400 max-w-2xl mx-auto">Manage airdrop posts here.</p>
           </div>
@@ -214,9 +214,9 @@ export default function PageAdminAirdrops({ currentUser }) {
               <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
                   <div className="relative flex-grow">
                       <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-light-subtle dark:text-gray-500" />
-                      <input type="text" placeholder={t.searchPlaceholder || "Cari airdrop..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                      <input type="text" placeholder={t.searchPlaceholder || "Cari airdrop..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
                   </div>
-                  <div className="bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
+                  <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
                       {['all', 'active', 'upcoming', 'ended'].map(filter => (
                           <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-light-text dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5'}`}>
                               {filterTranslations[filter]}

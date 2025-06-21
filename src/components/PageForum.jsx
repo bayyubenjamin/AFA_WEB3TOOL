@@ -1,4 +1,4 @@
-// src/components/PageForum.jsx (REDESIGNED V4 - Real-time Send Fix)
+// src/components/PageForum.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -26,7 +26,7 @@ const Message = React.memo(({ msg, isCurrentUser, profile }) => {
                     px-4 py-2.5 rounded-2xl max-w-xs md:max-w-md
                     ${isCurrentUser 
                         ? 'bg-primary text-white rounded-br-none' 
-                        : 'bg-light-card dark:bg-card border border-black/10 dark:border-white/10 text-light-text dark:text-white rounded-bl-none'
+                        : 'bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 text-light-text dark:text-white rounded-bl-none'
                     }
                 `}>
                     {!isCurrentUser && (
@@ -106,7 +106,6 @@ export default function PageForum({ currentUser }) {
     fetchMessages();
     const channel = supabase.channel('forum-messages-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        // Hanya tambahkan pesan jika bukan dari pengguna saat ini, karena kita sudah menanganinya secara lokal
         if (payload.new.user_id !== currentUser?.id) {
           setMessages(prev => [...prev, payload.new]);
           fetchProfiles(new Set([payload.new.user_id]));
@@ -133,17 +132,15 @@ export default function PageForum({ currentUser }) {
       channel_id: 'general' 
     };
 
-    // PERBAIKAN KUNCI: Gunakan .select() untuk mendapatkan data yang baru saja dikirim
     const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert(messageToSend)
         .select()
-        .single(); // .single() untuk mendapatkan objek, bukan array
+        .single();
 
     if (insertError) {
       alert((t.sendMessageError || "Failed to send message: ") + insertError.message); 
     } else if (insertedMessage) {
-      // PERBAIKAN KUNCI: Langsung tambahkan pesan baru ke state lokal
       setMessages(prevMessages => [...prevMessages, insertedMessage]);
       setNewMessage("");
       setTimeout(() => scrollToBottom("smooth"), 100);
@@ -188,8 +185,8 @@ export default function PageForum({ currentUser }) {
           <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex-shrink-0 p-3 md:p-4 mt-2 bg-light-bg dark:bg-dark">
-          <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
+      <div className="flex-shrink-0 p-3 md:p-4 mt-2 bg-light-bg dark:bg-dark-bg">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-light-card dark:bg-dark-card p-2 rounded-xl border border-black/10 dark:border-white/10 shadow-lg">
               <input 
                   type="text" 
                   value={newMessage} 

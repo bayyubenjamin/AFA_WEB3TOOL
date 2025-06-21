@@ -1,4 +1,5 @@
-// src/components/AirdropAdminForm.jsx - LENGKAP DENGAN THEME
+// src/components/AirdropAdminForm.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
+
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSave, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -56,7 +57,8 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
     onSave(formData);
   };
   
-  const formInputClass = "w-full bg-light-bg dark:bg-dark border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
+  // PERBAIKAN DI SINI: Mengubah dark:bg-dark menjadi dark:bg-dark-bg
+  const formInputClass = "w-full bg-light-bg dark:bg-dark-bg border border-black/20 dark:border-white/20 rounded-md p-2 text-sm text-light-text dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
   const formLabelClass = "block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1.5";
   const formTitle = isEditing ? t.adminFormTitleEdit : t.adminFormTitleAdd;
 
@@ -67,7 +69,7 @@ export default function AirdropAdminForm({ onSave, onClose, initialData, loading
         Kembali ke Admin Panel
       </button>
 
-      <form onSubmit={handleSubmit} className="bg-light-card dark:bg-card border border-black/10 dark:border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
         <h2 className="text-2xl font-bold text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-4">
           {formTitle}
         </h2>
