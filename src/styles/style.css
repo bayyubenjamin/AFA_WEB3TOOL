@@ -1,4 +1,5 @@
-/* src/styles/style.css - Versi Perbaikan Final */
+/* src/styles/style.css - Percobaan Final dengan CSS Murni */
+
 
 @tailwind base;
 @tailwind components;
@@ -11,13 +12,24 @@
   }
 
   body {
-    @apply font-sans bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
+    /* === PERUBAHAN PENTING DI SINI === */
+    /* Kita definisikan font secara langsung, tanpa @apply font-sans */
+    font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
+    
+    @apply bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Kita juga paksa elemen heading untuk menggunakan font yang sama */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
   }
 }
 
 @layer components {
+  /* ... Sisa kode Anda tidak perlu diubah ... */
+
   /* Main App Container background */
   .app-container {
     @apply bg-sky-gradient dark:bg-dark-sky-gradient;

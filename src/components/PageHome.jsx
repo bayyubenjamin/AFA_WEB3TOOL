@@ -90,7 +90,7 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
     <section id="home" className="page-content space-y-20 md:space-y-28 py-10 md:py-16 overflow-x-hidden">
       <div className="relative text-center max-w-4xl mx-auto px-4 z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-primary/10 via-transparent to-transparent -z-10 rounded-full blur-3xl"></div>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-light-text dark:text-white leading-tight">
+        <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-light-text dark:text-white leading-tight">
           {tHome.heroTitle}
         </h1>
         <p className="mt-6 text-lg md:text-xl text-light-subtle dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
