@@ -1,28 +1,19 @@
 /* src/index.css */
 
-/*
-  Style-style di bawah ini (kecuali 'body { margin: 0; }')
-  dihapus atau dikomentari untuk mencegah konflik dengan sistem
-  theming light/dark mode dari Tailwind CSS yang sudah kita atur
-  di src/styles/style.css.
-*/
 :root {
   line-height: 1.5;
   font-weight: 400;
-
-  /* Properti di bawah ini dihapus karena sekarang diatur oleh Tailwind di style.css */
-  /*
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-  */
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  margin: 0;
+}
+
+/* Anda bisa menghapus style di bawah ini jika tidak diperlukan lagi */
 a {
   font-weight: 500;
   color: #646cff;
@@ -31,23 +22,10 @@ a {
 a:hover {
   color: #535bf2;
 }
-
-body {
-  margin: 0;
-  /* Properti di bawah ini dihapus karena sudah diatur oleh Tailwind di style.css */
-  /*
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-  */
-}
-
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
-
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -57,7 +35,7 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color: 0.25s;
+  transition: border-color 0.25s;
 }
 button:hover {
   border-color: #646cff;
@@ -66,19 +44,3 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
-
-/* Media query ini tidak lagi diperlukan karena kita menggunakan sistem class '.dark' dari Tailwind */
-/*
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-*/
