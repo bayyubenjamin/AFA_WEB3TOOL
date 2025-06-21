@@ -14,36 +14,29 @@ export default {
         // New Color Palette
         'primary': {
           DEFAULT: '#1B4DC1', // Deep Blue
-          'dark': '#3a6cde' // Lighter blue for dark mode text/highlights
+          'dark': '#5887ff' // Lighter blue for dark mode text/highlights
         },
         'accent': {
           DEFAULT: '#F97D3C', // Bright Orange
           'dark': '#ff8d54' // Slightly brighter orange for dark mode
         },
         'light-bg': '#FFF8F0', // Creamy White
-        'light-card': '#FFFFFF', // Pure white for cards in light mode
-        'light-header': '#84D1F2', // Light Sky Blue
-        'light-soft': '#FCECD8', // Pastel Orange
+        'light-card': '#FFFFFF',
+        'light-header': '#84D1F2',
+        'light-soft': '#FCECD8',
         
-        // Dark Mode Palette
-        'dark-bg': '#0D1A2E', // Deep Navy Blue
-        'dark-card': '#122540', // Slightly lighter navy
+        // Dark Mode Palette - ADJUSTED
+        'dark-bg': '#0D1A2E',      // Deep Navy Blue (Background)
+        'dark-card': '#192A44',     // A noticeably lighter, more distinct navy for cards
         'dark-text': '#E0E8F4',
         'dark-subtle': '#8899B3',
-        
-        // Legacy colors for reference or gradual phasing out
-        'secondary': '#2CB67D',
-        'dark-legacy': '#0a0a1a',      
-        'card-legacy': '#101020',
       },
       fontFamily: {
-        // New Font Family
         sans: ["Fredoka", "Baloo 2", "Quicksand", "system-ui", "sans-serif"],
-        inter: ["Inter", "sans-serif"], // Kept for reference
       },
       boxShadow: {
         'subtle': '0 4px 12px 0 rgba(0, 0, 0, 0.05)',
-        'subtle-dark': '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
+        'subtle-dark': '0 6px 20px 0 rgba(0, 0, 0, 0.25)',
         'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
         'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
       },
@@ -53,7 +46,7 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'sky-gradient': 'linear-gradient(180deg, #84D1F2 0%, #FFF8F0 100%)',
+        'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #FFF8F0 100%)', // Softer blue gradient
         'dark-sky-gradient': 'linear-gradient(180deg, #122540 0%, #0D1A2E 100%)',
       }
     },

@@ -34,82 +34,70 @@
     @apply bg-red-500 border border-red-500 text-white rounded-xl transition-all duration-300 hover:bg-red-600 hover:shadow-lg;
   }
 
-  /* Cards & Modals */
+  /* Cards & Modals - ADJUSTED */
   .card {
     @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl shadow-subtle dark:shadow-subtle-dark;
   }
 
-  .modal {
-    @apply fixed inset-0 bg-dark-bg/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out;
-  }
-  .modal.active {
-    @apply opacity-100 visible;
-  }
-  .modal-content {
-    @apply bg-light-card dark:bg-dark-card p-5 md:p-6 rounded-2xl shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto;
-  }
+  .modal { @apply fixed inset-0 bg-dark-bg/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out; }
+  .modal.active { @apply opacity-100 visible; }
+  .modal-content { @apply bg-light-card dark:bg-dark-card p-5 md:p-6 rounded-2xl shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto; }
   .modal-header { @apply flex justify-between items-center mb-4; }
   .modal-title { @apply text-xl font-bold text-primary dark:text-primary-dark; }
-  .modal-close-btn { @apply bg-transparent border-none text-gray-400 dark:text-gray-500 text-2xl cursor-pointer hover:text-primary dark:hover:text-primary-dark transition-colors; }
+  .modal-close-btn { @apply bg-transparent border-none text-gray-400 dark:text-dark-subtle text-2xl cursor-pointer hover:text-primary dark:hover:text-primary-dark transition-colors; }
   
   /* Forms */
   .form-group { @apply mb-4; }
   .form-group label { @apply block text-sm font-medium text-gray-600 dark:text-dark-subtle mb-1.5; }
   .form-group input,
   .form-group select,
-  .form-group textarea {
-    @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all;
-  }
+  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
   .form-group textarea { @apply min-h-[80px]; }
 
   /* Header & Navigation */
-  .glassmorphism {
-    @apply bg-light-card/80 dark:bg-dark-card/60 backdrop-blur-lg border border-black/5 dark:border-white/10;
-  }
-  .header-interactive-item {
-    @apply transition-all duration-300 ease-in-out;
-  }
-  .header-interactive-item:hover {
-    @apply scale-110 text-accent;
-  }
-  .header-title-premium {
-    @apply font-bold text-primary dark:text-white;
-  }
+  .glassmorphism { @apply bg-light-card/80 dark:bg-dark-card/60 backdrop-blur-lg border border-black/5 dark:border-white/10; }
+  .header-interactive-item { @apply transition-all duration-300 ease-in-out; }
+  .header-interactive-item:hover { @apply scale-110 text-accent; }
+  .header-title-premium { @apply font-bold text-primary dark:text-white; }
 
   .options-menu {
     @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-xl min-w-[180px] z-50 p-2;
     @apply opacity-0 invisible pointer-events-none transform translate-y-2;
     transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
   }
-  .options-menu.active {
-    @apply opacity-100 visible pointer-events-auto translate-y-0;
-  }
+  .options-menu.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
   .options-menu ul { @apply list-none p-0 m-0; }
-  .options-menu li {
-    @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150;
-  }
+  .options-menu li { @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150; }
   .options-menu li svg { @apply mr-3 w-4 h-4 text-primary dark:text-accent-dark; }
 
-  /* PageMyWork Specific */
+  /* PageMyWork Specific - REVERTED TO ORIGINAL FUNCTIONALITY STYLE */
   .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-dark-subtle/30; }
-  .category-wrapper { @apply bg-light-soft/50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-subtle/20 rounded-xl p-4 mb-4; }
+  .category-wrapper { @apply bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl p-4 mb-4; }
   .category-header { @apply flex justify-between items-center cursor-pointer; }
-  .category-title-text { @apply text-lg font-bold text-primary dark:text-primary-dark; }
-  .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-2; }
-  .airdrop-list-item { @apply flex justify-between items-center py-3 px-2 border-t border-gray-200/60 dark:border-dark-subtle/20 transition-colors duration-150; }
-  .airdrop-list-item:hover { @apply bg-light-soft/60 dark:bg-dark-bg; }
-  .airdrop-list-item .name { @apply font-semibold text-gray-800 dark:text-dark-text block; }
-  .airdrop-list-item .task-desc { @apply text-xs text-gray-500 dark:text-dark-subtle; }
+  .category-title-text { @apply text-xl font-bold text-primary dark:text-white; }
+  .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-3; }
+  
+  /* Restored action links style */
+  .category-actions { @apply flex items-center space-x-3 text-xs font-semibold; }
+  .category-actions button, .category-actions a { @apply text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark transition-colors duration-200 bg-transparent border-none p-0; }
+  .category-actions button:disabled { @apply opacity-40 cursor-not-allowed hover:text-gray-500 dark:hover:text-dark-subtle; }
+  .category-actions .delete-action { @apply hover:text-red-500 dark:hover:text-red-400; }
 
-  /* PageAirdrops, PageEvents, PageHome */
-  .futuristic-text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
-  }
-  .feature-card { /* Custom class for feature cards on homepage */
-    @apply relative bg-light-card dark:bg-dark-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-xl;
-  }
+  .airdrop-list-container { @apply max-h-0 overflow-hidden transition-all duration-500 ease-in-out mt-2; }
+  .airdrop-list-container.expanded { @apply max-h-[2000px]; }
+  .airdrop-list-item { @apply flex justify-between items-center py-3.5 px-2 border-t border-gray-200/60 dark:border-dark-subtle/20 transition-colors duration-150; }
+  .airdrop-list-item:hover { @apply bg-light-soft/60 dark:bg-dark-bg/40 rounded-lg; }
+  .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
+  .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
+  .airdrop-list-item .name { @apply font-bold text-gray-800 dark:text-dark-text block; }
+  .airdrop-list-item .task-desc { @apply text-sm text-gray-500 dark:text-dark-subtle; }
+   .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
+  .status-inprogress { @apply bg-yellow-500/20 text-yellow-400; }
+  .status-completed { @apply bg-green-500/20 text-green-400; }
+  .btn-done-today { @apply bg-transparent border-none p-1 mr-2 text-base text-gray-400 dark:text-gray-500 cursor-pointer transition-colors duration-200 ease-in-out; }
+  .btn-done-today.marked { @apply text-green-500; }
 
-  /* General Animation */
+  /* General Animation & Misc */
   .content-enter-active {
     @apply opacity-100 translate-y-0 transition-all duration-500 ease-out;
     opacity: 1 !important;
