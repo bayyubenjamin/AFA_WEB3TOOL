@@ -1,4 +1,5 @@
-/* src/styles/style.css (Perbaikan Build & Dropdown) */
+/* src/styles/style.css - Versi Perbaikan Final */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -69,15 +70,15 @@
   .options-menu li { @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150; }
   .options-menu li svg { @apply mr-3 w-4 h-4 text-primary dark:text-accent-dark; }
 
-  /* PageMyWork Specific - REVERTED TO DROPDOWN MENU */
+  /* PageMyWork Specific - Dropdown Menu Styles */
   .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-dark-subtle/30; }
   .category-wrapper { @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl p-4 mb-4 transition-all; }
   .category-wrapper:hover { @apply border-gray-300 dark:border-dark-subtle/40; }
   .category-header { @apply flex justify-between items-center cursor-pointer; }
+  .category-title-container { @apply flex items-center flex-grow min-w-0; }
   .category-title-text { @apply text-xl font-bold text-primary dark:text-white; }
   .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-3; }
 
-  /* Dropdown styles for MyWork page */
   .category-settings-dropdown { @apply relative; }
   .category-settings-dropdown-button { @apply bg-transparent border-none text-gray-500 dark:text-dark-subtle cursor-pointer p-2 rounded-full hover:bg-gray-200/50 dark:hover:bg-dark-bg/60 transition-colors; }
   .category-settings-dropdown-content { 
