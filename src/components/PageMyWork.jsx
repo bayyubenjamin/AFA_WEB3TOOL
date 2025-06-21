@@ -19,6 +19,7 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
+// Komponen helper ConfirmDeleteModal
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancelText, confirmText }) => {
   if (!isOpen) return null;
   return (
@@ -221,7 +222,7 @@ export default function PageMyWork({ currentUser }) {
       if(error) {
         setNotification({ message: "Failed to update daily status: " + error.message, type: "error" });
       } else {
-        fetchData(); // Refetch to get the latest state
+        fetchData();
       }
   };
 
@@ -274,10 +275,20 @@ export default function PageMyWork({ currentUser }) {
       <section className="page-content space-y-6 pt-6">
         <div className="card rounded-2xl p-4 md:p-6">
           <div className="main-category-header">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-3 w-5 h-5 text-accent dark:text-accent-dark" /> {pageMyWorkT.mainHeader} </h2>
-            <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-sm px-4 py-2 rounded-xl flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-4 h-4" />{pageMyWorkT.addCategory} </button> </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
+              <FontAwesomeIcon icon={faTasks} className="mr-3 w-5 h-5 text-accent dark:text-accent-dark" />
+              {pageMyWorkT.mainHeader}
+            </h2>
+            <button onClick={openNewCategoryModal} className="btn-secondary text-sm px-4 py-2 rounded-xl flex items-center">
+              <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-4 h-4" />
+              {pageMyWorkT.addCategory}
+            </button>
           </div>
-          {categories.length === 0 && ( <p className="text-gray-500 dark:text-dark-subtle text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
+
+          {categories.length === 0 && (
+            <p className="text-gray-500 dark:text-dark-subtle text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p>
+          )}
+
           <div className="space-y-4 mt-4">
             {categories.map((category, index) => {
               const itemsInCategory = category.user_airdrops || [];
@@ -287,8 +298,8 @@ export default function PageMyWork({ currentUser }) {
 
               return (
                 <div key={category.id} className="category-wrapper">
-                  <div className="category-header" role="button" tabIndex={0} onClick={() => handleToggleCategory(category.id)}>
-                    <div className="category-title-container">
+                  <div className="category-header">
+                    <div className="flex items-center flex-grow min-w-0" onClick={() => handleToggleCategory(category.id)}>
                       <FontAwesomeIcon icon={iconObject} className={`mr-3 w-5 h-5 ${category.iconColor || 'text-gray-400'}`} />
                       <span className="category-title-text">{category.name}</span>
                       <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
@@ -347,7 +358,6 @@ export default function PageMyWork({ currentUser }) {
             })}
           </div>
         </div>
-        
         {showManageCategoryModal && <ModalManageCategory isOpen={showManageCategoryModal} onClose={() => setShowManageCategoryModal(false)} onSave={handleSaveCategory} initialData={editingCategory} />}
         {showManageAirdropModal && (
           <ModalManageAirdrop
