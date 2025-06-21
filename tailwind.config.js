@@ -1,57 +1,116 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: 'class',
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      screens: {
-        'lg-desktop': '1100px',
-      },
-      colors: {
-        // New Color Palette
-        'primary': {
-          DEFAULT: '#1B4DC1', // Deep Blue
-          'dark': '#5887ff' // Lighter blue for dark mode text/highlights
-        },
-        'accent': {
-          DEFAULT: '#F97D3C', // Bright Orange
-          'dark': '#ff8d54' // Slightly brighter orange for dark mode
-        },
-        'light-bg': '#FFF8F0', // Creamy White
-        'light-card': '#FFFFFF',
-        'light-header': '#84D1F2',
-        'light-soft': '#FCECD8',
-        
-        // Dark Mode Palette - ADJUSTED
-        'dark-bg': '#0D1A2E',      // Deep Navy Blue (Background)
-        'dark-card': '#192A44',     // A noticeably lighter, more distinct navy for cards
-        'dark-text': '#E0E8F4',
-        'dark-subtle': '#8899B3',
-      },
-      fontFamily: {
-        sans: ["Fredoka", "Baloo 2", "Quicksand", "system-ui", "sans-serif"],
-      },
-      boxShadow: {
-        'subtle': '0 4px 12px 0 rgba(0, 0, 0, 0.05)',
-        'subtle-dark': '0 6px 20px 0 rgba(0, 0, 0, 0.25)',
-        'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
-        'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
-      },
-      animation: {
-        "gradient-shine": "gradientShine 5s linear infinite",
-        "spin-slow": "spinSlow 10s linear infinite",
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #FFF8F0 100%)', // Softer blue gradient
-        'dark-sky-gradient': 'linear-gradient(180deg, #122540 0%, #0D1A2E 100%)',
-      }
-    },
-  },
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
+/* src/styles/style.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --header-height: 60px;
+  --bottomnav-height: 60px;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Main App Container background */
+  .app-container {
+    @apply bg-sky-gradient dark:bg-dark-sky-gradient;
+  }
+  
+  /* Buttons */
+  .btn-primary {
+    @apply bg-primary text-white font-semibold rounded-xl shadow-subtle transition-all duration-300 hover:scale-[1.03] hover:shadow-primary disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-accent text-white font-semibold rounded-xl shadow-subtle transition-all duration-300 hover:scale-[1.03] hover:shadow-accent disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply bg-red-500 border border-red-500 text-white rounded-xl transition-all duration-300 hover:bg-red-600 hover:shadow-lg;
+  }
+
+  /* Cards & Modals */
+  .card {
+    @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl shadow-subtle dark:shadow-subtle-dark;
+  }
+
+  .modal { @apply fixed inset-0 bg-dark-bg/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out; }
+  .modal.active { @apply opacity-100 visible; }
+  .modal-content { @apply bg-light-card dark:bg-dark-card p-5 md:p-6 rounded-2xl shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto; }
+  .modal-header { @apply flex justify-between items-center mb-4; }
+  .modal-title { @apply text-xl font-bold text-primary dark:text-primary-dark; }
+  .modal-close-btn { @apply bg-transparent border-none text-gray-400 dark:text-dark-subtle text-2xl cursor-pointer hover:text-primary dark:hover:text-primary-dark transition-colors; }
+  
+  /* Forms */
+  .form-group { @apply mb-4; }
+  .form-group label { @apply block text-sm font-medium text-gray-600 dark:text-dark-subtle mb-1.5; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
+  .form-group textarea { @apply min-h-[80px]; }
+
+  /* Header & Navigation */
+  .glassmorphism { @apply bg-light-card/80 dark:bg-dark-card/60 backdrop-blur-lg border border-black/5 dark:border-white/10; }
+  .header-interactive-item { @apply transition-all duration-300 ease-in-out; }
+  .header-interactive-item:hover { @apply scale-110 text-accent; }
+  .header-title-premium { @apply font-bold text-primary dark:text-white; }
+
+  .options-menu {
+    @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-xl min-w-[180px] z-50 p-2;
+    @apply opacity-0 invisible pointer-events-none transform translate-y-2;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
+  }
+  .options-menu.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
+  .options-menu ul { @apply list-none p-0 m-0; }
+  .options-menu li { @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150; }
+  .options-menu li svg { @apply mr-3 w-4 h-4 text-primary dark:text-accent-dark; }
+
+  /* PageMyWork Specific - REVERTED TO DROPDOWN MENU */
+  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-dark-subtle/30; }
+  .category-wrapper { @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl p-4 mb-4; }
+  .category-header { @apply flex justify-between items-center cursor-pointer; }
+  .category-title-text { @apply text-xl font-bold text-primary dark:text-white; }
+  .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-3; }
+
+  /* Dropdown styles for MyWork page */
+  .category-settings-dropdown { @apply relative; }
+  .category-settings-dropdown-button { @apply bg-transparent border-none text-gray-500 dark:text-dark-subtle cursor-pointer p-2 rounded-full hover:bg-gray-200/50 dark:hover:bg-dark-bg/60 transition-colors; }
+  .category-settings-dropdown-content { 
+    @apply absolute top-full right-0 bg-light-card dark:bg-[#1f3a5f] border border-black/10 dark:border-white/10 rounded-xl shadow-lg min-w-[180px] z-50 p-1.5;
+    @apply opacity-0 invisible pointer-events-none transform translate-y-2;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
+  }
+  .category-settings-dropdown-content.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
+  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-gray-700 dark:text-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
+  .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600; }
+  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-light-soft dark:bg-dark-bg text-primary dark:text-accent-dark; }
+  .category-settings-dropdown-content button svg { @apply mr-2.5 w-4 h-4; }
+  .category-settings-dropdown-content .delete-action:not(:disabled):hover { @apply text-red-500 bg-red-500/10; }
+
+  .airdrop-list-container { @apply max-h-0 overflow-hidden transition-all duration-500 ease-in-out; }
+  .airdrop-list-container.expanded { @apply max-h-[2000px] mt-2; }
+  .airdrop-list-item { @apply flex justify-between items-center py-3.5 px-3 border-t border-gray-200/60 dark:border-dark-subtle/20 transition-colors duration-150; }
+  .airdrop-list-item:hover { @apply bg-light-soft/50 dark:bg-dark-bg/40 rounded-lg; }
+  .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
+  .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
+  .airdrop-list-item .name { @apply font-bold text-gray-800 dark:text-dark-text block; }
+  .airdrop-list-item .task-desc { @apply text-sm text-gray-500 dark:text-dark-subtle; }
+   .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
+  .status-inprogress { @apply bg-yellow-400/20 text-yellow-300; }
+  .status-completed { @apply bg-green-500/20 text-green-400; }
+  .btn-done-today { @apply bg-transparent border-none p-1 mr-2 text-base text-gray-400 dark:text-gray-500 cursor-pointer transition-colors duration-200 ease-in-out; }
+  .btn-done-today.marked { @apply text-accent dark:text-accent-dark; }
+  
+  /* General Animation & Misc */
+  .content-enter-active {
+    @apply opacity-100 translate-y-0 transition-all duration-500 ease-out;
+    opacity: 1 !important;
+    transform: translateY(0px) !important;
+  }
+  .content-enter { @apply opacity-0 translate-y-5; }
 }

@@ -1,9 +1,9 @@
 // src/components/PageMyWork.jsx
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faTasks, faPlus, faFolderPlus, faArrowUp, faArrowDown, faEdit, faTrashAlt,
+  faTasks, faPlus, faFolderPlus, faEllipsisV, faArrowUp, faArrowDown, faEdit, faTrashAlt,
   faCheckCircle as fasFaCheckCircle, faSpinner, faExclamationTriangle,
   faFlask, faHistory, faMobileAlt, faTag, faCalendarCheck, faPuzzlePiece, faServer
 } from "@fortawesome/free-solid-svg-icons";
@@ -19,7 +19,6 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// Komponen helper ConfirmDeleteModal
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancelText, confirmText }) => {
   if (!isOpen) return null;
   return (
@@ -89,6 +88,8 @@ export default function PageMyWork({ currentUser }) {
   const [categoryForNewAirdrop, setCategoryForNewAirdrop] = useState(null);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [openDropdownKey, setOpenDropdownKey] = useState(null);
+  const dropdownRefs = useRef({});
 
   const fetchData = useCallback(async () => {
     if (!currentUser || !currentUser.id) {
@@ -126,6 +127,16 @@ export default function PageMyWork({ currentUser }) {
   }, [fetchData]);
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdownKey && dropdownRefs.current[openDropdownKey] && !dropdownRefs.current[openDropdownKey].contains(event.target)) {
+        setOpenDropdownKey(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => { document.removeEventListener("mousedown", handleClickOutside); };
+  }, [openDropdownKey]);
+
+  useEffect(() => {
       if (notification) {
           const timer = setTimeout(() => setNotification(null), 3000);
           return () => clearTimeout(timer);
@@ -134,57 +145,47 @@ export default function PageMyWork({ currentUser }) {
 
   const handleSaveCategory = async ({ name, icon, iconColor }) => {
     if (!name.trim() || !currentUser) return;
-    let categoryData = { name: name, icon: icon, user_id: currentUser.id };
+    let categoryData = { name, icon, user_id: currentUser.id };
     let error;
     if (editingCategory) {
         categoryData.iconColor = iconColor;
-        ({ error } = await supabase.from('user_categories').update({ name, icon, iconColor }).eq('id', editingCategory.id).eq('user_id', currentUser.id));
-        if (!error) {
-            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
-            fetchData();
-        }
+        ({ error } = await supabase.from('user_categories').update({ name, icon, iconColor }).eq('id', editingCategory.id));
     } else {
         categoryData.iconColor = getRandomColorClass();
         const { count } = await supabase.from('user_categories').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
         categoryData.display_order = count || 0;
-        const { data: newCategoryArr, error: insertError } = await supabase.from('user_categories').insert(categoryData).select();
-        if (insertError) {
-            error = insertError;
-        } else if (newCategoryArr && newCategoryArr.length > 0) {
-            setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
-            fetchData();
-        } else {
-            error = { message: pageMyWorkT.notificationSaveCategoryError + "Data not found after insert." };
-        }
+        ({ error } = await supabase.from('user_categories').insert(categoryData));
     }
+
     if (error) {
-      console.error("Error saving category:", error);
-      setNotification({ message: pageMyWorkT.notificationSaveCategoryError + error.message, type: "error" });
+        setNotification({ message: `${pageMyWorkT.notificationSaveCategoryError} ${error.message}`, type: "error" });
+    } else {
+        setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
+        fetchData();
     }
     setShowManageCategoryModal(false);
     setEditingCategory(null);
-  };
+};
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget || !currentUser) return;
     let error;
     if (deleteTarget.type === 'category') {
-        ({ error } = await supabase.from('user_categories').delete().eq('id', deleteTarget.id).eq('user_id', currentUser.id));
+        ({ error } = await supabase.from('user_categories').delete().eq('id', deleteTarget.id));
         if (!error) {
             setNotification({ message: pageMyWorkT.notificationDeleteCategorySuccess.replace('{name}', deleteTarget.name), type: "success" });
             fetchData();
         }
     } else if (deleteTarget.type === 'item') {
-        ({ error } = await supabase.from('user_airdrops').delete().eq('id', deleteTarget.id).eq('user_id', currentUser.id));
+        ({ error } = await supabase.from('user_airdrops').delete().eq('id', deleteTarget.id));
         if (!error) {
             const message = (pageMyWorkT.notificationDeleteTaskSuccess || "Successfully deleted task \"{name}\"!").replace('{name}', deleteTarget.name);
-            setNotification({ message, type: "success" }); 
+            setNotification({ message, type: "success" });
             fetchData();
         }
     }
     if (error) {
-      console.error("Error deleting item:", error);
-      setNotification({ message: pageMyWorkT.notificationDeleteCategoryError + error.message, type: "error" });
+      setNotification({ message: `${pageMyWorkT.notificationDeleteCategoryError} ${error.message}`, type: "error" });
     }
     setShowConfirmDeleteModal(false);
     setDeleteTarget(null);
@@ -196,33 +197,31 @@ export default function PageMyWork({ currentUser }) {
         return;
     }
     const dataToSave = { ...airdropData, user_id: currentUser.id };
-    if (!editingAirdrop) { delete dataToSave.id; }
+    if (!editingAirdrop) delete dataToSave.id;
     let error;
     if (editingAirdrop) {
-        ({ error } = await supabase.from('user_airdrops').update(dataToSave).eq('id', editingAirdrop.id).eq('user_id', currentUser.id));
+        ({ error } = await supabase.from('user_airdrops').update(dataToSave).eq('id', editingAirdrop.id));
     } else {
-        ({ error } = await supabase.from('user_airdrops').insert(dataToSave).select());
+        ({ error } = await supabase.from('user_airdrops').insert(dataToSave));
     }
     if (error) {
-        console.error("Error saving airdrop:", error);
-        setNotification({ message: pageMyWorkT.notificationSaveAirdropError + error.message, type: "error" });
+        setNotification({ message: `${pageMyWorkT.notificationSaveAirdropError} ${error.message}`, type: "error" });
     } else {
-        await fetchData();
         setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
+        fetchData();
     }
     setShowManageAirdropModal(false);
     setEditingAirdrop(null);
     setCategoryForNewAirdrop(null);
   };
-
+  
   const handleToggleDailyDone = async (item) => {
       const newDailyDoneStatus = !item.daily_done;
-      const { error } = await supabase.from('user_airdrops').update({ daily_done: newDailyDoneStatus }).eq('id', item.id).eq('user_id', currentUser.id);
+      const { error } = await supabase.from('user_airdrops').update({ daily_done: newDailyDoneStatus }).eq('id', item.id);
       if(error) {
-        console.error("Error toggling daily done:", error);
         setNotification({ message: "Failed to update daily status: " + error.message, type: "error" });
       } else {
-        fetchData();
+        fetchData(); // Refetch to get the latest state
       }
   };
 
@@ -241,27 +240,28 @@ export default function PageMyWork({ currentUser }) {
     try {
       await supabase.from('user_categories').update({ display_order: targetCategory.display_order }).eq('id', categoryToMove.id);
       await supabase.from('user_categories').update({ display_order: categoryToMove.display_order }).eq('id', targetCategory.id);
-      await fetchData(); 
+      fetchData(); 
+      setOpenDropdownKey(null);
       setNotification({ message: pageMyWorkT.categoryMoved, type: "success" });
     } catch (err) {
       console.error("Error moving category:", err);
-      setNotification({ message: "Failed to move category: " + err.message, type: "error" });
+      setNotification({ message: `Failed to move category: ${err.message}`, type: "error" });
     }
   }, [categories, currentUser, pageMyWorkT, fetchData]);
 
   const handleToggleCategory = useCallback((categoryId) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(categoryId)) newSet.delete(categoryId);
-      else newSet.add(categoryId);
+      newSet.has(categoryId) ? newSet.delete(categoryId) : newSet.add(categoryId);
       return newSet;
     });
   }, []);
 
+  const handleToggleDropdown = useCallback((catKey) => setOpenDropdownKey(p => p === catKey ? null : catKey), []);
   const openNewCategoryModal = useCallback(() => { setEditingCategory(null); setShowManageCategoryModal(true); }, []);
-  const openEditCategoryModal = useCallback((cat) => { setEditingCategory(cat); setShowManageCategoryModal(true); }, []);
-  const confirmDeleteCategory = useCallback((cat) => { setDeleteTarget({ type: 'category', id: cat.id, name: cat.name }); setShowConfirmDeleteModal(true); }, []);
-  const openNewAirdropModal = useCallback((catId) => { setCategoryForNewAirdrop(catId); setEditingAirdrop(null); setShowManageAirdropModal(true); }, []);
+  const openEditCategoryModal = useCallback((cat) => { setEditingCategory(cat); setShowManageCategoryModal(true); setOpenDropdownKey(null); }, []);
+  const confirmDeleteCategory = useCallback((cat) => { setDeleteTarget({ type: 'category', id: cat.id, name: cat.name }); setShowConfirmDeleteModal(true); setOpenDropdownKey(null); }, []);
+  const openNewAirdropModal = useCallback((catId) => { setCategoryForNewAirdrop(catId); setEditingAirdrop(null); setShowManageAirdropModal(true); setOpenDropdownKey(null); }, []);
   const openEditAirdropModal = useCallback((item) => { setEditingAirdrop(item); setCategoryForNewAirdrop(item.category_id); setShowManageAirdropModal(true); }, []);
   const confirmDeleteAirdropItem = useCallback((item) => { setDeleteTarget({ type: 'item', id: item.id, name: item.name }); setShowConfirmDeleteModal(true); }, []);
 
@@ -274,21 +274,11 @@ export default function PageMyWork({ currentUser }) {
       <section className="page-content space-y-6 pt-6">
         <div className="card rounded-2xl p-4 md:p-6">
           <div className="main-category-header">
-            <h2 className="text-xl font-bold text-primary dark:text-white flex items-center">
-              <FontAwesomeIcon icon={faTasks} className="mr-3 w-5 h-5 text-accent dark:text-accent-dark" />
-              {pageMyWorkT.mainHeader}
-            </h2>
-            <button onClick={openNewCategoryModal} className="btn-secondary text-sm px-4 py-2 rounded-xl flex items-center">
-              <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-4 h-4" />
-              {pageMyWorkT.addCategory}
-            </button>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center"> <FontAwesomeIcon icon={faTasks} className="mr-3 w-5 h-5 text-accent dark:text-accent-dark" /> {pageMyWorkT.mainHeader} </h2>
+            <div className="flex space-x-2"> <button onClick={openNewCategoryModal} className="btn-secondary text-sm px-4 py-2 rounded-xl flex items-center"> <FontAwesomeIcon icon={faFolderPlus} className="mr-1.5 w-4 h-4" />{pageMyWorkT.addCategory} </button> </div>
           </div>
-
-          {categories.length === 0 && (
-            <p className="text-gray-500 dark:text-dark-subtle text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p>
-          )}
-
-          <div className="space-y-4">
+          {categories.length === 0 && ( <p className="text-gray-500 dark:text-dark-subtle text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p> )}
+          <div className="space-y-4 mt-4">
             {categories.map((category, index) => {
               const itemsInCategory = category.user_airdrops || [];
               const categoryIsEmpty = itemsInCategory.length === 0;
@@ -297,23 +287,24 @@ export default function PageMyWork({ currentUser }) {
 
               return (
                 <div key={category.id} className="category-wrapper">
-                  <div className="category-header">
-                    <div className="flex items-center flex-grow min-w-0" onClick={() => handleToggleCategory(category.id)}>
+                  <div className="category-header" role="button" tabIndex={0} onClick={() => handleToggleCategory(category.id)}>
+                    <div className="category-title-container">
                       <FontAwesomeIcon icon={iconObject} className={`mr-3 w-5 h-5 ${category.iconColor || 'text-gray-400'}`} />
                       <span className="category-title-text">{category.name}</span>
                       <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
                     </div>
-                    {/* REVERTED: Action links instead of dropdown */}
-                    <div className="category-actions">
-                      <button onClick={() => handleMoveCategory(category.id, 'up')} disabled={index === 0} title={pageMyWorkT.moveUp}>
-                        <FontAwesomeIcon icon={faArrowUp} />
+                    {/* Dropdown Menu */}
+                    <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleDropdown(category.id); }} className="category-settings-dropdown-button" title={pageMyWorkT.categorySettings}>
+                        <FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleMoveCategory(category.id, 'down')} disabled={index === categories.length - 1} title={pageMyWorkT.moveDown}>
-                        <FontAwesomeIcon icon={faArrowDown} />
-                      </button>
-                      <button onClick={() => openEditCategoryModal(category)} title={pageMyWorkT.editCategory}>{pageMyWorkT.editCategory}</button>
-                      <button onClick={() => openNewAirdropModal(category.id)} title={pageMyWorkT.addAirdrop}>{pageMyWorkT.addAirdrop}</button>
-                      <button onClick={() => confirmDeleteCategory(category)} className="delete-action" title={pageMyWorkT.deleteCategory}>{pageMyWorkT.deleteCategory}</button>
+                      <div className={`category-settings-dropdown-content ${openDropdownKey === category.id ? 'active' : ''}`}>
+                          <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'up');}} disabled={index === 0}> <FontAwesomeIcon icon={faArrowUp} /> {pageMyWorkT.moveUp} </button>
+                          <button onClick={(e) => {e.stopPropagation(); handleMoveCategory(category.id, 'down');}} disabled={index === categories.length - 1}> <FontAwesomeIcon icon={faArrowDown} /> {pageMyWorkT.moveDown} </button>
+                          <button onClick={(e) => {e.stopPropagation(); openEditCategoryModal(category);}}> <FontAwesomeIcon icon={faEdit} /> {pageMyWorkT.editCategory} </button>
+                          <button onClick={(e) => {e.stopPropagation(); openNewAirdropModal(category.id);}}> <FontAwesomeIcon icon={faPlus} /> {pageMyWorkT.addAirdrop} </button>
+                          <button onClick={(e) => {e.stopPropagation(); confirmDeleteCategory(category);}} className="delete-action"> <FontAwesomeIcon icon={faTrashAlt} /> {pageMyWorkT.deleteCategory} </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -321,7 +312,7 @@ export default function PageMyWork({ currentUser }) {
                     {isExpanded && (
                       <ul>
                         {categoryIsEmpty ? (
-                          <li className="italic text-gray-500 dark:text-dark-subtle text-sm px-2 py-3">{pageMyWorkT.noTasksInCategory}</li>
+                          <li className="italic text-gray-500 dark:text-dark-subtle text-sm text-center px-2 py-3">{pageMyWorkT.noTasksInCategory}</li>
                         ) : (itemsInCategory.map(item => (
                           <li key={item.id} className="airdrop-list-item">
                             <div className="airdrop-item-main">
@@ -356,29 +347,28 @@ export default function PageMyWork({ currentUser }) {
             })}
           </div>
         </div>
-      </section>
-
-      {showManageCategoryModal && <ModalManageCategory language={language} isOpen={showManageCategoryModal} onClose={() => setShowManageCategoryModal(false)} onSave={handleSaveCategory} initialData={editingCategory} />}
-      {showManageAirdropModal && (
-        <ModalManageAirdrop
-          language={language}
-          isOpen={showManageAirdropModal}
-          onClose={() => setShowManageAirdropModal(false)}
-          onSave={handleSaveAirdrop}
-          initialData={editingAirdrop}
-          categories={categories.map(c => ({ value: c.id, label: c.name }))}
-          defaultCategoryKey={categoryForNewAirdrop}
+        
+        {showManageCategoryModal && <ModalManageCategory isOpen={showManageCategoryModal} onClose={() => setShowManageCategoryModal(false)} onSave={handleSaveCategory} initialData={editingCategory} />}
+        {showManageAirdropModal && (
+          <ModalManageAirdrop
+            isOpen={showManageAirdropModal}
+            onClose={() => setShowManageAirdropModal(false)}
+            onSave={handleSaveAirdrop}
+            initialData={editingAirdrop}
+            categories={categories.map(c => ({ value: c.id, label: c.name }))}
+            defaultCategoryKey={categoryForNewAirdrop}
+          />
+        )}
+        <ConfirmDeleteModal
+          isOpen={showConfirmDeleteModal}
+          onClose={() => setShowConfirmDeleteModal(false)}
+          onConfirm={handleConfirmDelete}
+          title={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteTitleCategory : pageMyWorkT.confirmDeleteTitleItem}
+          message={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteMessageCategory.replace('{name}', deleteTarget?.name || '') : pageMyWorkT.confirmDeleteMessageItem.replace('{name}', deleteTarget?.name || '')}
+          cancelText={pageMyWorkT.cancel} 
+          confirmText={pageMyWorkT.yesDelete}
         />
-      )}
-      <ConfirmDeleteModal
-        isOpen={showConfirmDeleteModal}
-        onClose={() => setShowConfirmDeleteModal(false)}
-        onConfirm={handleConfirmDelete}
-        title={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteTitleCategory : pageMyWorkT.confirmDeleteTitleItem}
-        message={deleteTarget?.type === 'category' ? pageMyWorkT.confirmDeleteMessageCategory.replace('{name}', deleteTarget?.name || '') : pageMyWorkT.confirmDeleteMessageItem.replace('{name}', deleteTarget?.name || '')}
-        cancelText={pageMyWorkT.cancel} 
-        confirmText={pageMyWorkT.yesDelete}
-      />
+      </section>
     </>
   );
 }
