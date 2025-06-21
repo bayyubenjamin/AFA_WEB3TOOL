@@ -1,49 +1,51 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // [BAGIAN PENTING 1] Opsi untuk mengaktifkan mode gelap via class 'dark'
   darkMode: 'class',
-
-  // [BAGIAN PENTING 2] Path ke file-file yang menggunakan class Tailwind
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-
-  // Bagian yang Anda berikan sudah benar
   theme: {
     extend: {
       screens: {
         'lg-desktop': '1100px',
       },
       colors: {
-        'primary': '#7F5AF0',
+        // New Color Palette
+        'primary': {
+          DEFAULT: '#1B4DC1', // Deep Blue
+          'dark': '#3a6cde' // Lighter blue for dark mode text/highlights
+        },
+        'accent': {
+          DEFAULT: '#F97D3C', // Bright Orange
+          'dark': '#ff8d54' // Slightly brighter orange for dark mode
+        },
+        'light-bg': '#FFF8F0', // Creamy White
+        'light-card': '#FFFFFF', // Pure white for cards in light mode
+        'light-header': '#84D1F2', // Light Sky Blue
+        'light-soft': '#FCECD8', // Pastel Orange
+        
+        // Dark Mode Palette
+        'dark-bg': '#0D1A2E', // Deep Navy Blue
+        'dark-card': '#122540', // Slightly lighter navy
+        'dark-text': '#E0E8F4',
+        'dark-subtle': '#8899B3',
+        
+        // Legacy colors for reference or gradual phasing out
         'secondary': '#2CB67D',
-        'dark': '#0a0a1a',      // Latar belakang utama
-        'card': '#101020',      // Latar belakang kartu/komponen
-        'dark-stroke': '#72757E',
-        'dark-text': '#FFFFFE',
-        'dark-subtle': '#94A1B2',
-        'light-bg': '#F9F9F9', 
-        'light-card': '#ffffff',
-        'light-text': '#242629',
-        'light-subtle': '#94A1B2',
+        'dark-legacy': '#0a0a1a',      
+        'card-legacy': '#101020',
       },
       fontFamily: {
-        inter: ["Inter", "sans-serif"],
+        // New Font Family
+        sans: ["Fredoka", "Baloo 2", "Quicksand", "system-ui", "sans-serif"],
+        inter: ["Inter", "sans-serif"], // Kept for reference
       },
       boxShadow: {
-        glow: "0 0 10px #7f5af0, 0 0 20px #7f5af0 inset",
-      },
-      keyframes: {
-        gradientShine: {
-          "0%": { backgroundPosition: "0% center" },
-          "50%": { backgroundPosition: "200% center" },
-          "100%": { backgroundPosition: "0% center" },
-        },
-        spinSlow: {
-          'from': { transform: 'rotate(0deg)' },
-          'to': { transform: 'rotate(360deg)' },
-        }
+        'subtle': '0 4px 12px 0 rgba(0, 0, 0, 0.05)',
+        'subtle-dark': '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
+        'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
+        'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
       },
       animation: {
         "gradient-shine": "gradientShine 5s linear infinite",
@@ -51,11 +53,11 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'sky-gradient': 'linear-gradient(180deg, #84D1F2 0%, #FFF8F0 100%)',
+        'dark-sky-gradient': 'linear-gradient(180deg, #122540 0%, #0D1A2E 100%)',
       }
     },
   },
-
-  // Bagian ini juga sudah benar
   plugins: [
     require('@tailwindcss/typography'),
   ],

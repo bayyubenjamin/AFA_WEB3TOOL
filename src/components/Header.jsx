@@ -1,4 +1,4 @@
-// src/components/Header.jsx (MODIFIKASI FINAL v3)
+// src/components/Header.jsx
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -79,21 +79,19 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-[60] px-2 sm:px-4 pt-3 transition-transform duration-300 ease-in-out ${!isHeaderVisible ? '-translate-y-full' : ''}`}>
-      <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
-        {/* === [PERUBAHAN] BAGIAN KIRI HEADER === */}
+      <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg`}>
         <div className="flex items-center flex-1 min-w-0">
           <img
             src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
             alt="Logo AFA"
-            className="h-10 w-10 rounded-full object-cover border-2 border-primary/50 flex-shrink-0 header-interactive-item"
+            className="h-10 w-10 rounded-full object-cover border-2 border-accent/50 flex-shrink-0 header-interactive-item"
           />
-          {/* Ikon Forum untuk desktop dipindah ke sini */}
           <Link
             to="/forum"
             className="p-2 w-10 h-10 hidden md:flex items-center justify-center header-interactive-item ml-2"
             aria-label="Forum"
           >
-            <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
+            <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
           {onlineUsers > 0 && (
             <div className="ml-2 flex items-center">
@@ -101,14 +99,13 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-              <span className="ml-2 text-xs font-medium text-green-400">
+              <span className="ml-2 text-xs font-semibold text-green-500">
                 {onlineUsers}
                 <span className="hidden sm:inline"> Online</span>
               </span>
             </div>
           )}
         </div>
-        {/* === AKHIR PERUBAHAN BAGIAN KIRI === */}
 
         <h1
           id="headerTitle"
@@ -117,17 +114,15 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           {title}
         </h1>
         
-        {/* === BAGIAN KANAN HEADER === */}
         <div className="flex-1 flex justify-end items-center gap-2">
           <DesktopNav currentUser={currentUser} />
           
-          {/* Ikon Forum di sini hanya untuk mobile */}
           <Link
             to="/forum"
             className="p-2 w-10 h-10 flex md:hidden items-center justify-center header-interactive-item"
             aria-label="Forum"
           >
-            <FontAwesomeIcon icon={faComments} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
+            <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
           
           <div className="relative" ref={menuRef}>
@@ -136,50 +131,48 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
               className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item"
               aria-label="Menu Opsi"
             >
-              <FontAwesomeIcon icon={faBars} className="text-xl text-light-subtle hover:text-light-text dark:text-gray-300 dark:hover:text-white" />
+              <FontAwesomeIcon icon={faBars} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
             </button>
             
             <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
                <ul>
                 {isAdmin && (
                   <li onClick={handleAdminNav}>
-                    <FontAwesomeIcon icon={faShieldHalved} className="mr-2" /> Admin Panel
+                    <FontAwesomeIcon icon={faShieldHalved} /> Admin Panel
                   </li>
                 )}
                  {currentUser && currentUser.id && (
                   <li onClick={handleProfileNav}>
-                    <FontAwesomeIcon icon={faUserCircle} className="mr-2" /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
+                    <FontAwesomeIcon icon={faUserCircle} /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
                   </li>
                 )}
                 <li onClick={handleToggleTheme}>
-                  <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} className="mr-2" />
+                  <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </li>
                 <li onClick={() => handleLanguageChange('id')}>
-                  <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
+                  <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
                 </li>
                 <li onClick={() => handleLanguageChange('en')}>
-                  <FontAwesomeIcon icon={faGlobe} className="mr-2" /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
+                  <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
                 </li>
                 <li onClick={handleShare}>
-                  <FontAwesomeIcon icon={faShareAlt} className="mr-2" /> {language === 'id' ? 'Bagikan' : 'Share'}
+                  <FontAwesomeIcon icon={faShareAlt} /> {language === 'id' ? 'Bagikan' : 'Share'}
                 </li>
                 {currentUser && currentUser.id ? (
-                  <li onClick={handleLogoutAction}>
-                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> {language === 'id' ? 'Logout' : 'Logout'}
+                  <li onClick={handleLogoutAction} className="text-red-500 dark:text-red-400 hover:!bg-red-500/10">
+                    <FontAwesomeIcon icon={faSignOutAlt} /> {language === 'id' ? 'Logout' : 'Logout'}
                   </li>
                 ) : (
                   <li onClick={handleLoginNav}>
-                    <FontAwesomeIcon icon={faSignInAlt} className="mr-2" /> {language === 'id' ? 'Login' : 'Login'}
+                    <FontAwesomeIcon icon={faSignInAlt} /> {language === 'id' ? 'Login' : 'Login'}
                   </li>
                 )}
               </ul>
             </div>
           </div>
         </div>
-        {/* === AKHIR BAGIAN KANAN === */}
       </header>
     </div>
   );
 }
-

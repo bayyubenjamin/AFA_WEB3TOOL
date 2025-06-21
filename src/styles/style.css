@@ -1,349 +1,119 @@
-/* src/styles/style.css (VERSI FINAL DENGAN OVAL HEADER & HACKER FORUM) */
+/* src/styles/style.css */
 
-/* Direktif dasar Tailwind HARUS di paling atas */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Variabel CSS Global untuk tinggi Header dan BottomNav */
 :root {
   --header-height: 60px;
   --bottomnav-height: 60px;
 }
 
-/* Layer kustom Anda didefinisikan SETELAH direktif dasar Tailwind */
 @layer base {
   body {
-    /* [EDIT]: Terapkan warna dasar untuk light & dark mode */
-    @apply font-inter bg-light-bg text-light-text dark:bg-dark dark:text-[#e0e0e0];
+    @apply font-sans bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer components {
-  /* Style yang sudah ada sebelumnya dan berfungsi */
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .glassmorphism { @apply bg-light-card/80 dark:bg-[#101020]/60 backdrop-blur-md border border-black/5 dark:border-white/10; }
-  .nav-item { @apply border-t-2 border-transparent text-light-subtle dark:text-gray-300; }
-  .nav-item.active { @apply text-primary border-primary; }
-  .btn-primary { @apply bg-gradient-to-r from-primary to-[#a957e0] text-white shadow-lg transition-all duration-300 hover:translate-y-[-2px] hover:shadow-[0_0_25px_rgba(127,90,240,0.8)]; }
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .btn-secondary { @apply bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 text-light-text dark:text-white transition-all duration-300 hover:bg-black/10 dark:hover:bg-white/20 hover:border-black/20 dark:hover:border-white/30; }
-  .btn-danger { @apply bg-red-500 border border-red-500 text-white transition-all duration-300 hover:bg-red-600 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]; }
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .card { @apply bg-light-card dark:bg-card border border-black/10 dark:border-white/10; } /* Pastikan bg-card terdefinisi di tailwind.config.js */
-  .glowing-border { @apply border border-primary shadow-glow; } /* Pastikan shadow-glow terdefinisi */
-  .futuristic-text-gradient { @apply bg-gradient-to-r from-primary via-pink-400 to-primary bg-clip-text text-transparent animate-gradient-shine; } /* Pastikan animate-gradient-shine terdefinisi */
+  /* Main App Container background */
+  .app-container {
+    @apply bg-sky-gradient dark:bg-dark-sky-gradient;
+  }
+  
+  /* Buttons */
+  .btn-primary {
+    @apply bg-primary text-white font-semibold rounded-xl shadow-subtle transition-all duration-300 hover:scale-[1.03] hover:shadow-primary disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-accent text-white font-semibold rounded-xl shadow-subtle transition-all duration-300 hover:scale-[1.03] hover:shadow-accent disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply bg-red-500 border border-red-500 text-white rounded-xl transition-all duration-300 hover:bg-red-600 hover:shadow-lg;
+  }
 
+  /* Cards & Modals */
+  .card {
+    @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl shadow-subtle dark:shadow-subtle-dark;
+  }
+
+  .modal {
+    @apply fixed inset-0 bg-dark-bg/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out;
+  }
+  .modal.active {
+    @apply opacity-100 visible;
+  }
+  .modal-content {
+    @apply bg-light-card dark:bg-dark-card p-5 md:p-6 rounded-2xl shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto;
+  }
+  .modal-header { @apply flex justify-between items-center mb-4; }
+  .modal-title { @apply text-xl font-bold text-primary dark:text-primary-dark; }
+  .modal-close-btn { @apply bg-transparent border-none text-gray-400 dark:text-gray-500 text-2xl cursor-pointer hover:text-primary dark:hover:text-primary-dark transition-colors; }
+  
+  /* Forms */
+  .form-group { @apply mb-4; }
+  .form-group label { @apply block text-sm font-medium text-gray-600 dark:text-dark-subtle mb-1.5; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all;
+  }
+  .form-group textarea { @apply min-h-[80px]; }
+
+  /* Header & Navigation */
+  .glassmorphism {
+    @apply bg-light-card/80 dark:bg-dark-card/60 backdrop-blur-lg border border-black/5 dark:border-white/10;
+  }
+  .header-interactive-item {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  .header-interactive-item:hover {
+    @apply scale-110 text-accent;
+  }
+  .header-title-premium {
+    @apply font-bold text-primary dark:text-white;
+  }
+
+  .options-menu {
+    @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-xl min-w-[180px] z-50 p-2;
+    @apply opacity-0 invisible pointer-events-none transform translate-y-2;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
+  }
+  .options-menu.active {
+    @apply opacity-100 visible pointer-events-auto translate-y-0;
+  }
+  .options-menu ul { @apply list-none p-0 m-0; }
+  .options-menu li {
+    @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150;
+  }
+  .options-menu li svg { @apply mr-3 w-4 h-4 text-primary dark:text-accent-dark; }
+
+  /* PageMyWork Specific */
+  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-dark-subtle/30; }
+  .category-wrapper { @apply bg-light-soft/50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-subtle/20 rounded-xl p-4 mb-4; }
+  .category-header { @apply flex justify-between items-center cursor-pointer; }
+  .category-title-text { @apply text-lg font-bold text-primary dark:text-primary-dark; }
+  .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-2; }
+  .airdrop-list-item { @apply flex justify-between items-center py-3 px-2 border-t border-gray-200/60 dark:border-dark-subtle/20 transition-colors duration-150; }
+  .airdrop-list-item:hover { @apply bg-light-soft/60 dark:bg-dark-bg; }
+  .airdrop-list-item .name { @apply font-semibold text-gray-800 dark:text-dark-text block; }
+  .airdrop-list-item .task-desc { @apply text-xs text-gray-500 dark:text-dark-subtle; }
+
+  /* PageAirdrops, PageEvents, PageHome */
+  .futuristic-text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+  .feature-card { /* Custom class for feature cards on homepage */
+    @apply relative bg-light-card dark:bg-dark-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-xl;
+  }
+
+  /* General Animation */
   .content-enter-active {
     @apply opacity-100 translate-y-0 transition-all duration-500 ease-out;
     opacity: 1 !important;
     transform: translateY(0px) !important;
   }
   .content-enter { @apply opacity-0 translate-y-5; }
-
-  /* --- Style Baru untuk Header Hamburger Menu --- */
-  .hamburger-menu {
-    @apply bg-transparent border-none p-2 cursor-pointer;
-  }
-  .options-menu {
-    /* Pastikan posisi absolut dan z-index tinggi */
-    /* [EDIT]: Disesuaikan untuk light/dark mode */
-    @apply absolute top-full right-0 bg-light-card dark:bg-[#2a2a3a] border border-black/10 dark:border-white/10 rounded-md shadow-xl min-w-[150px] z-50;
-    
-    /* Atur default state tersembunyi */
-    @apply opacity-0 invisible pointer-events-none transform translate-y-2;
-    /* Tambahkan transisi untuk efek slide/fade */
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
-  }
-  .options-menu.active { /* Class ini digunakan di JS yang saya berikan */
-    @apply opacity-100 visible pointer-events-auto translate-y-0;
-  }
-  .options-menu ul {
-    @apply list-none p-0 m-0;
-  }
-  .options-menu li {
-    /* [EDIT]: Disesuaikan untuk light/dark mode */
-    @apply flex items-center px-4 py-2.5 text-sm text-light-text dark:text-gray-200 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150;
-  }
-  .options-menu li:first-child { @apply rounded-t-md; }
-  .options-menu li:last-child { @apply rounded-b-md; }
-  .options-menu li svg {
-    @apply mr-2 w-4 h-4;
-  }
-  /* --- Akhir Style Baru untuk Header Hamburger Menu --- */
-
-  /* === [MODIFIKASI] Style untuk Header Premium Disederhanakan === */
-  /* Efek Interaksi untuk Ikon dan Logo di Header (Tetap Digunakan) */
-  .header-interactive-item {
-    @apply transition-all duration-300 ease-in-out;
-  }
-
-  .header-interactive-item:hover {
-    @apply scale-110;
-    filter: drop-shadow(0 0 8px theme('colors.primary/0.7'));
-  }
-  
-  /* Tipografi Premium untuk Judul Header (Tetap Digunakan) */
-  .header-title-premium {
-    @apply text-light-text dark:text-white font-semibold;
-  }
-  /* === Akhir Style Header Premium === */
-
-
-  /* === Style SPESIFIK untuk PageMyWork (Garapanku) dan Modals === */
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-black/10 dark:border-gray-500/50; }
-  .category-wrapper { @apply border border-black/10 dark:border-gray-500/40 rounded-lg p-3 mb-4 bg-light-card dark:bg-gray-800/20; }
-  .category-header { @apply flex justify-between items-center cursor-pointer mb-2 pb-2 border-b border-black/10 dark:border-gray-500/30; }
-  .category-header:focus-visible { @apply outline-2 outline-primary outline-offset-2 rounded-sm; }
-  .category-title-container { @apply flex items-center flex-grow min-w-0; }
-  .category-title-text { @apply text-lg font-semibold; } /* Warna akan mengikuti dari body */
-  .category-title-text.empty { color: #f87171 !important; }
-  .category-count { @apply text-xs text-light-subtle dark:text-gray-400 ml-2; }
-  .category-settings-dropdown { @apply relative; }
-  .category-settings-dropdown-button { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 cursor-pointer p-1 text-sm hover:text-light-text dark:hover:text-white transition-colors duration-200 ease-in-out; }
-  .category-settings-dropdown-content { @apply absolute top-full right-0 bg-light-card dark:bg-[#2a2a3a] border border-black/10 dark:border-white/10 rounded-md shadow-xl min-w-[170px] z-50 opacity-0 invisible pointer-events-none transform translate-y-2 transition-opacity duration-200 ease-out transition-transform duration-200 ease-out; }
-  .category-settings-dropdown-content.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
-  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2.5 bg-transparent border-none text-sm text-light-text dark:text-gray-200 text-left cursor-pointer transition-colors duration-150 ease-in-out; }
-  .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed bg-transparent hover:bg-transparent; }
-  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-black/5 dark:bg-white/5; }
-  .category-settings-dropdown-content button svg { @apply mr-2 w-3.5 h-3.5; }
-  .category-settings-dropdown-content button.delete-option:not(:disabled):hover { @apply text-red-400 bg-red-500/10; }
-  .category-settings-dropdown-content button.edit-option:not(:disabled):hover { @apply text-primary bg-primary/10; }
-  .category-settings-dropdown-content button.add-option:not(:disabled):hover { @apply text-green-400 bg-green-500/10; }
-
-  .airdrop-list-container { @apply max-h-0 overflow-hidden transition-[max-height_0.5s_ease-out,_padding-top_0.3s_ease,_padding-bottom_0.3s_ease] pt-0 pb-0 pl-1 mt-2; }
-  .airdrop-list-container.expanded { @apply max-h-[1000px] pt-2 pb-1 transition-[max-height_0.5s_ease-in,_padding-top_0.3s_ease,_padding-bottom_0.3s_ease]; }
-  .empty-category-message { @apply italic text-light-subtle dark:text-gray-500 text-sm px-1 py-2; }
-  .airdrop-list-item { @apply flex justify-between items-center py-2.5 px-1 border-b border-black/10 dark:border-white/10 transition-colors duration-150; }
-  .airdrop-list-item:last-child { @apply border-b-0; }
-  .airdrop-list-item:hover { @apply bg-black/5 dark:bg-white/5; }
-  .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
-  .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
-  .airdrop-list-item .name { @apply font-medium text-purple-500 dark:text-purple-300 block whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
-  .airdrop-list-item .task-desc { @apply text-xs text-light-subtle dark:text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis ml-1; }
-  .airdrop-item-actions button { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 cursor-pointer p-1 ml-1 text-xs hover:text-light-text dark:hover:text-white transition-colors; }
-  .airdrop-item-actions .edit-btn:hover { @apply text-primary; }
-  .airdrop-item-actions .delete-btn:hover { @apply text-red-400; }
-  .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
-  .status-inprogress { @apply bg-yellow-500/20 text-yellow-400; }
-  .status-completed { @apply bg-green-500/20 text-green-400; }
-  .btn-done-today { @apply bg-transparent border-none p-1 mr-2 text-base text-gray-400 dark:text-gray-500 cursor-pointer transition-colors duration-200 ease-in-out; }
-  .btn-done-today.marked { @apply text-green-500; }
-  .btn-done-today:hover:not(.marked) { @apply text-gray-500 dark:text-gray-300; }
-  .btn-done-today.marked:hover { @apply text-green-400; }
-
-  /* Style Modal Umum */
-  .modal { @apply fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out; }
-  .modal.active { @apply opacity-100 visible; }
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .modal-content { @apply bg-light-card dark:bg-[#161625] p-5 md:p-6 rounded-lg shadow-xl w-full max-w-md border border-black/10 dark:border-white/10 max-h-[90vh] overflow-y-auto; }
-  .modal-header { @apply flex justify-between items-center mb-4; }
-  .modal-title { @apply text-xl font-semibold text-light-text dark:text-white; }
-  .modal-close-btn { @apply bg-transparent border-none text-light-subtle dark:text-gray-400 text-2xl cursor-pointer hover:text-light-text dark:hover:text-white transition-colors; }
-  .form-group { @apply mb-4; }
-  .form-group label { @apply block text-sm font-medium text-light-subtle dark:text-gray-300 mb-1.5; }
-  /* [EDIT]: Disesuaikan untuk light/dark mode */
-  .form-group input,
-  .form-group select,
-  .form-group textarea { @apply w-full bg-black/5 dark:bg-white/5 border border-black/20 dark:border-white/20 text-light-text dark:text-gray-200 py-2.5 px-3 rounded-md text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all; }
-  .form-group textarea { @apply min-h-[80px]; }
-  .modal-footer { @apply mt-6 flex justify-end gap-3; }
-
-  /* === [TAMBAHAN] Style Baru untuk Event Card Premium === */
-  .event-card-container {
-    perspective: 1000px;
-  }
-
-  .event-card {
-    @apply bg-light-card dark:bg-card border border-black/10 dark:border-white/20 rounded-2xl w-full h-full flex flex-col overflow-hidden relative transition-all duration-300;
-    transform-style: preserve-3d;
-  }
-
-  .event-card:hover {
-    @apply shadow-2xl shadow-primary/20 border-primary/30;
-    transform: translateZ(20px) rotateX(2deg) rotateY(2deg);
-  }
-
-  .event-card-image-wrapper {
-    @apply h-48 w-full overflow-hidden relative flex-shrink-0;
-  }
-  
-  .event-card-image {
-    @apply w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110;
-  }
-
-  .event-card-overlay {
-    @apply absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/80 dark:via-card/80 to-transparent;
-  }
-  
-  .event-card-content {
-    @apply p-5 flex flex-col flex-grow;
-  }
-
-  .event-card-header {
-    @apply flex justify-between items-center mb-4;
-  }
-
-  .event-status-badge {
-    @apply text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center;
-  }
-  
-  .event-status-badge.live {
-    @apply bg-green-500/10 text-green-400;
-  }
-
-  .event-status-badge.ended {
-    @apply bg-red-500/10 text-red-400;
-  }
-
-  .event-status-indicator {
-    @apply relative flex h-2 w-2 mr-2;
-  }
-
-  .event-status-badge.live .event-status-indicator::before {
-    content: '';
-    @apply animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75;
-  }
-  
-  .event-status-badge.live .event-status-indicator::after {
-    content: '';
-    @apply relative inline-flex rounded-full h-2 w-2 bg-green-500;
-  }
-
-  .event-card-body {
-    @apply flex-grow;
-  }
-
-  .event-card-title {
-    @apply text-xl font-bold text-light-text dark:text-white mb-1 leading-tight;
-  }
-
-  .event-card-reward {
-    @apply text-sm font-semibold text-green-400;
-  }
-  
-  .event-card-footer {
-    @apply mt-6 pt-4 border-t border-black/10 dark:border-white/10 text-sm font-semibold text-primary flex items-center justify-between;
-  }
-  /* === Akhir Style Baru untuk Event Card Premium === */
-  
-  /* === [TAMBAHAN] Style untuk Wallet Connect Modal Premium === */
-  .wallet-connect-modal {
-    @apply bg-light-card dark:bg-[#1C1C1E] p-0 rounded-2xl shadow-2xl w-full max-w-sm border border-black/10 dark:border-white/10 overflow-hidden flex flex-col transition-all duration-300 ease-out;
-    animation: scale-up 0.3s ease-out forwards;
-  }
-  
-  @keyframes scale-up {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-
-  .wallet-connect-header {
-    @apply flex justify-between items-center p-5 border-b border-black/10 dark:border-white/10 flex-shrink-0;
-  }
-  
-  .wallet-connect-body {
-    @apply p-4 space-y-2 overflow-y-auto;
-  }
-  
-  .wallet-connect-button {
-    @apply w-full flex items-center justify-between p-3 rounded-xl text-left transition-colors duration-200 bg-black/0 dark:bg-white/0;
-    @apply hover:bg-black/5 dark:hover:bg-white/[.07];
-  }
-  
-  .wallet-connect-button:disabled {
-    @apply opacity-40 cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent;
-  }
-
-  .wallet-icon-wrapper {
-    @apply w-10 h-10 bg-black/5 dark:bg-white/10 rounded-full flex items-center justify-center;
-  }
-
-  .wallet-status-tag {
-    @apply text-xs font-bold py-1 px-2.5 rounded-md text-center w-20;
-  }
-  
-  .wallet-status-tag.installed {
-    @apply bg-green-500/10 text-green-400 border border-green-500/20;
-  }
-  
-  .wallet-status-tag.qr {
-    @apply bg-blue-500/10 text-blue-400 border border-blue-500/20;
-  }
-
-  .separator-or {
-    @apply text-center text-xs font-semibold text-gray-400 dark:text-gray-600 my-2;
-  }
-
-  /* === [BARU] Style untuk "Hacker Forum" === */
-  .glitch {
-    position: relative;
-    text-shadow: 0.05em 0 0 rgba(255,0,0,.75),
-                  -0.025em -0.05em 0 rgba(0,255,0,.75),
-                  0.025em 0.05em 0 rgba(0,0,255,.75);
-  }
-
-  .glitch::before,
-  .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: black; /* atau theme('colors.dark') jika ingin konsisten */
-    overflow: hidden;
-    clip: rect(0, 900px, 0, 0); 
-  }
-
-  .glitch::before {
-    left: -2px;
-    text-shadow: 1px 0 blue;
-    animation: glitch-anim-1 2s infinite linear alternate-reverse;
-  }
-
-  .glitch::after {
-    left: 2px;
-    text-shadow: -1px 0 red;
-    animation: glitch-anim-2 2s infinite linear alternate-reverse;
-  }
-
-  @keyframes glitch-anim-1 {
-    0% { clip: rect(42px, 9999px, 44px, 0); }
-    5% { clip: rect(12px, 9999px, 60px, 0); }
-    10% { clip: rect(40px, 9999px, 42px, 0); }
-    15% { clip: rect(32px, 9999px, 80px, 0); }
-    20% { clip: rect(15px, 9999px, 92px, 0); }
-    25% { clip: rect(4px, 9999px, 70px, 0); }
-    30% { clip: rect(55px, 9999px, 33px, 0); }
-    35% { clip: rect(23px, 9999px, 45px, 0); }
-    40% { clip: rect(67px, 9999px, 23px, 0); }
-    45% { clip: rect(81px, 9999px, 54px, 0); }
-    50% { clip: rect(28px, 9999px, 38px, 0); }
-    55% { clip: rect(77px, 9999px, 85px, 0); }
-    60% { clip: rect(35px, 9999px, 20px, 0); }
-    65% { clip: rect(70px, 9999px, 80px, 0); }
-    70% { clip: rect(30px, 9999px, 75px, 0); }
-    75% { clip: rect(88px, 9999px, 43px, 0); }
-    80% { clip: rect(45px, 9999px, 99px, 0); }
-    85% { clip: rect(13px, 9999px, 55px, 0); }
-    90% { clip: rect(57px, 9999px, 65px, 0); }
-    95% { clip: rect(90px, 9999px, 3px, 0); }
-    100% { clip: rect(50px, 9999px, 30px, 0); }
-  }
-
-  @keyframes glitch-anim-2 {
-    0% { clip: rect(5px, 9999px, 50px, 0); }
-    10% { clip: rect(2px, 9999px, 78px, 0); }
-    20% { clip: rect(65px, 9999px, 22px, 0); }
-    30% { clip: rect(45px, 9999px, 55px, 0); }
-    40% { clip: rect(11px, 9999px, 77px, 0); }
-    50% { clip: rect(80px, 9999px, 4px, 0); }
-    60% { clip: rect(25px, 9999px, 35px, 0); }
-    70% { clip: rect(95px, 9999px, 81px, 0); }
-    80% { clip: rect(18px, 9999px, 90px, 0); }
-    90% { clip: rect(5px, 9999px, 60px, 0); }
-    100% { clip: rect(20px, 9999px, 60px, 0); }
-  }
 }

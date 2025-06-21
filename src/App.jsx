@@ -4,10 +4,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 
-// [PERBAIKAN] Impor hook `useWeb3Modal` untuk membuka modal resmi
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Impor semua komponen halaman
+// Import all page components
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -27,7 +26,7 @@ import PageRegister from "./components/PageRegister";
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
-// Impor utilitas
+// Import utilities
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -37,7 +36,7 @@ const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
 
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
-  avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=G`,
+  avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
   address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
   user_metadata: {}
 };
@@ -66,7 +65,7 @@ const createProfileForUser = async (user) => {
                 email: user.email,
                 username: user.user_metadata?.username || user.email.split('@')[0],
                 name: user.user_metadata?.name || user.email.split('@')[0],
-                avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=7f5af0&color=fff`,
+                avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
             })
             .select()
             .single();
@@ -93,7 +92,6 @@ export default function App() {
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
-  // [PERBAIKAN] Dapatkan fungsi `open` dari `useWeb3Modal`
   const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
@@ -230,15 +228,12 @@ export default function App() {
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   
-  // [PERBAIKAN] Handler ini sekarang langsung memanggil fungsi `open` dari `useWeb3Modal`
   const handleOpenWalletModal = () => openWalletModal();
   
   return (
-    <div className="font-sans h-screen flex flex-col overflow-hidden bg-light dark:bg-dark">
+    <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
       
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
-      
-      {/* Modal kustom tidak lagi dirender di sini */}
       
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
@@ -266,13 +261,13 @@ export default function App() {
 
       <div 
         className={`
-          fixed inset-0 z-[9999] flex flex-col items-center justify-center
+          fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg
           transition-opacity duration-500
           ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
       >
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-        <span className="text-white">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
+        <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
     </div>
   );
