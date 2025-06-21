@@ -7,7 +7,7 @@ export const ThemeProvider = ({ children }) => {
   // Default ke 'dark', atau ambil dari localStorage jika ada
   const [theme, setTheme] = useState(() => {
     const storedTheme = localStorage.getItem('appTheme');
-    return storedTheme || 'dark';
+    return storedTheme || 'light';
   });
 
   useEffect(() => {
