@@ -1,9 +1,10 @@
 // src/main.jsx
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
-import "./styles/style.css";
+import "./index.css"; // <-- UBAH BAGIAN INI
 
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
