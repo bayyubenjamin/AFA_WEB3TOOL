@@ -1,4 +1,4 @@
-// src/components/PageHome.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
+// src/components/PageHome.jsx - KODE LENGKAP DENGAN PENYESUAIAN WARNA SOFT & SELARAS
 
 import React from "react";
 import { Link } from "react-router-dom";
@@ -14,8 +14,8 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
+// Komponen Card Fitur dengan warna teks yang telah disesuaikan
 const FeatureCard = ({ icon, title, description, actionText, actionTarget, color }) => (
-  // PERBAIKAN DI SINI: Mengubah dark:bg-card menjadi dark:bg-dark-card
   <div className="relative bg-light-card dark:bg-dark-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
     <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/20 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500 animate-spin-slow"></div>
@@ -23,8 +23,12 @@ const FeatureCard = ({ icon, title, description, actionText, actionTarget, color
       <div className={`mb-5 text-4xl ${color}`}>
         <FontAwesomeIcon icon={icon} />
       </div>
-      <h3 className="text-2xl font-bold text-light-text dark:text-white mb-3">{title}</h3>
-      <p className="text-light-subtle dark:text-gray-400 text-base mb-6 flex-grow">{description}</p>
+      {/* Warna Judul Kartu: #333333 (terang) & #E0E8F4 (gelap) */}
+      <h3 className="text-2xl font-bold text-[#333333] dark:text-dark-text mb-3">{title}</h3>
+      
+      {/* Warna Deskripsi Kartu: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
+      <p className="text-[#444444] dark:text-[#94A3B8] text-base mb-6 flex-grow leading-relaxed">{description}</p>
+      
       <Link
         to={actionTarget}
         className="mt-auto font-semibold text-primary hover:text-light-text dark:hover:text-white transition-colors duration-200 flex items-center group/link"
@@ -90,12 +94,16 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
     <section id="home" className="page-content space-y-20 md:space-y-28 py-10 md:py-16 overflow-x-hidden">
       <div className="relative text-center max-w-4xl mx-auto px-4 z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-gradient-radial from-primary/10 via-transparent to-transparent -z-10 rounded-full blur-3xl"></div>
-        <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-light-text dark:text-white leading-tight">
+        
+        <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white text-stroke-primary leading-tight">
           {tHome.heroTitle}
         </h1>
-        <p className="mt-6 text-lg md:text-xl text-light-subtle dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+        
+        {/* Warna deskripsi di bawah judul utama: #444444 (terang) & #94A3B8 (gelap) */}
+        <p className="mt-6 text-lg md:text-xl text-[#444444] dark:text-[#94A3B8] max-w-2xl mx-auto leading-relaxed">
           {tHome.heroSubtitle}
         </p>
+        
         <div className="mt-10">
           <button
             onClick={handleMainAction}
@@ -109,10 +117,14 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
 
       <div className="space-y-12 px-4">
         <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white mb-3 flex items-center justify-center">
+          
+          {/* Warna judul bagian: #333333 (terang) & #E0E8F4 (gelap) */}
+          <h2 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-dark-text mb-3 flex items-center justify-center">
             <FontAwesomeIcon icon={faShieldHalved} className="mr-3 text-primary" /> {tHome.featuresTitle}
           </h2>
-          <p className="text-light-subtle dark:text-gray-400 text-lg">
+
+          {/* Warna subjudul bagian: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
+          <p className="text-[#444444] dark:text-[#94A3B8] text-lg leading-relaxed">
             {tHome.featuresSubtitle}
           </p>
         </div>
@@ -135,10 +147,14 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
         <div className="relative max-w-3xl mx-auto p-8 md:p-12 card rounded-2xl border border-primary/20 overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent"></div>
            <div className="relative z-10">
-              <h3 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white mb-4">
+              
+              {/* Warna judul bagian: #333333 (terang) & #E0E8F4 (gelap) */}
+              <h3 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-dark-text mb-4">
                 {tHome.joinCtaTitle}
               </h3>
-              <p className="text-light-subtle dark:text-gray-400 mb-8 text-lg">
+
+              {/* Warna subjudul bagian: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
+              <p className="text-[#444444] dark:text-[#94A3B8] mb-8 text-lg leading-relaxed">
                 {tHome.joinCtaSubtitle}
               </p>
               <button

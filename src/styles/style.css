@@ -1,4 +1,4 @@
-/* src/styles/style.css - Percobaan Final dengan CSS Murni */
+/* src/styles/style.css - Kode Lengkap dengan Penambahan Efek Stroke */
 
 
 @tailwind base;
@@ -12,23 +12,32 @@
   }
 
   body {
-    /* === PERUBAHAN PENTING DI SINI === */
-    /* Kita definisikan font secara langsung, tanpa @apply font-sans */
     font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
-    
     @apply bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Kita juga paksa elemen heading untuk menggunakan font yang sama */
   h1, h2, h3, h4, h5, h6 {
     font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
   }
 }
 
 @layer components {
-  /* ... Sisa kode Anda tidak perlu diubah ... */
+  /* === [PENAMBAHAN BARU] CSS UNTUK EFEK STROKE PADA TEKS === */
+  .text-stroke-primary {
+    /* Menggunakan warna primer (#1B4DC1) dari tema Anda sebagai warna stroke */
+    text-shadow:
+      -1.5px -1.5px 0 #1B4DC1,
+       1.5px -1.5px 0 #1B4DC1,
+      -1.5px  1.5px 0 #1B4DC1,
+       1.5px  1.5px 0 #1B4DC1,
+      -1.5px    0    0 #1B4DC1,
+       1.5px    0    0 #1B4DC1,
+        0    -1.5px 0 #1B4DC1,
+        0     1.5px 0 #1B4DC1;
+  }
+  /* === AKHIR PENAMBAHAN BARU === */
 
   /* Main App Container background */
   .app-container {
