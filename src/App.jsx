@@ -2,11 +2,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { useDisconnect } from 'wagmi';
-
+import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Import all page components
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import PageHome from "./components/PageHome";
@@ -23,10 +21,10 @@ import PageAdminEvents from './components/PageAdminEvents';
 import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
+import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
-// Import utilities
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -56,26 +54,24 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
 };
 
 const createProfileForUser = async (user) => {
-    try {
-        console.log(`Creating missing profile for user: ${user.id}`);
-        const { data, error } = await supabase
-            .from('profiles')
-            .insert({
-                id: user.id,
-                email: user.email,
-                username: user.user_metadata?.username || user.email.split('@')[0],
-                name: user.user_metadata?.name || user.email.split('@')[0],
-                avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
-    } catch (creationError) {
-        console.error("Error creating missing profile:", creationError);
-        return null;
-    }
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+        username: user.user_metadata?.username || user.email.split('@')[0],
+        name: user.user_metadata?.name || user.email.split('@')[0],
+        avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (creationError) {
+    console.error("Error creating missing profile:", creationError);
+    return null;
+  }
 };
 
 export default function App() {
@@ -87,39 +83,28 @@ export default function App() {
 
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
-  
   const pageContentRef = useRef(null);
+
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
+  const { address } = useAccount();
 
-  const handleScroll = (event) => {
-    const currentScrollY = event.currentTarget.scrollTop;
-    if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
-      setIsHeaderVisible(false);
-    } else {
-      setIsHeaderVisible(true);
-    }
-    lastScrollY.current = currentScrollY;
-  };
+const handleScroll = (event) => {
+  const currentScrollY = event.currentTarget.scrollTop;
+  if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+    setIsHeaderVisible(false);
+  } else {
+    setIsHeaderVisible(true);
+  }
+  lastScrollY.current = currentScrollY;
+};
 
-  useEffect(() => {
-    const updateOnlineCount = () => {
-      const min = 15;
-      const max = 42;
-      const randomCount = Math.floor(Math.random() * (max - min + 1)) + min;
-      setOnlineUsers(randomCount);
-    };
-    updateOnlineCount(); 
-    const intervalId = setInterval(updateOnlineCount, 7000);
-    return () => clearInterval(intervalId);
-  }, []);
 
   useEffect(() => {
     setLoadingInitialSession(true);
-    
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
@@ -130,7 +115,6 @@ export default function App() {
             .maybeSingle();
 
           if (profileError) throw profileError;
-
           if (!profile) {
             profile = await createProfileForUser(session.user);
             if (!profile) {
@@ -141,10 +125,13 @@ export default function App() {
           }
 
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
+          if (!appUser.address && address) {
+            appUser.address = address;
+          }
           setCurrentUser(appUser);
           localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
 
-          if (location.pathname === '/login-telegram' || location.pathname === '/login' || location.pathname === '/register') {
+          if (["/login", "/register", "/login-telegram"].includes(location.pathname)) {
             navigate('/', { replace: true });
           }
         } else {
@@ -159,7 +146,7 @@ export default function App() {
         setLoadingInitialSession(false);
       }
     };
-    
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthChange(session);
     });
@@ -171,22 +158,24 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, address]);
+
+  useEffect(() => {
+    const updateOnlineCount = () => {
+      const min = 15, max = 42;
+      setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min);
+    };
+    updateOnlineCount();
+    const intervalId = setInterval(updateOnlineCount, 7000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
-    const pathSegments = location.pathname.split('/');
-    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram" };
-    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram" };
-    let titleKey = path;
-    if (path === 'events' && pathSegments.length > 2) {
-        titleKey = 'events';
-    }
-    if (path.startsWith('admin') || location.pathname.includes('postairdrops') || location.pathname.includes('update')) {
-        titleKey = 'admin';
-    }
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" };
     const currentTitles = language === 'id' ? titles_id : titles_en;
-    setHeaderTitle(currentTitles[titleKey] || "AFA WEB3TOOL");
+    setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL");
   }, [location, language]);
 
   useEffect(() => {
@@ -196,7 +185,7 @@ export default function App() {
       el.classList.remove("content-enter-active", "content-enter");
       void el.offsetWidth;
       el.classList.add("content-enter");
-      const timer = setTimeout(() => { if (el) el.classList.add("content-enter-active"); }, 50);
+      const timer = setTimeout(() => el.classList.add("content-enter-active"), 50);
       return () => clearTimeout(timer);
     }
   }, [location.pathname, loadingInitialSession]);
@@ -205,39 +194,25 @@ export default function App() {
     await supabase.auth.signOut();
     disconnect();
     localStorage.removeItem(LS_CURRENT_USER_KEY);
-    const isMiniApp = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close);
-    if (isMiniApp) {
-      window.Telegram.WebApp.close();
-    } else {
-      window.location.href = '/login';
-    }
+    window.location.href = '/login';
   };
 
-  const handleMintNft = () => { alert("Fungsi Mint NFT akan diimplementasikan!"); };
   const handleUpdateUserInApp = (updatedUserData) => {
     setCurrentUser(updatedUserData);
-    try {
-      localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
-    } catch (e) { console.error("Error saving updated user to LS in App:", e); }
+    localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
   };
 
-  const mainPaddingBottomClass = location.pathname === '/forum' 
-    ? 'pb-0' 
-    : 'pb-[var(--bottomnav-height)] md:pb-0';
-
+  const mainPaddingBottomClass = location.pathname === '/forum' ? 'pb-0' : 'pb-[var(--bottomnav-height)] md:pb-0';
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
-  
   const handleOpenWalletModal = () => openWalletModal();
-  
+
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} />}
-      
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
-          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
@@ -253,22 +228,17 @@ export default function App() {
           <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} onMintNft={handleMintNft} />} />
+          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
       </main>
       {showNav && <BottomNav currentUser={currentUser} />}
-
-      <div 
-        className={`
-          fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg
-          transition-opacity duration-500
-          ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}
-        `}
-      >
+      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
     </div>
   );
 }
+

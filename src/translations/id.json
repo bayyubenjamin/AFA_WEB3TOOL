@@ -230,5 +230,12 @@
     "joinButton": "Ikuti Giveaway",
     "submitSuccess": "Partisipasi Anda telah dicatat. Terima kasih!",
     "tasksCompleteMessage": "Anda telah berpartisipasi! Pemenang akan diumumkan di channel resmi kami."
+  },
+  "afaIdentityPage": {
+    "title": "Klaim Identitas AFA Anda",
+    "subtitle": "Cetak NFT unik yang merepresentasikan identitas Anda di ekosistem AFA Web3Tool.",
+    "description": "Dengan memiliki NFT Identitas AFA, Anda mendapatkan akses ke fitur-fitur eksklusif, peran khusus di komunitas, dan potensi reward di masa depan. Ini adalah paspor Anda ke dunia Web3 bersama AFA.",
+    "mintButton": "Mint Sekarang Gratis",
+    "backToHome": "Kembali ke Beranda"
   }
 }

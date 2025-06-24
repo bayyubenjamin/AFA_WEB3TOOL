@@ -230,5 +230,12 @@
     "joinButton": "Join Giveaway",
     "submitSuccess": "Your participation has been recorded. Thank you!",
     "tasksCompleteMessage": "You have participated! Winners will be announced on our official channels."
+  },
+  "afaIdentityPage": {
+    "title": "Claim Your AFA Identity",
+    "subtitle": "Mint a unique NFT that represents your identity in the AFA Web3Tool ecosystem.",
+    "description": "By holding the AFA Identity NFT, you gain access to exclusive features, special community roles, and potential future rewards. This is your passport to the Web3 world with AFA.",
+    "mintButton": "Mint Now for Free",
+    "backToHome": "Back to Home"
   }
 }

@@ -13,7 +13,7 @@
 
   body {
     font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
-    @apply bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-dark-text;
+    @apply bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-theme-dark-text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -72,7 +72,7 @@
   .form-group label { @apply block text-sm font-medium text-gray-600 dark:text-dark-subtle mb-1.5; }
   .form-group input,
   .form-group select,
-  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
+  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-theme-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
   .form-group textarea { @apply min-h-[80px]; }
 
   /* Header & Navigation */
@@ -108,7 +108,7 @@
     transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
   }
   .category-settings-dropdown-content.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
-  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-gray-700 dark:text-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
+  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-gray-700 dark:text-theme-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
   .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600; }
   .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-light-soft dark:bg-dark-bg text-primary dark:text-accent-dark; }
   .category-settings-dropdown-content button svg { @apply mr-2.5 w-4 h-4; }
@@ -120,7 +120,7 @@
   .airdrop-list-item:hover { @apply bg-light-soft/50 dark:bg-dark-bg/40 rounded-lg; }
   .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
   .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
-  .airdrop-list-item .name { @apply font-bold text-gray-800 dark:text-dark-text block; }
+  .airdrop-list-item .name { @apply font-bold text-gray-800 dark:text-theme-dark-text block; }
   .airdrop-list-item .task-desc { @apply text-sm text-gray-500 dark:text-dark-subtle; }
    .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
   .status-inprogress { @apply bg-yellow-400/20 text-yellow-300; }

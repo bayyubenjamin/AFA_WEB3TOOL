@@ -1,3 +1,5 @@
+// src/tailwind.config.js
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -23,9 +25,10 @@ module.exports = {
         'light-card': '#FFFFFF',
         'light-header': '#84D1F2',
         'light-soft': '#FCECD8',
+        'theme-light-text': '#333333', // NAMA BARU
         'dark-bg': '#0D1A2E',
         'dark-card': '#192A44',
-        'dark-text': '#E0E8F4',
+        'theme-dark-text': '#E0E8F4', // NAMA BARU
         'dark-subtle': '#8899B3',
       },
       fontFamily: {

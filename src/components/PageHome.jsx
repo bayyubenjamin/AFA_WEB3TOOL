@@ -40,7 +40,7 @@ const FeatureCard = ({ icon, title, description, actionText, actionTarget, color
   </div>
 );
 
-export default function PageHome({ currentUser, onMintNft, navigate }) {
+export default function PageHome({ currentUser, navigate }) {
   const { language } = useLanguage();
   const tHome = getTranslations(language).homePage;
   const tHeader = getTranslations(language).header;
@@ -84,7 +84,7 @@ export default function PageHome({ currentUser, onMintNft, navigate }) {
   
   const handleMainAction = () => {
     if (isLoggedIn) {
-      onMintNft();
+      navigate('/identity');
     } else {
       navigate('/login');
     }
