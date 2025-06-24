@@ -228,7 +228,7 @@ const handleScroll = (event) => {
           <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
           <Route path="/admin" element={<PageAdminDashboard />} />
           <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} />} />
+          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
@@ -241,4 +241,3 @@ const handleScroll = (event) => {
     </div>
   );
 }
-

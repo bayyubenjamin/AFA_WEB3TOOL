@@ -1,7 +1,23 @@
-// src/wagmiConfig.js
+// src/wagmiConfig.js (Perbaikan Final dengan Definisi Manual)
+
 import { http, createConfig, createStorage } from 'wagmi';
-import { mainnet, sepolia } from 'wagmi/chains';
+// Hapus impor chain dari sini karena kita akan definisikan manual
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+
+// --- DEFINISIKAN BASE SEPOLIA SECARA MANUAL ---
+const baseSepolia = {
+  id: 84532,
+  name: 'Base Sepolia',
+  nativeCurrency: { name: 'Base Sepolia Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://sepolia.base.org'] },
+  },
+  blockExplorers: {
+    default: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
+  },
+  testnet: true,
+};
+// -------------------------------------------
 
 export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
 
@@ -13,7 +29,7 @@ const metadata = {
 };
 
 export const config = createConfig({
-  chains: [mainnet, sepolia],
+  chains: [baseSepolia], // <-- Sekarang menggunakan konstanta yang kita buat di atas
   connectors: [
     walletConnect({
       projectId: walletConnectProjectId,
@@ -28,7 +44,6 @@ export const config = createConfig({
   ],
   storage: createStorage({ storage: window.localStorage }),
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [baseSepolia.id]: http(), // <-- Menggunakan ID dari konstanta yang kita buat
   },
 });
