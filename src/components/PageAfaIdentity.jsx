@@ -1,4 +1,4 @@
-// src/components/PageAfaIdentity.jsx (Redesigned & Functional)
+// src/components/PageAfaIdentity.jsx (Versi Final dengan Penanganan Error)
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,7 +12,9 @@ import { useAccount, useWriteContract, useReadContract, useWaitForTransactionRec
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-const CONTRACT_ADDRESS = '0x102dA6B04621114dc25CB1dcc0C3e7EF70678c93';
+// GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
+const CONTRACT_ADDRESS = '0xce6FbcB9337C39eA5DFfE44ABD8b5d35bfD0f684';
+
 
 // Komponen untuk setiap item di checklist
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel, actionDisabled }) => (
@@ -44,10 +46,11 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
   // Wagmi hooks
   const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  
+  // <-- PERBAIKAN UTAMA: Ambil 'receipt' untuk cek status akhir
+  const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
   // -- Cek Status Kepemilikan & Premium NFT --
-  // Pengecekan ini sekarang menggunakan alamat dari `currentUser` yang sudah divalidasi
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'balanceOf', args: [currentUser?.address], enabled: !!currentUser?.address,
   });
@@ -72,37 +75,34 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   };
   const allPrerequisitesMet = Object.values(prerequisites).every(Boolean);
 
-  // Efek untuk merefresh data setelah transaksi sukses
+  // <-- PERBAIKAN UTAMA: Efek untuk menangani HASIL transaksi (sukses atau gagal)
   useEffect(() => {
-    if (isConfirmed) {
-      setFeedback({ message: 'Transaksi berhasil! Status Anda akan segera diperbarui.', type: 'success' });
-      refetchBalance();
-      refetchTokenId();
-      refetchPremiumStatus();
+    if (receipt) {
+        setIsActionLoading(false); // Selalu hentikan loading saat receipt diterima
+        if (receipt.status === 'success') {
+            setFeedback({ message: 'Transaksi berhasil! Status Anda akan segera diperbarui.', type: 'success' });
+            refetchBalance();
+            refetchTokenId();
+            refetchPremiumStatus();
+        } else {
+            setFeedback({ message: 'Transaksi gagal di blockchain. Kemungkinan fungsi belum terdaftar.', type: 'error' });
+        }
     }
-  }, [isConfirmed, refetchBalance, refetchTokenId, refetchPremiumStatus]);
+  }, [receipt, refetchBalance, refetchTokenId, refetchPremiumStatus]);
 
-  // Efek untuk menangani error dari wagmi
+  // Efek untuk menangani error DARI WALLET (sebelum transaksi dikirim)
   useEffect(() => {
     if (writeError) {
-      setFeedback({ message: writeError.shortMessage || 'Transaksi gagal. Silakan coba lagi.', type: 'error' });
-      setIsActionLoading(false); // Pastikan loading berhenti jika ada error
+      setFeedback({ message: writeError.shortMessage || 'Transaksi ditolak atau gagal.', type: 'error' });
+      setIsActionLoading(false);
     }
   }, [writeError]);
 
-  // Efek untuk mengatur status loading gabungan
-  useEffect(() => {
-    if (isActionLoading || isConfirming) {
-      // Sedang dalam proses
-    } else {
-      // Proses selesai
-    }
-  }, [isActionLoading, isConfirming]);
 
   const handleMint = async () => {
     if (!allPrerequisitesMet) return;
     setFeedback({ message: '', type: '' });
-    resetWriteContract(); // Reset state wagmi sebelumnya
+    resetWriteContract();
     setIsActionLoading(true);
 
     try {
@@ -121,7 +121,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         functionName: 'mintIdentity',
         args: [signature],
       });
-      // isActionLoading akan di-set false saat writeError atau isConfirming berubah
     } catch (err) {
       setFeedback({ message: err.message, type: 'error' });
       setIsActionLoading(false);
@@ -130,7 +129,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
   const handleUpgrade = () => {
     alert('Fungsi upgrade ke premium sedang dalam pengembangan!');
-    // Logika untuk `renewSubscription` akan ditambahkan di sini
   };
   
   const getButtonState = () => {
@@ -200,7 +198,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
             {hash && (
               <div className="mt-4 text-xs text-center text-light-subtle dark:text-gray-400">
-                <a href={`https://sepolia.basescan.org/tx/${hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+                <a href={`https://sepolia-optimism.etherscan.io/tx/${hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
                   Lihat Transaksi di Etherscan
                 </a>
               </div>

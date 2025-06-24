@@ -1,4 +1,4 @@
-// supabase/functions/generate-mint-signature/index.ts
+// supabase/functions/generate-mint-signature/index.ts (VERSI FINAL BENAR)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -9,80 +9,57 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Tipe data untuk payload yang diharapkan
-interface MintRequestPayload {
-  userAddress: string;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 1. Dapatkan client Supabase berdasarkan otorisasi pengguna
+    // 1. Otentikasi pengguna
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
+    const { data: { user } } = await supabaseClient.auth.getUser()
+    if (!user) throw new Error("Akses ditolak: Pengguna tidak login.")
 
-    // 2. Dapatkan data pengguna yang sedang login
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
-      throw new Error("Akses ditolak: Pengguna tidak ditemukan atau tidak login.")
-    }
-
-    // 3. Dapatkan alamat wallet pengguna dari request body
-    const { userAddress }: MintRequestPayload = await req.json()
-    if (!userAddress) {
-      throw new Error("Alamat wallet pengguna diperlukan.")
-    }
+    // 2. Dapatkan alamat wallet dari body request
+    const { userAddress } = await req.json();
+    if (!userAddress) throw new Error("Alamat wallet diperlukan.");
     
-    // 4. Buat admin client untuk cek profil
+    // Ambil data profil untuk validasi dan nonce
     const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-    
-    // 5. Verifikasi Prasyarat di Sisi Server
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('web3_address, telegram_user_id, email')
+      .select('web3_address, nonce')
       .eq('id', user.id)
       .single();
-      
-    if (profileError || !profile) {
-      throw new Error("Profil tidak ditemukan.");
-    }
 
-    // -- Validasi Checklist --
-    if (!profile.web3_address || profile.web3_address.toLowerCase() !== userAddress.toLowerCase()) {
-      throw new Error("Wallet yang terhubung tidak sesuai dengan profil Anda.");
+    if (profileError || profile === null) throw new Error("Profil tidak ditemukan.");
+    if (userAddress.toLowerCase() !== profile.web3_address?.toLowerCase()) {
+        throw new Error("Alamat wallet tidak cocok dengan profil.");
     }
-    if (!profile.telegram_user_id) {
-      throw new Error("Akun Telegram belum terhubung.");
-    }
-    if (profile.email.endsWith('@wallet.afa-web3.com') || profile.email.endsWith('@telegram.user')) {
-      throw new Error("Akun Anda belum diamankan dengan email dan password utama.");
-    }
+    
+    const userNonce = profile.nonce || 0;
 
-    // 6. Dapatkan private key verifikator dari Supabase Secrets
+    // 3. Buat hash yang akan ditandatangani
+    const messageHash = ethers.solidityPackedKeccak256(
+        ["string", "address", "uint256"],
+        ["AFA_MINT:", ethers.getAddress(userAddress), userNonce]
+    );
+    
+    // 4. Dapatkan private key verifikator
     const verifierPrivateKey = Deno.env.get('AFA_VERIFIER_PRIVATE_KEY');
-    if (!verifierPrivateKey) {
-      throw new Error("Kunci verifikator (AFA_VERIFIER_PRIVATE_KEY) belum di-set di Supabase Secrets.");
-    }
+    if (!verifierPrivateKey) throw new Error("Kunci verifikator belum di-set.");
 
-    // 7. Buat wallet verifikator menggunakan ethers
     const verifierWallet = new ethers.Wallet(verifierPrivateKey);
-
-    // 8. Buat pesan yang akan ditandatangani
-    // Pesan ini harus unik untuk setiap pengguna dan sulit dipalsukan
-    const messageToSign = `AFA_MINT:${userAddress.toLowerCase()}:${user.id}`;
-    const messageHash = ethers.id(messageToSign); // ethers.id adalah alias untuk ethers.keccak256(ethers.toUtf8Bytes(message))
     
-    // 9. Tandatangani hash pesan
-    const signature = await verifierWallet.signMessage(ethers.getBytes(messageHash));
+    // 5. Tandatangani HASH-nya, bukan pesannya. Ini menghasilkan signature 65-byte (r, s, v)
+    const signature = await verifierWallet.sign(ethers.getBytes(messageHash));
     
-    // 10. Kembalikan signature ke frontend
-    return new Response(JSON.stringify({ signature, messageHash }), {
+    // 6. Kembalikan signature ke frontend
+    return new Response(JSON.stringify({ signature }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     });

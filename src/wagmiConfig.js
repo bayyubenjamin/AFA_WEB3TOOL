@@ -4,16 +4,16 @@ import { http, createConfig, createStorage } from 'wagmi';
 // Hapus impor chain dari sini karena kita akan definisikan manual
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
-// --- DEFINISIKAN BASE SEPOLIA SECARA MANUAL ---
-const baseSepolia = {
-  id: 84532,
-  name: 'Base Sepolia',
-  nativeCurrency: { name: 'Base Sepolia Ether', symbol: 'ETH', decimals: 18 },
+// --- DEFINISIKAN OPTIMISM SEPOLIA SECARA MANUAL ---
+const optimismSepolia = {
+  id: 11155420,
+  name: 'OP Sepolia',
+  nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://sepolia.base.org'] },
+    default: { http: ['https://sepolia.optimism.io'] },
   },
   blockExplorers: {
-    default: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
+    default: { name: 'Etherscan', url: 'https://sepolia-optimism.etherscan.io' },
   },
   testnet: true,
 };
@@ -29,7 +29,7 @@ const metadata = {
 };
 
 export const config = createConfig({
-  chains: [baseSepolia], // <-- Sekarang menggunakan konstanta yang kita buat di atas
+  chains: [optimismSepolia], // <-- DIUBAH
   connectors: [
     walletConnect({
       projectId: walletConnectProjectId,
@@ -44,6 +44,6 @@ export const config = createConfig({
   ],
   storage: createStorage({ storage: window.localStorage }),
   transports: {
-    [baseSepolia.id]: http(), // <-- Menggunakan ID dari konstanta yang kita buat
+    [optimismSepolia.id]: http(), // <-- DIUBAH buat
   },
 });
