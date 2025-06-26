@@ -13,7 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Otentikasi pengguna
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -22,11 +21,9 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) throw new Error("Akses ditolak: Pengguna tidak login.")
 
-    // 2. Dapatkan alamat wallet dari body request
     const { userAddress } = await req.json()
     if (!userAddress) throw new Error("Alamat wallet diperlukan.")
 
-    // Ambil data profil untuk validasi dan nonce
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -44,22 +41,18 @@ serve(async (req) => {
 
     const userNonce = profile.nonce || 0
 
-    // 3. Buat hash yang akan ditandatangani
     const messageHash = ethers.solidityPackedKeccak256(
       ["string", "address", "uint256"],
       ["AFA_MINT:", ethers.getAddress(userAddress), userNonce]
     )
 
-    // 4. Dapatkan private key verifikator
     const verifierPrivateKey = Deno.env.get('AFA_VERIFIER_PRIVATE_KEY')
     if (!verifierPrivateKey) throw new Error("Kunci verifikator belum di-set.")
 
     const verifierWallet = new ethers.Wallet(verifierPrivateKey)
 
-    // 5. Tandatangani hash-nya
     const signature = await verifierWallet.sign(ethers.getBytes(messageHash))
 
-    // 6. Kembalikan signature ke frontend
     return new Response(JSON.stringify({ signature }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
@@ -68,7 +61,7 @@ serve(async (req) => {
   } catch (error) {
     const msg = error?.message || error?.toString() || "Unknown error";
     console.log("=== EDGE FUNCTION ERROR ===");
-    console.error(error);
+    console.error(msg);
     return new Response(JSON.stringify({ error: msg }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
