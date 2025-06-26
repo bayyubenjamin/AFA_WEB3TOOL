@@ -66,9 +66,10 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    // Tampilkan error di log Supabase agar bisa didiagnosis
-    console.error(error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = error?.message || error?.toString() || "Unknown error";
+    console.log("=== EDGE FUNCTION ERROR ===");
+    console.error(error);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
