@@ -1,5 +1,3 @@
-// src/components/PageAfaIdentity.jsx (Versi Final dengan Penanganan Error)
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -14,7 +12,6 @@ import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 // GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
 const CONTRACT_ADDRESS = '0x5045c77a154178db4b41b8584830311108124489';
-
 
 // Komponen untuk setiap item di checklist
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel, actionDisabled }) => (
@@ -46,8 +43,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
   // Wagmi hooks
   const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
-  
-  // <-- PERBAIKAN UTAMA: Ambil 'receipt' untuk cek status akhir
   const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
   // -- Cek Status Kepemilikan & Premium NFT --
@@ -62,31 +57,38 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const { data: isPremium, refetch: refetchPremiumStatus } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'isPremium', args: [tokenId], enabled: !!tokenId,
   });
-  
+
   const userHasNFT = balance > 0;
 
   // Cek kelengkapan prasyarat
   const isEmailDummy = currentUser?.email?.endsWith('@wallet.afa-web3.com') || currentUser?.email?.endsWith('@telegram.user');
   const prerequisites = {
     isLoggedIn: !!currentUser?.id,
-    walletConnected: !!currentUser?.address && isConnected && currentUser.address.toLowerCase() === address.toLowerCase(),
+    walletConnected: !!currentUser?.address && isConnected && currentUser.address.toLowerCase() === address?.toLowerCase(),
     telegramConnected: !!currentUser?.telegram_user_id,
     emailSecured: !isEmailDummy,
   };
   const allPrerequisitesMet = Object.values(prerequisites).every(Boolean);
 
+  // Debug: Log session Supabase Auth saat komponen mount
+  useEffect(() => {
+    supabase.auth.getSession().then((result) => {
+      console.log('Supabase Session:', result);
+    });
+  }, []);
+
   // <-- PERBAIKAN UTAMA: Efek untuk menangani HASIL transaksi (sukses atau gagal)
   useEffect(() => {
     if (receipt) {
-        setIsActionLoading(false); // Selalu hentikan loading saat receipt diterima
-        if (receipt.status === 'success') {
-            setFeedback({ message: 'Transaksi berhasil! Status Anda akan segera diperbarui.', type: 'success' });
-            refetchBalance();
-            refetchTokenId();
-            refetchPremiumStatus();
-        } else {
-            setFeedback({ message: 'Transaksi gagal di blockchain. Kemungkinan fungsi belum terdaftar.', type: 'error' });
-        }
+      setIsActionLoading(false);
+      if (receipt.status === 'success') {
+        setFeedback({ message: 'Transaksi berhasil! Status Anda akan segera diperbarui.', type: 'success' });
+        refetchBalance();
+        refetchTokenId();
+        refetchPremiumStatus();
+      } else {
+        setFeedback({ message: 'Transaksi gagal di blockchain. Kemungkinan fungsi belum terdaftar.', type: 'error' });
+      }
     }
   }, [receipt, refetchBalance, refetchTokenId, refetchPremiumStatus]);
 
@@ -98,12 +100,22 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     }
   }, [writeError]);
 
-
+  // <--- PERBAIKAN PENTING ADA DI SINI
   const handleMint = async () => {
     if (!allPrerequisitesMet) return;
+
     setFeedback({ message: '', type: '' });
     resetWriteContract();
     setIsActionLoading(true);
+
+    // ===== PERIKSA SESSION SUPABASE AUTH SECARA LANGSUNG =====
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setFeedback({ message: 'Session login Anda sudah habis atau belum login. Silakan login ulang terlebih dahulu.', type: 'error' });
+      setIsActionLoading(false);
+      return;
+    }
+    // =========================================================
 
     try {
       const { data: signatureData, error: functionError } = await supabase.functions.invoke('generate-mint-signature', {
@@ -112,7 +124,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
       if (functionError) throw new Error(functionError.message);
       if (signatureData.error) throw new Error(signatureData.error);
-      
+
       const { signature } = signatureData;
 
       writeContract({
@@ -130,18 +142,18 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const handleUpgrade = () => {
     alert('Fungsi upgrade ke premium sedang dalam pengembangan!');
   };
-  
+
   const getButtonState = () => {
-      const isLoading = isActionLoading || isConfirming;
-      if (!prerequisites.isLoggedIn) return { text: "Login untuk Memulai", action: () => navigate('/login'), disabled: false };
-      if (!isConnected) return { text: "Connect Wallet", action: onOpenWalletModal, disabled: false };
-      if (!allPrerequisitesMet) return { text: "Lengkapi Profil Anda", action: () => navigate('/profile'), disabled: false };
-      if (isLoading) return { text: isConfirming ? "Konfirmasi..." : "Menunggu Wallet...", action: ()=>{}, disabled: true};
-      if (!userHasNFT) return { text: "Mint Your AFA Identity", action: handleMint, disabled: false };
-      if (userHasNFT && !isPremium) return { text: "Upgrade to Premium", action: handleUpgrade, disabled: false };
-      if (userHasNFT && isPremium) return { text: "Perpanjang Langganan", action: handleUpgrade, disabled: false };
-      return { text: "Loading Status...", action: ()=>{}, disabled: true };
-  }
+    const isLoading = isActionLoading || isConfirming;
+    if (!prerequisites.isLoggedIn) return { text: "Login untuk Memulai", action: () => navigate('/login'), disabled: false };
+    if (!isConnected) return { text: "Connect Wallet", action: onOpenWalletModal, disabled: false };
+    if (!allPrerequisitesMet) return { text: "Lengkapi Profil Anda", action: () => navigate('/profile'), disabled: false };
+    if (isLoading) return { text: isConfirming ? "Konfirmasi..." : "Menunggu Wallet...", action: ()=>{}, disabled: true};
+    if (!userHasNFT) return { text: "Mint Your AFA Identity", action: handleMint, disabled: false };
+    if (userHasNFT && !isPremium) return { text: "Upgrade to Premium", action: handleUpgrade, disabled: false };
+    if (userHasNFT && isPremium) return { text: "Perpanjang Langganan", action: handleUpgrade, disabled: false };
+    return { text: "Loading Status...", action: ()=>{}, disabled: true };
+  };
 
   const buttonState = getButtonState();
 
