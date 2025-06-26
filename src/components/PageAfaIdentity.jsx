@@ -3,17 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFingerprint, faArrowLeft, faShieldHalved, faIdCard, faSpinner,
-  faCheckCircle, faTimesCircle, faWallet, faEnvelope, faCrown, faExclamationTriangle
+  faCheckCircle, faTimesCircle, faWallet, faEnvelope, faCrown
 } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import {
+  useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt
+} from 'wagmi';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 // GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
 const CONTRACT_ADDRESS = '0x5045c77a154178db4b41b8584830311108124489';
 
-// Komponen untuk setiap item di checklist
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel, actionDisabled }) => (
   <div className="flex items-center justify-between p-3 bg-black/5 dark:bg-dark-bg/50 rounded-lg transition-all duration-300">
     <div className="flex items-center gap-3">
@@ -37,15 +38,16 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
 
-  // State untuk UI dan feedback
+  // State
   const [feedback, setFeedback] = useState({ message: '', type: '' });
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [premiumPrice, setPremiumPrice] = useState(null);
 
   // Wagmi hooks
   const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
   const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
-  // -- Cek Status Kepemilikan & Premium NFT --
+  // Ownership & premium
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'balanceOf', args: [currentUser?.address], enabled: !!currentUser?.address,
   });
@@ -57,6 +59,15 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const { data: isPremium, refetch: refetchPremiumStatus } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'isPremium', args: [tokenId], enabled: !!tokenId,
   });
+
+  // Harga premium dari kontrak
+  const { data: rawPrice, refetch: refetchPrice } = useReadContract({
+    address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'priceInCents', enabled: true,
+  });
+
+  useEffect(() => {
+    if (rawPrice) setPremiumPrice(rawPrice);
+  }, [rawPrice]);
 
   const userHasNFT = balance > 0;
 
@@ -70,14 +81,12 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   };
   const allPrerequisitesMet = Object.values(prerequisites).every(Boolean);
 
-  // Debug: Log session Supabase Auth saat komponen mount
   useEffect(() => {
     supabase.auth.getSession().then((result) => {
       console.log('Supabase Session:', result);
     });
   }, []);
 
-  // <-- PERBAIKAN UTAMA: Efek untuk menangani HASIL transaksi (sukses atau gagal)
   useEffect(() => {
     if (receipt) {
       setIsActionLoading(false);
@@ -86,13 +95,13 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         refetchBalance();
         refetchTokenId();
         refetchPremiumStatus();
+        refetchPrice();
       } else {
         setFeedback({ message: 'Transaksi gagal di blockchain. Kemungkinan fungsi belum terdaftar.', type: 'error' });
       }
     }
-  }, [receipt, refetchBalance, refetchTokenId, refetchPremiumStatus]);
+  }, [receipt, refetchBalance, refetchTokenId, refetchPremiumStatus, refetchPrice]);
 
-  // Efek untuk menangani error DARI WALLET (sebelum transaksi dikirim)
   useEffect(() => {
     if (writeError) {
       setFeedback({ message: writeError.shortMessage || 'Transaksi ditolak atau gagal.', type: 'error' });
@@ -100,22 +109,19 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     }
   }, [writeError]);
 
-  // <--- PERBAIKAN PENTING ADA DI SINI
+  // Handle Mint NFT
   const handleMint = async () => {
     if (!allPrerequisitesMet) return;
-
     setFeedback({ message: '', type: '' });
     resetWriteContract();
     setIsActionLoading(true);
 
-    // ===== PERIKSA SESSION SUPABASE AUTH SECARA LANGSUNG =====
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setFeedback({ message: 'Session login Anda sudah habis atau belum login. Silakan login ulang terlebih dahulu.', type: 'error' });
       setIsActionLoading(false);
       return;
     }
-    // =========================================================
 
     try {
       const { data: signatureData, error: functionError } = await supabase.functions.invoke('generate-mint-signature', {
@@ -139,10 +145,29 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     }
   };
 
-  const handleUpgrade = () => {
-    alert('Fungsi upgrade ke premium sedang dalam pengembangan!');
+  // Handle Upgrade Premium
+  const handleUpgrade = async () => {
+    if (!allPrerequisitesMet || !userHasNFT || !tokenId) return;
+    setFeedback({ message: '', type: '' });
+    resetWriteContract();
+    setIsActionLoading(true);
+
+    try {
+      const priceCents = premiumPrice || rawPrice || 0n;
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: AfaIdentityABI,
+        functionName: 'upgradeToPremium',
+        args: [tokenId],
+        value: priceCents,
+      });
+    } catch (err) {
+      setFeedback({ message: err.message, type: 'error' });
+      setIsActionLoading(false);
+    }
   };
 
+  // Button state
   const getButtonState = () => {
     const isLoading = isActionLoading || isConfirming;
     if (!prerequisites.isLoggedIn) return { text: "Login untuk Memulai", action: () => navigate('/login'), disabled: false };
@@ -150,7 +175,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     if (!allPrerequisitesMet) return { text: "Lengkapi Profil Anda", action: () => navigate('/profile'), disabled: false };
     if (isLoading) return { text: isConfirming ? "Konfirmasi..." : "Menunggu Wallet...", action: ()=>{}, disabled: true};
     if (!userHasNFT) return { text: "Mint Your AFA Identity", action: handleMint, disabled: false };
-    if (userHasNFT && !isPremium) return { text: "Upgrade to Premium", action: handleUpgrade, disabled: false };
+    if (userHasNFT && !isPremium) return { text: premiumPrice ? `Upgrade ke Premium` : "Upgrade ke Premium", action: handleUpgrade, disabled: false };
     if (userHasNFT && isPremium) return { text: "Perpanjang Langganan", action: handleUpgrade, disabled: false };
     return { text: "Loading Status...", action: ()=>{}, disabled: true };
   };
@@ -178,6 +203,15 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                   ${userHasNFT ? (isPremium ? 'bg-yellow-400/20 text-yellow-300' : 'bg-green-500/20 text-green-300') : 'bg-gray-500/20 text-gray-400'}`}>
                 {userHasNFT ? (isPremium ? 'PREMIUM' : 'STANDARD') : 'UNCLAIMED'}
               </div>
+              {/* Diskon & Harga Beta Test User */}
+              {userHasNFT && !isPremium && (
+                <div className="mt-4 text-sm text-yellow-300">
+                  Diskon for Beta Test<br />
+                  {premiumPrice !== null
+                    ? <>Harga Upgrade Premium: ${ (Number(premiumPrice) / 100).toFixed(2) }</>
+                    : 'Memuat harga...'}
+                </div>
+              )}
             </div>
           </div>
 
