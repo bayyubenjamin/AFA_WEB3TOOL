@@ -13,7 +13,7 @@ import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 // GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
-const CONTRACT_ADDRESS = '0xf9B1CF427a562618784B8777003c5Ec4fb95a435';
+const CONTRACT_ADDRESS = '0x901b6FDb8FAadfe874B0d9A4e36690Fd8ee1C4cD';
 
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel, actionDisabled }) => (
   <div className="flex items-center justify-between p-3 bg-black/5 dark:bg-dark-bg/50 rounded-lg transition-all duration-300">
