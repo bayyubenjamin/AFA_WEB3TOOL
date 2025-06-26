@@ -13,7 +13,7 @@ import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 // GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
-const CONTRACT_ADDRESS = '0xce6FbcB9337C39eA5DFfE44ABD8b5d35bfD0f684';
+const CONTRACT_ADDRESS = '0x5045c77a154178db4b41b8584830311108124489';
 
 
 // Komponen untuk setiap item di checklist
