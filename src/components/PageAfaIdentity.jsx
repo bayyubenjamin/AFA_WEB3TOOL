@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faFingerprint, faArrowLeft, faShieldHalved, faIdCard, faSpinner,
+  faFingerprint, faArrowLeft, faSpinner,
   faCheckCircle, faTimesCircle, faWallet, faEnvelope, faCrown
 } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
@@ -13,7 +13,7 @@ import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 // GANTI DENGAN ALAMAT KONTRAK BARU DARI HASIL DEPLOY TERAKHIR ANDA
-const CONTRACT_ADDRESS = '0x5045c77a154178db4b41b8584830311108124489';
+const CONTRACT_ADDRESS = '0xf9B1CF427a562618784B8777003c5Ec4fb95a435';
 
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel, actionDisabled }) => (
   <div className="flex items-center justify-between p-3 bg-black/5 dark:bg-dark-bg/50 rounded-lg transition-all duration-300">
@@ -34,6 +34,11 @@ const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel,
   </div>
 );
 
+// Helper function for safely stringifying objects with BigInt
+function replacerBigInt(key, value) {
+  return typeof value === 'bigint' ? value.toString() : value;
+}
+
 export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
@@ -42,17 +47,18 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const [feedback, setFeedback] = useState({ message: '', type: '' });
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [premiumPrice, setPremiumPrice] = useState(null);
+  const [debugLog, setDebugLog] = useState('');
 
   // Wagmi hooks
   const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
   const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
   // Ownership & premium
-  const { data: balance, refetch: refetchBalance } = useReadContract({
+  const { data: balance } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'balanceOf', args: [currentUser?.address], enabled: !!currentUser?.address,
   });
 
-  const { data: tokenId, refetch: refetchTokenId } = useReadContract({
+  const { data: tokenId } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'tokenOfOwnerByIndex', args: [currentUser?.address, 0], enabled: !!currentUser?.address && balance > 0,
   });
 
@@ -60,8 +66,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'isPremium', args: [tokenId], enabled: !!tokenId,
   });
 
-  // Harga premium dari kontrak
-  const { data: rawPrice, refetch: refetchPrice } = useReadContract({
+  // Harga premium dari kontrak (dalam cents, misal 50 = $0.50)
+  const { data: rawPrice } = useReadContract({
     address: CONTRACT_ADDRESS, abi: AfaIdentityABI, functionName: 'priceInCents', enabled: true,
   });
 
@@ -83,7 +89,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
   useEffect(() => {
     supabase.auth.getSession().then((result) => {
-      console.log('Supabase Session:', result);
+      // Session log, optional
     });
   }, []);
 
@@ -92,26 +98,34 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
       setIsActionLoading(false);
       if (receipt.status === 'success') {
         setFeedback({ message: 'Transaksi berhasil! Status Anda akan segera diperbarui.', type: 'success' });
-        refetchBalance();
-        refetchTokenId();
         refetchPremiumStatus();
-        refetchPrice();
       } else {
         setFeedback({ message: 'Transaksi gagal di blockchain. Kemungkinan fungsi belum terdaftar.', type: 'error' });
       }
     }
-  }, [receipt, refetchBalance, refetchTokenId, refetchPremiumStatus, refetchPrice]);
+  }, [receipt, refetchPremiumStatus]);
 
   useEffect(() => {
     if (writeError) {
       setFeedback({ message: writeError.shortMessage || 'Transaksi ditolak atau gagal.', type: 'error' });
+      setDebugLog(prev => prev + `\nwriteError: ${JSON.stringify(writeError, replacerBigInt)}`);
       setIsActionLoading(false);
+      console.error('DEBUG writeError:', writeError);
     }
   }, [writeError]);
 
+  useEffect(() => {
+    setDebugLog(prev => prev + `\nPrerequisite berubah: ${JSON.stringify({ allPrerequisitesMet, userHasNFT, tokenId, premiumPrice }, replacerBigInt, 2)}`);
+    // eslint-disable-next-line
+  }, [allPrerequisitesMet, userHasNFT, tokenId, premiumPrice]);
+
   // Handle Mint NFT
   const handleMint = async () => {
-    if (!allPrerequisitesMet) return;
+    setDebugLog(prev => prev + `\nhandleMint dipanggil: allPrerequisitesMet=${allPrerequisitesMet}`);
+    if (!allPrerequisitesMet) {
+      setFeedback({ message: 'Lengkapi semua prasyarat (login, wallet, telegram, email) sebelum mint NFT.', type: 'error' });
+      return;
+    }
     setFeedback({ message: '', type: '' });
     resetWriteContract();
     setIsActionLoading(true);
@@ -139,46 +153,82 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         functionName: 'mintIdentity',
         args: [signature],
       });
+      setDebugLog(prev => prev + `\nwriteContract mintIdentity berhasil dipanggil`);
     } catch (err) {
       setFeedback({ message: err.message, type: 'error' });
+      setDebugLog(prev => prev + `\nERROR mint: ${err.message}`);
       setIsActionLoading(false);
     }
   };
 
   // Handle Upgrade Premium
   const handleUpgrade = async () => {
-    if (!allPrerequisitesMet || !userHasNFT || !tokenId) return;
+    const debugInfo = {
+      allPrerequisitesMet,
+      userHasNFT,
+      tokenId,
+      premiumPrice,
+      isLoggedIn: prerequisites?.isLoggedIn,
+      address,
+      isActionLoading,
+      isConfirming,
+    };
+    setDebugLog(prev => prev + `\nhandleUpgrade dipanggil: ${JSON.stringify(debugInfo, replacerBigInt, 2)}`);
+    console.log('DEBUG handleUpgrade:', debugInfo);
+
+    if (!allPrerequisitesMet) {
+      setFeedback({ message: 'Mohon lengkapi semua prasyarat sebelum upgrade (login, wallet connect, dsb).', type: 'error' });
+      return;
+    }
+    if (!userHasNFT) {
+      setFeedback({ message: 'Anda harus memiliki NFT Identity sebelum bisa upgrade ke premium.', type: 'error' });
+      return;
+    }
+    if (!tokenId) {
+      setFeedback({ message: 'Token ID tidak ditemukan. Silakan refresh halaman.', type: 'error' });
+      return;
+    }
+    if (!premiumPrice || Number(premiumPrice) <= 0) {
+      setFeedback({ message: 'Harga upgrade premium belum berhasil dimuat. Silakan refresh halaman.', type: 'error' });
+      return;
+    }
+
     setFeedback({ message: '', type: '' });
     resetWriteContract();
     setIsActionLoading(true);
 
     try {
-      const priceCents = premiumPrice || rawPrice || 0n;
       writeContract({
         address: CONTRACT_ADDRESS,
         abi: AfaIdentityABI,
         functionName: 'upgradeToPremium',
         args: [tokenId],
-        value: priceCents,
+        value: premiumPrice,
       });
+      setDebugLog(prev => prev + '\nwriteContract upgradeToPremium berhasil dipanggil');
+      console.log('DEBUG handleUpgrade: writeContract berhasil dipanggil');
     } catch (err) {
       setFeedback({ message: err.message, type: 'error' });
+      setDebugLog(prev => prev + `\nERROR upgrade: ${err.message}`);
       setIsActionLoading(false);
+      console.error('DEBUG handleUpgrade ERROR:', err);
     }
   };
 
   // Button state
-  const getButtonState = () => {
-    const isLoading = isActionLoading || isConfirming;
-    if (!prerequisites.isLoggedIn) return { text: "Login untuk Memulai", action: () => navigate('/login'), disabled: false };
-    if (!isConnected) return { text: "Connect Wallet", action: onOpenWalletModal, disabled: false };
-    if (!allPrerequisitesMet) return { text: "Lengkapi Profil Anda", action: () => navigate('/profile'), disabled: false };
-    if (isLoading) return { text: isConfirming ? "Konfirmasi..." : "Menunggu Wallet...", action: ()=>{}, disabled: true};
-    if (!userHasNFT) return { text: "Mint Your AFA Identity", action: handleMint, disabled: false };
-    if (userHasNFT && !isPremium) return { text: premiumPrice ? `Upgrade ke Premium` : "Upgrade ke Premium", action: handleUpgrade, disabled: false };
-    if (userHasNFT && isPremium) return { text: "Perpanjang Langganan", action: handleUpgrade, disabled: false };
-    return { text: "Loading Status...", action: ()=>{}, disabled: true };
-  };
+const getButtonState = () => {
+  const isLoading = isActionLoading || isConfirming;
+  if (!prerequisites.isLoggedIn) return { text: "Login untuk Memulai", action: () => navigate('/login'), disabled: false };
+  if (!isConnected) return { text: "Connect Wallet", action: onOpenWalletModal, disabled: false };
+  if (!allPrerequisitesMet) return { text: "Lengkapi Profil Anda", action: () => navigate('/profile'), disabled: false };
+  if (isLoading) return { text: isConfirming ? "Konfirmasi..." : "Menunggu Wallet...", action: ()=>{}, disabled: true};
+  if (!userHasNFT) return { text: "Mint Your AFA Identity", action: handleMint, disabled: false };
+  // PATCH INI: Jangan izinkan upgrade sebelum tokenId ready
+  if (userHasNFT && (tokenId === undefined || tokenId === null)) return { text: "Memuat Token ID...", action: ()=>{}, disabled: true };
+  if (userHasNFT && !isPremium) return { text: "Upgrade ke Premium (diskon beta test user)", action: handleUpgrade, disabled: false };
+  if (userHasNFT && isPremium) return { text: "Perpanjang Langganan", action: handleUpgrade, disabled: false };
+  return { text: "Loading Status...", action: ()=>{}, disabled: true };
+};
 
   const buttonState = getButtonState();
 
@@ -206,7 +256,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
               {/* Diskon & Harga Beta Test User */}
               {userHasNFT && !isPremium && (
                 <div className="mt-4 text-sm text-yellow-300">
-                  Diskon for Beta Test<br />
+                  Diskon Beta Test User<br />
                   {premiumPrice !== null
                     ? <>Harga Upgrade Premium: ${ (Number(premiumPrice) / 100).toFixed(2) }</>
                     : 'Memuat harga...'}
@@ -249,6 +299,11 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                 </a>
               </div>
             )}
+
+            {/* PATCH: Debug log tampil di UI */}
+            <pre style={{ marginTop: 16, fontSize: 12, color: "#4b5563", background: "#f3f4f6", padding: 8, borderRadius: 4, maxHeight: 300, overflow: 'auto' }}>
+              {debugLog}
+            </pre>
           </div>
         </div>
       </div>
