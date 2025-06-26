@@ -1,5 +1,3 @@
-// supabase/functions/generate-mint-signature/index.ts
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { ethers } from 'https://esm.sh/ethers@6.13.1'
@@ -58,7 +56,7 @@ serve(async (req) => {
 
     const verifierWallet = new ethers.Wallet(verifierPrivateKey)
 
-    // 5. Tandatangani HASH-nya, bukan pesannya. Ini menghasilkan signature 65-byte (r, s, v)
+    // 5. Tandatangani hash-nya
     const signature = await verifierWallet.sign(ethers.getBytes(messageHash))
 
     // 6. Kembalikan signature ke frontend
@@ -68,7 +66,7 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    // Tambahkan logging error agar mudah dicari di Supabase dashboard/logs
+    // Tampilkan error di log Supabase agar bisa didiagnosis
     console.error(error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
