@@ -51,7 +51,8 @@ serve(async (req) => {
 
     const verifierWallet = new ethers.Wallet(verifierPrivateKey)
 
-    const signature = await verifierWallet.signMessage(ethers.getBytes(messageHash))
+    const sigObj = verifierWallet.signingKey.sign(messageHash); // messageHash harus bytes32/hex string
+    const signature = ethers.Signature.from(sigObj).serialized;
 
     return new Response(JSON.stringify({ signature }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
