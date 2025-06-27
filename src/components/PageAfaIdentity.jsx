@@ -212,7 +212,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
           {/* --- RIGHT COLUMN: ACTIONS & INFO --- */}
           <div>
-            <h1 className="text-4xl lg:text-5xl font-bold futuristic-text-gradient mb-3">Your On-Chain Passport</h1>
+            <h1 className="text-4xl lg:text-5xl font-bold futuristic-text-gradient mb-3">Your AFA Identity</h1>
             <p className="text-lg text-gray-400 mb-8">
               Your unique, soul-bound token for the entire AFA ecosystem.
             </p>
