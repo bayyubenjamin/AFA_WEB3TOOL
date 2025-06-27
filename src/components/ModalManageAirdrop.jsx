@@ -1,4 +1,3 @@
-// src/components/ModalManageAirdrop.jsx - VERSI PERBAIKAN
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faSave } from "@fortawesome/free-solid-svg-icons";
@@ -19,11 +18,7 @@ export default function ModalManageAirdrop({
   defaultCategoryKey
 }) {
   const { language } = useLanguage();
-  // ==================== PERBAIKAN DI SINI ====================
-  // SEBELUM: const t = getTranslations(language).myWorkPage;
-  // SESUDAH: Langsung menunjuk ke objek yang benar.
   const t = getTranslations(language).modalManageAirdrop;
-  // ==========================================================
 
   const [formData, setFormData] = useState({
     id: null,
@@ -49,7 +44,6 @@ export default function ModalManageAirdrop({
         daily_done: initialData.daily_done || false,
       });
     } else {
-      // Set kategori default saat menambahkan item baru
       setFormData(prev => ({ ...prev, category_id: defaultCategoryKey || '' }));
     }
   }, [isEditing, initialData, defaultCategoryKey]);

@@ -1,5 +1,3 @@
-// src/components/BottomNav.jsx (Penyesuaian Warna Light Mode)
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -24,7 +22,6 @@ export default function BottomNav({ currentUser }) {
   const gridColsClass = navItems.length === 5 ? 'grid-cols-5' : 'grid-cols-3';
 
   return (
-    // Container luar ini sudah memiliki padding (px-2 sm:px-4) yang akan memberi jarak dari tepi layar
     <div className="fixed bottom-0 left-0 right-0 z-50 w-full px-2 sm:px-4 pb-2 lg-desktop:hidden">
       <nav className={`h-16 px-2 grid ${gridColsClass} glassmorphism rounded-full shadow-lg shadow-black/5 dark:shadow-primary/10`}>
         {navItems.map((item) => (

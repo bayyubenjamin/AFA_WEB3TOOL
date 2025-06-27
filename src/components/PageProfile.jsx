@@ -1,5 +1,3 @@
-// src/components/PageProfile.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -33,7 +31,6 @@ const InputField = React.memo(({ id, type = "text", label, value, onChange, icon
 InputField.displayName = 'InputField';
 
 const StatCard = ({ icon, label, value }) => (
-  // PERBAIKAN DI SINI: Mengubah dark:bg-dark menjadi dark:bg-dark-bg
   <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-black/10 dark:border-white/10 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-primary/50">
     <FontAwesomeIcon icon={icon} className="text-primary text-xl mb-2" />
     <p className="text-2xl font-bold text-light-text dark:text-white">{value}</p>

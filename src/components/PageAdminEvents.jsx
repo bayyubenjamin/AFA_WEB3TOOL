@@ -1,5 +1,3 @@
-// src/components/PageAdminEvents.jsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -7,15 +5,14 @@ import { faPlus, faEdit, faTrash, faSpinner, faTimes, faTasks, faLink, faShieldH
 import { faXTwitter, faTelegram, faYoutube, faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 
-// Fungsi untuk membuat slug yang ramah URL
 const generateSlug = (title) => {
     if (!title) return '';
     return title.toLowerCase()
         .replace(/&/g, 'and')
-        .replace(/[^a-z0-9\s-]/g, '') // Hapus karakter non-alfanumerik kecuali spasi dan strip
+        .replace(/[^a-z0-9\s-]/g, '')
         .trim()
-        .replace(/\s+/g, '-') // Ganti spasi dengan strip
-        .replace(/-+/g, '-'); // Hapus strip ganda
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
 };
 
 const inputBaseClass = "w-full bg-black/5 dark:bg-dark border border-black/10 dark:border-white/10 text-light-text dark:text-gray-200 py-2.5 px-4 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all";
@@ -31,14 +28,12 @@ const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
     end_date: initialData?.end_date ? new Date(initialData.end_date).toISOString().substring(0, 16) : '',
   });
   
-  // Ambil tasks dari initialData jika ada, jika tidak, mulai dengan satu task default
   const [tasks, setTasks] = useState(initialData?.event_tasks || initialData?.tasks || [{ task_type: 'twitter', title: 'Follow AFA on X', link_url: 'https://x.com/bayybayss' }]);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
         const newState = {...prev, [name]: value};
-        // Perbarui slug secara otomatis HANYA jika field judul yang diubah
         if (name === 'title') {
             newState.slug = generateSlug(value);
         }
@@ -203,7 +198,6 @@ export default function PageAdminEvents({ currentUser }) {
         setFormLoading(true);
         let eventId;
         try {
-            // Selalu pastikan slug ada sebelum menyimpan
             if (!eventData.slug) {
                 eventData.slug = generateSlug(eventData.title);
             }

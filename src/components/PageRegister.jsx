@@ -1,4 +1,3 @@
-// src/components/PageRegister.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -17,7 +16,6 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
 
-// [MODIFIKASI] Terima prop onOpenWalletModal
 export default function PageRegister({ currentUser, onOpenWalletModal }) {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -48,7 +46,6 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
     }
   }, [currentUser, navigate]);
   
-  // ... (Fungsi handleSignup, handleSignupRequestOtp, handleVerifyOtpAndCompleteSignup, handleBackToDetails tetap sama)
   const handleSignup = async (e) => {
     e.preventDefault();
     if (signupStage === 'collectingDetails') {
@@ -143,7 +140,6 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
     if (isConnected && address && !isWalletActionLoading) {
       handleWalletLogin();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, address]);
 
   return (
@@ -160,7 +156,6 @@ export default function PageRegister({ currentUser, onOpenWalletModal }) {
         <AuthForm
           isLoginForm={false}
           onFormSubmit={handleSignup}
-          // [MODIFIKASI] Tombol sekarang membuka modal
           onWalletLogin={onOpenWalletModal}
           loading={loading}
           isWalletActionLoading={isWalletActionLoading}

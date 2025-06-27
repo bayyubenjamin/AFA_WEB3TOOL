@@ -1,5 +1,3 @@
-// src/components/PageLoginWithTelegram.jsx (Final Version with OTP Flow)
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';

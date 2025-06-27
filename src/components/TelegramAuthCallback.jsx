@@ -1,5 +1,3 @@
-// src/components/TelegramAuthCallback.jsx
-
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -37,11 +35,9 @@ export default function TelegramAuthCallback() {
         
         if (sessionError) throw sessionError;
 
-        // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
         sessionStorage.removeItem('explicitlyLoggedOut');
 
         setStatus('success');
-        // Redirect ke halaman beranda setelah beberapa saat
         setTimeout(() => navigate('/'), 1500);
 
       } catch (err) {

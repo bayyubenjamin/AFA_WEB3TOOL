@@ -1,5 +1,3 @@
-// src/components/DesktopNav.jsx
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';

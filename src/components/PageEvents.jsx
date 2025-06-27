@@ -1,5 +1,3 @@
-// src/components/PageEvents.jsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -9,9 +7,6 @@ import { supabase } from '../supabaseClient';
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
-// =================================================================
-// [REDESIGNED] EventCard Component
-// =================================================================
 const EventCard = ({ event }) => {
   const isEventActive = new Date(event.end_date) > new Date();
 
@@ -99,12 +94,9 @@ export default function PageEvents({ currentUser }) {
   }, []);
   
   useEffect(() => {
-    // [MODIFIKASI] Cek currentUser sebelum fetch
     if (currentUser) {
         fetchEventsData();
     } else {
-        // Jika tidak ada user (misal: halaman dimuat langsung tanpa state),
-        // jangan tampilkan loading selamanya.
         setLoading(false);
     }
   }, [currentUser, fetchEventsData]);

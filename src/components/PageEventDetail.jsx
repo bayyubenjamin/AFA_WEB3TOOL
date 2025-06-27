@@ -1,5 +1,3 @@
-// src/components/PageEventDetail.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -18,7 +16,6 @@ const taskIcons = {
   discord: faDiscord,
 };
 
-// Komponen SocialTask dengan kelas yang sudah diperbaiki
 const SocialTask = ({ task, onVerify, isVerified, isLoading }) => {
     return (
         <div className={`w-full flex items-center justify-between p-4 rounded-lg transition-all duration-300 ${

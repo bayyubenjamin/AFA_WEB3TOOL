@@ -15,7 +15,6 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// --- CONFIGURATION ---
 const CONTRACT_ADDRESS = '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1';
 const NFT_IMAGE_URL = 'https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif';
 
@@ -31,10 +30,8 @@ const PriceInWeiABI = [
 
 const chainInfo = {
   11155420: { name: "OP Sepolia", color: "bg-red-500", explorer: "https://sepolia-optimism.etherscan.io" },
-  // Add other networks here if needed
 };
 
-// --- SUB-COMPONENTS ---
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel }) => (
   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-card rounded-lg">
     <div className="flex items-center gap-4">
@@ -59,17 +56,14 @@ const PremiumBenefit = ({ icon, text }) => (
   </li>
 );
 
-// --- HELPER ---
 function replacerBigInt(key, value) {
   return typeof value === 'bigint' ? value.toString() : value;
 }
 
-// --- MAIN COMPONENT ---
 export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const navigate = useNavigate();
   const { address, isConnected, chainId: connectedChainId } = useAccount();
 
-  // --- STATE ---
   const [feedback, setFeedback] = useState({ message: '', type: '', hash: null });
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [premiumPrice, setPremiumPrice] = useState(null);
@@ -110,11 +104,9 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     enabled: !!tokenId,
   });
 
-  // --- MEMOIZED VALUES ---
   const userHasNFT = useMemo(() => !!balance && Number(balance) > 0, [balance]);
   const currentNetwork = useMemo(() => chainInfo[chainId], [chainId]);
 
-  // --- EFFECTS ---
   useEffect(() => {
     if (rawPrice !== undefined && rawPrice !== null) setPremiumPrice(rawPrice);
   }, [rawPrice]);
@@ -143,9 +135,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     }
   }, [writeError]);
 
-  // --- HANDLERS ---
   const handleMint = async () => {
-    // This function remains the same
     if (!allPrerequisitesMet) { setFeedback({ message: 'Please complete all prerequisites before minting.', type: 'error' }); return; }
     setFeedback({ message: '', type: '' });
     resetWriteContract();
@@ -165,7 +155,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   };
   
   const handleUpgrade = async () => {
-    // This function remains the same
     if (!userHasNFT || !tokenId) { setFeedback({ message: 'You must own an AFA Identity NFT to upgrade.', type: 'error' }); return; }
     if (premiumPrice === undefined || premiumPrice === null || BigInt(premiumPrice) <= 0n) { setFeedback({ message: 'Premium upgrade price could not be loaded. Please refresh.', type: 'error' }); return; }
     setFeedback({ message: '', type: '' });
@@ -188,7 +177,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   };
   const allPrerequisitesMet = Object.values(prerequisites).every(Boolean);
 
-  // --- UI & RENDER ---
   return (
     <section className="bg-light-bg dark:bg-dark-bg min-h-screen text-light-text dark:text-dark-text">
       <div className="page-content py-8 md:py-12 max-w-6xl mx-auto px-4">

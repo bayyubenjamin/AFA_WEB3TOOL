@@ -1,10 +1,6 @@
-// src/wagmiConfig.js (Perbaikan Final dengan Definisi Manual)
-
 import { http, createConfig, createStorage } from 'wagmi';
-// Hapus impor chain dari sini karena kita akan definisikan manual
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
-// --- DEFINISIKAN OPTIMISM SEPOLIA SECARA MANUAL ---
 const optimismSepolia = {
   id: 11155420,
   name: 'OP Sepolia',
@@ -29,7 +25,7 @@ const metadata = {
 };
 
 export const config = createConfig({
-  chains: [optimismSepolia], // <-- DIUBAH
+  chains: [optimismSepolia],
   connectors: [
     walletConnect({
       projectId: walletConnectProjectId,
@@ -44,6 +40,6 @@ export const config = createConfig({
   ],
   storage: createStorage({ storage: window.localStorage }),
   transports: {
-    [optimismSepolia.id]: http(), // <-- DIUBAH buat
+    [optimismSepolia.id]: http(),
   },
 });

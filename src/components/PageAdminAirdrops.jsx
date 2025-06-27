@@ -1,5 +1,3 @@
-// src/components/PageAdminAirdrops.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

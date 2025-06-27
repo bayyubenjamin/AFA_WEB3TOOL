@@ -1,5 +1,3 @@
-// src/components/PageHome.jsx - KODE LENGKAP DENGAN PENYESUAIAN WARNA SOFT & SELARAS
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,7 +12,6 @@ const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
 
-// Komponen Card Fitur dengan warna teks yang telah disesuaikan
 const FeatureCard = ({ icon, title, description, actionText, actionTarget, color }) => (
   <div className="relative bg-light-card dark:bg-dark-card p-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group transform transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl">
     <div className="absolute top-0 left-0 w-full h-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

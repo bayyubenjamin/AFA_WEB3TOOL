@@ -1,4 +1,3 @@
-// src/components/PageForum.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
@@ -11,7 +10,6 @@ const getTranslations = (lang) => {
     return lang === 'id' ? translationsId : translationsEn;
 };
 
-// --- Komponen Pesan (Message Bubble) ---
 const Message = React.memo(({ msg, isCurrentUser, profile }) => {
     const senderName = isCurrentUser ? (profile?.username || 'You') : (profile?.username || 'guest');
     const avatarUrl = profile?.avatar_url || `https://ui-avatars.com/api/?name=${senderName.charAt(0)}&background=random`;
@@ -47,7 +45,6 @@ const Message = React.memo(({ msg, isCurrentUser, profile }) => {
 Message.displayName = 'Message';
 
 
-// --- Komponen Utama Forum ---
 export default function PageForum({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).forumPage || {}; 

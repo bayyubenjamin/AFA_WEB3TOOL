@@ -1,4 +1,3 @@
-// src/components/ModalManageCategory.jsx - VERSI PERBAIKAN
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolder, faTimes, faSave } from "@fortawesome/free-solid-svg-icons";
@@ -12,11 +11,7 @@ const getTranslations = (lang) => {
 
 export default function ModalManageCategory({ isOpen, onClose, onSave, initialData }) {
   const { language } = useLanguage();
-  // ==================== PERBAIKAN DI SINI ====================
-  // SEBELUM: const t = getTranslations(language).myWorkPage;
-  // SESUDAH: Langsung menunjuk ke objek yang benar.
   const t = getTranslations(language).modalManageCategory;
-  // ==========================================================
 
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
@@ -44,7 +39,6 @@ export default function ModalManageCategory({ isOpen, onClose, onSave, initialDa
       alert(t.emptyNameAlert);
       return;
     }
-    // Kirim data termasuk iconColor
     onSave({ name, icon, iconColor });
   };
   

@@ -1,5 +1,3 @@
-// src/components/PageLogin.jsx
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -48,7 +46,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
       if (error) throw error;
       
-      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
@@ -66,14 +63,12 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     setIsWalletActionLoading(true);
     try {
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
-      // Gunakan fungsi login-with-wallet yang sudah ada
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { body: { address, signature } });
       if (functionError) throw new Error(functionError.message);
       if (session.error) throw new Error(session.error);
       const { error: sessionError } = await supabase.auth.setSession(session);
       if (sessionError) throw sessionError;
 
-      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage("Berhasil login dengan wallet!");
@@ -91,7 +86,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     clearMessages();
     setIsTelegramLoading(true);
     try {
-      // Fungsi ini akan membuat/mencari pengguna berdasarkan data widget
       const { data, error } = await supabase.functions.invoke('login-with-telegram', {
         body: telegramUser
       });
@@ -106,7 +100,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
 
       if (sessionError) throw sessionError;
       
-      // ===== [PERUBAHAN 3] Hapus penanda saat login berhasil =====
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage("Berhasil login dengan Telegram!");
@@ -124,7 +117,6 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       if (isConnected && address && !isWalletActionLoading) {
           handleWalletLogin();
       }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, address]);
 
   return (

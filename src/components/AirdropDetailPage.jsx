@@ -49,7 +49,6 @@ const AirdropUpdateItem = ({ update, isAdmin, airdropSlug, onDelete }) => {
       <h4 className="font-bold text-lg text-primary mt-1 mb-2">{update.title}</h4>
       
       {update.content && (
-        // [EDIT] Hapus prose-invert, tambahkan warna teks dasar, dan tambahkan dark:prose-invert
         <div className="prose prose-sm max-w-none dark:prose-invert text-light-text dark:text-current prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown
             children={update.content}

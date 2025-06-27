@@ -1,5 +1,3 @@
-// src/components/PageAirdrops.jsx - KODE LENGKAP DAN SUDAH DIPERBAIKI
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,7 +15,6 @@ const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// Komponen AirdropCard dengan semua perbaikan
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;

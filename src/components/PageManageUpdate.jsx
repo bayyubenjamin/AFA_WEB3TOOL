@@ -1,4 +1,3 @@
-// src/components/PageManageUpdate.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -71,7 +70,6 @@ export default function PageManageUpdate({ currentUser }) {
   if (!isAdmin) return null;
 
   return (
-    // [EDIT] Ubah warna teks utama halaman
     <div className="page-content py-6 md:py-8 max-w-4xl mx-auto text-light-text dark:text-white">
       <Link to={`/airdrops/${airdropSlug}`} className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
