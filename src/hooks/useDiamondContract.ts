@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { ethers } from "ethers";
 import DiamondABI from "../contracts/AFAIdentityDiamondABI.json";
 
-const DIAMOND_ADDRESS = "0xfBEFd9b787ab888b2a8A0aa9663c8182E5AC407A";
+const DIAMOND_ADDRESS = "0x8611E3C3F991C989fEF0427998062f77c9D0A2F1";
 
 export function useDiamondContract() {
   const provider = useMemo(() => new ethers.providers.Web3Provider(window.ethereum), []);
