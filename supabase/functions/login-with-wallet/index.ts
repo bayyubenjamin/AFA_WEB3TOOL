@@ -31,47 +31,77 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    let { data: profile } = await supabaseAdmin
+    // --- PENAMBAHAN LOGIKA VALIDASI ---
+    const { data: existingProfileByWallet } = await supabaseAdmin
       .from('profiles')
       .select('id')
       .eq('web3_address', address.toLowerCase())
-      .single()
+      .single();
 
-    let userId = profile?.id
-    let user;
+    if (existingProfileByWallet) {
+        // Jika dompet sudah ada, langsung proses login untuk pengguna yang ada
+        const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingProfileByWallet.id);
+        if (getUserError) throw getUserError;
 
-    if (!userId) {
-      const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-        email: `${address.toLowerCase()}@wallet.afa-web3.com`,
-        email_confirm: true,
+        // Proses pembuatan token seperti biasa untuk pengguna yang sudah ada
+        const jwtSecret = Deno.env.get('AFA_JWT_SECRET');
+        if (!jwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.");
+
+        const key = await crypto.subtle.importKey(
+          "raw", new TextEncoder().encode(jwtSecret),
+          { name: "HMAC", hash: "SHA-256" },
+          false, ["sign", "verify"]
+        );
+
+        const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // 1 jam
+
+        const accessToken = await create(
+          { alg: "HS256", typ: "JWT" },
+          { sub: existingUser.user.id, aud: "authenticated", role: "authenticated", exp: expiration },
+          key
+        );
+        
+        const session = {
+            access_token: accessToken,
+            token_type: 'bearer',
+            expires_in: 3600,
+            expires_at: expiration,
+            user: existingUser.user,
+            refresh_token: 'dummy-refresh-token'
+        }
+    
+        return new Response(JSON.stringify(session), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
+    } 
+    // --- AKHIR PENAMBAHAN LOGIKA ---
+
+
+    // Jika dompet belum terdaftar, maka lanjutkan proses pembuatan pengguna baru
+    const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      email: `${address.toLowerCase()}@wallet.afa-web3.com`,
+      email_confirm: true,
+    })
+    if (createUserError) throw createUserError
+
+    const user = newUser.user
+    const userId = user.id
+    const username = `user_${address.substring(2, 8)}`
+
+    const { error: newProfileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: userId,
+        web3_address: address.toLowerCase(),
+        username, name: username,
+        email: user.email,
+        avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=${username.substring(0,2).toUpperCase()}`
       })
-      if (createUserError) throw createUserError
-
-      user = newUser.user
-      userId = user.id
-      const username = `user_${address.substring(2, 8)}`
-
-      const { error: newProfileError } = await supabaseAdmin
-        .from('profiles')
-        .insert({
-          id: userId,
-          web3_address: address.toLowerCase(),
-          username, name: username,
-          email: user.email,
-          avatar_url: `https://placehold.co/100x100/7f5af0/FFFFFF?text=${username.substring(0,2).toUpperCase()}`
-        })
-      if (newProfileError) throw newProfileError
-    } else {
-      const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId)
-      if (getUserError) throw getUserError
-      user = existingUser.user
-    }
+    if (newProfileError) throw newProfileError
 
     const jwtSecret = Deno.env.get('AFA_JWT_SECRET');
     if (!jwtSecret) throw new Error("AFA_JWT_SECRET belum di-set di Edge Function secrets.")
-
-    // ===== PERBAIKAN KRUSIAL DI SINI =====
-    // Mengubah string secret menjadi CryptoKey yang bisa dipakai djwt
     const key = await crypto.subtle.importKey(
       "raw",
       new TextEncoder().encode(jwtSecret),
@@ -79,7 +109,6 @@ serve(async (req) => {
       false,
       ["sign", "verify"]
     );
-    // =====================================
 
     const expiration = getNumericDate(new Date().getTime() + 60 * 60 * 1000); // Sesi berlaku 1 jam
 
@@ -91,7 +120,7 @@ serve(async (req) => {
         role: "authenticated",
         exp: expiration
       },
-      key // Menggunakan CryptoKey, bukan string
+      key
     );
 
     const session = {
@@ -100,7 +129,7 @@ serve(async (req) => {
         expires_in: 3600,
         expires_at: expiration,
         user: user,
-        refresh_token: 'dummy-refresh-token' // Tambahkan dummy refresh token
+        refresh_token: 'dummy-refresh-token'
     }
 
     return new Response(JSON.stringify(session), {
@@ -108,7 +137,6 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    // Tambahkan console.log di sini untuk debugging di server
     console.error('Error in Edge Function:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,

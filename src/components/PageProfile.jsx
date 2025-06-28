@@ -73,7 +73,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  
+
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
   const mapSupabaseDataToAppUser = (authUser, profileData) => {
@@ -89,19 +89,28 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
       user_metadata: authUser.user_metadata || {}
     };
   };
-  
+
   const handleLinkWallet = useCallback(async () => {
     if (!address || !currentUser?.id) return;
     setIsWalletActionLoading(true);
     clearMessages();
     try {
         const lowerCaseAddress = address.toLowerCase();
-        const { data: existingProfile, error: checkError } = await supabase.from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
-        if (checkError && checkError.code !== 'PGRST116') throw checkError;
-        if (existingProfile && existingProfile.id !== currentUser.id) {
-            throw new Error("This wallet address is already linked to another account.");
+
+        const { data: existingProfile, error: checkError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('web3_address', lowerCaseAddress)
+            .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+            throw checkError;
         }
-        
+
+        if (existingProfile && existingProfile.id !== currentUser.id) {
+            throw new Error("Dompet ini sudah ditautkan ke akun lain.");
+        }
+
         const { data, error: updateError } = await supabase
             .from('profiles')
             .update({ web3_address: lowerCaseAddress })
@@ -113,12 +122,12 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
         setSuccessMessage("Wallet linked successfully!");
     } catch (err) {
-        setError(err.message || "Failed to link wallet.");
+        setError(err.message || (t.linkWalletError || "Failed to link wallet."));
     } finally {
         setIsWalletActionLoading(false);
         disconnect();
     }
-  }, [address, currentUser, onUpdateUser, disconnect, clearMessages]);
+  }, [address, currentUser, onUpdateUser, disconnect, clearMessages, t]);
 
   const handleUnlinkWallet = async () => {
     if (!window.confirm("Are you sure you want to unlink this wallet?")) return;
@@ -131,16 +140,16 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
           .eq('id', currentUser.id);
 
         if (updateError) throw updateError;
-        
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) throw new Error("Session not found, please log in again.");
-        
+
         const { data: refreshedProfile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        
+
         if (profileError) throw profileError;
 
         onUpdateUser(mapSupabaseDataToAppUser(session.user, refreshedProfile));
@@ -165,7 +174,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         .eq('id', currentUser.id);
 
       if (updateError) throw updateError;
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
@@ -223,7 +232,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         setEditAvatarUrl(currentUser.avatar_url || "");
       }
   }, [currentUser, isLoggedIn]);
-  
+
   if (!isLoggedIn) {
     return (
       <div className="page-content flex flex-col items-center justify-center text-center h-full pt-20">
@@ -244,12 +253,12 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const handleCloseEditProfileModal = () => setShowEditProfileModal(false);
   const handleCopyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => { setCopySuccess('Copied!'); setTimeout(() => setCopySuccess(''), 2000); }, () => { setCopySuccess('Failed'); }); };
   const activeAirdropsCount = userAirdrops.filter(item => item.status === 'inprogress').length;
-  
+
   const isDummyEmail = currentUser?.email?.endsWith('@telegram.user') || currentUser?.email?.endsWith('@wallet.afa-web3.com');
 
   return (
     <section className="page-content grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 py-6">
-      
+
       <div className="lg:col-span-2 flex flex-col gap-6 md:gap-8">
         {(error || successMessage) && (
             <div className={`max-w-full p-4 mb-0 text-sm rounded-lg text-center ${error ? 'text-red-300 bg-red-800/50' : 'text-green-300 bg-green-800/50'}`}>
@@ -259,25 +268,25 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
         <div className="card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
              <div className="absolute top-4 right-4" ref={settingsMenuRef}>
-                 <button 
-                     onClick={() => setIsSettingsOpen(p => !p)}
-                     className="h-10 w-10 flex items-center justify-center text-light-subtle dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
-                     aria-label="Profile Settings"
-                 >
-                     <FontAwesomeIcon icon={faGear} />
-                 </button>
-                 <div className={`options-menu ${isSettingsOpen ? 'active' : ''}`}>
-                    <ul>
-                        <li onClick={() => { handleOpenEditProfileModal(); setIsSettingsOpen(false); }}>
-                            <FontAwesomeIcon icon={faEdit} />
-                            {t.editProfileBtnSave || 'Edit Profile'}
-                        </li>
-                        <li onClick={() => { onLogout(); setIsSettingsOpen(false); }} className="text-red-500 dark:text-red-400">
-                            <FontAwesomeIcon icon={faSignOutAlt} />
-                            {t.logoutBtn || 'Logout'}
-                        </li>
-                    </ul>
-                 </div>
+                  <button
+                      onClick={() => setIsSettingsOpen(p => !p)}
+                      className="h-10 w-10 flex items-center justify-center text-light-subtle dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                      aria-label="Profile Settings"
+                  >
+                      <FontAwesomeIcon icon={faGear} />
+                  </button>
+                  <div className={`options-menu ${isSettingsOpen ? 'active' : ''}`}>
+                      <ul>
+                          <li onClick={() => { handleOpenEditProfileModal(); setIsSettingsOpen(false); }}>
+                              <FontAwesomeIcon icon={faEdit} />
+                              {t.editProfileBtnSave || 'Edit Profile'}
+                          </li>
+                          <li onClick={() => { onLogout(); setIsSettingsOpen(false); }} className="text-red-500 dark:text-red-400">
+                              <FontAwesomeIcon icon={faSignOutAlt} />
+                              {t.logoutBtn || 'Logout'}
+                          </li>
+                      </ul>
+                  </div>
              </div>
 
             <img
@@ -302,7 +311,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
         <div className="card rounded-xl p-6 md:p-8 shadow-xl">
             <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
-                <FontAwesomeIcon icon={faChartSimple} className="mr-3 text-primary" /> 
+                <FontAwesomeIcon icon={faChartSimple} className="mr-3 text-primary" />
                 Your Activity
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
@@ -323,78 +332,78 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             <ul className="space-y-4">
                <li className="flex items-start gap-4">
                   <div className="bg-blue-500/10 text-blue-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
-                     <FontAwesomeIcon icon={faEnvelope} />
+                      <FontAwesomeIcon icon={faEnvelope} />
                   </div>
                   <div className="flex-grow">
-                     <h4 className="font-semibold text-light-text dark:text-white">Email & Password</h4>
-                     {isDummyEmail ? (
-                         <>
-                            <p className="text-xs text-light-subtle dark:text-gray-400 mt-1 mb-3">Your account is not secured with an email. Add one to enable traditional login.</p>
-                            <form onSubmit={handleLinkEmailPassword} className="space-y-3">
-                                <InputField id="new_email" type="email" label="New Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="your.email@example.com" parentLoading={isLinkingEmail} />
-                                <InputField id="new_password" type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimum 6 characters" parentLoading={isLinkingEmail} />
-                                <button type="submit" disabled={isLinkingEmail} className="btn-secondary w-full py-2 text-sm">
-                                    {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Save & Secure Account'}
-                                </button>
-                            </form>
-                         </>
-                     ) : (
-                         <p className="text-sm text-green-400 font-semibold mt-1">Account is secured.</p>
-                     )}
+                      <h4 className="font-semibold text-light-text dark:text-white">Email & Password</h4>
+                      {isDummyEmail ? (
+                          <>
+                              <p className="text-xs text-light-subtle dark:text-gray-400 mt-1 mb-3">Your account is not secured with an email. Add one to enable traditional login.</p>
+                              <form onSubmit={handleLinkEmailPassword} className="space-y-3">
+                                  <InputField id="new_email" type="email" label="New Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="your.email@example.com" parentLoading={isLinkingEmail} />
+                                  <InputField id="new_password" type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimum 6 characters" parentLoading={isLinkingEmail} />
+                                  <button type="submit" disabled={isLinkingEmail} className="btn-secondary w-full py-2 text-sm">
+                                      {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Save & Secure Account'}
+                                  </button>
+                              </form>
+                          </>
+                      ) : (
+                          <p className="text-sm text-green-400 font-semibold mt-1">Account is secured.</p>
+                      )}
                   </div>
                </li>
-               
+
                <li className="flex items-start gap-4">
                   <div className="bg-purple-500/10 text-purple-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
-                     <FontAwesomeIcon icon={faWallet} />
+                      <FontAwesomeIcon icon={faWallet} />
                   </div>
                   <div className="flex-grow">
-                     <h4 className="font-semibold text-light-text dark:text-white">Wallet</h4>
-                     {currentUser.address ? (
-                        <>
-                           <p className="text-xs text-green-400 mt-1">Wallet is connected.</p>
-                           <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                               {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
-                               Unlink
-                           </button>
-                        </>
-                     ) : (
-                        <>
-                           <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your wallet to participate in events and claim rewards.</p>
-                           <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                               {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
-                               Link Wallet
-                           </button>
-                        </>
-                     )}
+                      <h4 className="font-semibold text-light-text dark:text-white">Wallet</h4>
+                      {currentUser.address ? (
+                          <>
+                              <p className="text-xs text-green-400 mt-1">Wallet is connected.</p>
+                              <button onClick={handleUnlinkWallet} disabled={isWalletActionLoading} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
+                                  {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
+                                  Unlink
+                              </button>
+                          </>
+                      ) : (
+                          <>
+                              <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your wallet to participate in events and claim rewards.</p>
+                              <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
+                                  {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />}
+                                  Link Wallet
+                              </button>
+                          </>
+                      )}
                   </div>
                </li>
 
                 <li className="flex items-start gap-4">
                   <div className="bg-sky-500/10 text-sky-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
-                     <FontAwesomeIcon icon={faTelegram} />
+                      <FontAwesomeIcon icon={faTelegram} />
                   </div>
                   <div className="flex-grow">
-                     <h4 className="font-semibold text-light-text dark:text-white">Telegram</h4>
-                     {currentUser.telegram_user_id ? (
-                        <>
-                           <p className="text-xs text-green-400 mt-1">Account linked (ID: {currentUser.telegram_user_id})</p>
-                           <button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                               {isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
-                               Unlink
-                           </button>
-                        </>
-                     ) : (
-                        <>
-                           <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your Telegram via our bot to verify tasks.</p>
-                           <a href="https://t.me/afaweb3tool_bot" target="_blank" rel="noopener noreferrer" className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                              <FontAwesomeIcon icon={faLink} />
-                              <span>Link via Bot</span>
-                           </a>
-                        </>
-                     )}
+                      <h4 className="font-semibold text-light-text dark:text-white">Telegram</h4>
+                      {currentUser.telegram_user_id ? (
+                          <>
+                              <p className="text-xs text-green-400 mt-1">Account linked (ID: {currentUser.telegram_user_id})</p>
+                              <button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
+                                  {isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />}
+                                  Unlink
+                              </button>
+                          </>
+                      ) : (
+                          <>
+                              <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your Telegram via our bot to verify tasks.</p>
+                              <a href="https://t.me/afaweb3tool_bot" target="_blank" rel="noopener noreferrer" className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
+                                 <FontAwesomeIcon icon={faLink} />
+                                 <span>Link via Bot</span>
+                              </a>
+                          </>
+                      )}
                   </div>
-               </li>
+                </li>
             </ul>
          </div>
       </div>

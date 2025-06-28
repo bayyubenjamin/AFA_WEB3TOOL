@@ -95,7 +95,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     args: [currentUser?.address, 0],
     enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
   });
-  
+
   const { data: isPremium, refetch: refetchPremiumStatus } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: AfaIdentityABI,
@@ -114,7 +114,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   useEffect(() => {
     if (wagmiTokenId !== undefined) setTokenId(wagmiTokenId);
   }, [wagmiTokenId]);
-  
+
   useEffect(() => {
     if (receipt) {
       setIsActionLoading(false);
@@ -153,9 +153,9 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
       setIsActionLoading(false);
     }
   };
-  
+
   const handleUpgrade = async () => {
-    if (!userHasNFT || !tokenId) { setFeedback({ message: 'You must own an AFA Identity NFT to upgrade.', type: 'error' }); return; }
+    if (!userHasNFT || tokenId === undefined) { setFeedback({ message: 'You must own an AFA Identity NFT to upgrade.', type: 'error' }); return; }
     if (premiumPrice === undefined || premiumPrice === null || BigInt(premiumPrice) <= 0n) { setFeedback({ message: 'Premium upgrade price could not be loaded. Please refresh.', type: 'error' }); return; }
     setFeedback({ message: '', type: '' });
     resetWriteContract();
@@ -168,14 +168,27 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     }
   };
 
-  const isEmailDummy = currentUser?.email?.endsWith('@wallet.afa-web3.com') || currentUser?.email?.endsWith('@telegram.user');
-  const prerequisites = {
+  const isEmailDummy = useMemo(() => currentUser?.email?.endsWith('@wallet.afa-web3.com') || currentUser?.email?.endsWith('@telegram.user'), [currentUser?.email]);
+
+  const prerequisites = useMemo(() => ({
     isLoggedIn: !!currentUser?.id,
     walletConnected: !!currentUser?.address && isConnected && currentUser.address.toLowerCase() === address?.toLowerCase(),
     telegramConnected: !!currentUser?.telegram_user_id,
     emailSecured: !isEmailDummy,
+  }), [currentUser, isConnected, address, isEmailDummy]);
+
+  const allPrerequisitesMet = useMemo(() => Object.values(prerequisites).every(Boolean), [prerequisites]);
+
+
+  const getWalletStatusMessage = () => {
+    if (!prerequisites.isLoggedIn) return 'Login to check wallet status';
+    if (!currentUser.address) return 'Link a wallet in your profile';
+    if (!isConnected) return `Wallet not connected`;
+    if (currentUser.address.toLowerCase() !== address?.toLowerCase()) {
+      return `Wrong wallet connected. Please connect to ${currentUser.address.substring(0, 6)}...${currentUser.address.slice(-4)}`;
+    }
+    return `${currentUser.address.substring(0, 6)}...${currentUser.address.slice(-4)}`;
   };
-  const allPrerequisitesMet = Object.values(prerequisites).every(Boolean);
 
   return (
     <section className="bg-light-bg dark:bg-dark-bg min-h-screen text-light-text dark:text-dark-text">
@@ -186,7 +199,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             Back to Home
           </Link>
           {isConnected && currentNetwork && (
-            <div className="flex items-center gap-2 text-xs font-bold text-white px-3 py-1.5 rounded-full" style={{ backgroundColor: currentNetwork.color }}>
+            <div className={`flex items-center gap-2 text-xs font-bold text-white px-3 py-1.5 rounded-full ${currentNetwork.color}`}>
               <FontAwesomeIcon icon={faSatelliteDish} />
               <span>{currentNetwork.name}</span>
             </div>
@@ -202,9 +215,9 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                 <h2 className="text-3xl font-bold text-white">AFA Identity</h2>
                 <p className="text-gray-400">{userHasNFT ? `Token ID: #${tokenId?.toString()}` : 'Not Minted Yet'}</p>
                 {userHasNFT && (
-                   <div className={`mt-4 inline-block font-bold text-xs py-1 px-4 rounded-full ${isPremium ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
-                     {isPremium ? 'PREMIUM MEMBER' : 'STANDARD MEMBER'}
-                   </div>
+                    <div className={`mt-4 inline-block font-bold text-xs py-1 px-4 rounded-full ${isPremium ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                      {isPremium ? 'PREMIUM MEMBER' : 'STANDARD MEMBER'}
+                    </div>
                 )}
               </div>
             </div>
@@ -216,16 +229,16 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             <p className="text-lg text-gray-400 mb-8">
               Your unique, soul-bound token for the entire AFA ecosystem.
             </p>
-            
+
             {!userHasNFT ? (
               // --- MINTING VIEW ---
               <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-4">Mint Your AFA Identity</h3>
                 <div className="space-y-2 mb-6">
                   <PrerequisiteItem icon={faCheckCircle} title="Log In to AFA Account" isComplete={prerequisites.isLoggedIn} value={currentUser?.email} action={() => navigate('/login')} actionLabel="Login" />
-                  <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={currentUser?.address ? `${currentUser.address.substring(0,6)}...` : 'Not connected'} action={onOpenWalletModal} actionLabel="Connect" />
+                  <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={getWalletStatusMessage()} action={prerequisites.isLoggedIn && !currentUser.address ? () => navigate('/profile') : onOpenWalletModal} actionLabel={prerequisites.isLoggedIn && !currentUser.address ? 'Link' : 'Connect'} />
                   <PrerequisiteItem icon={faTelegram} title="Link Telegram" isComplete={prerequisites.telegramConnected} value={prerequisites.telegramConnected ? 'Linked' : 'Not linked'} action={() => navigate('/profile')} actionLabel="Link" />
-                  <PrerequisiteItem icon={faEnvelope} title="Secure with Email" isComplete={prerequisites.emailSecured} value={isEmailDummy ? 'Dummy account' : 'Secured'} action={() => navigate('/profile')} actionLabel="Secure" />
+                  <PrerequisiteItem icon={faEnvelope} title="Secure with Email" isComplete={prerequisites.emailSecured} value={!prerequisites.isLoggedIn ? 'Login first' : (isEmailDummy ? 'Not secured' : 'Secured')} action={() => navigate('/profile')} actionLabel="Secure" />
                 </div>
                 <button
                   onClick={handleMint}
@@ -243,30 +256,30 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                  <p className="text-gray-400 text-sm mb-4">Unlock the full potential of the AFA ecosystem.</p>
 
                  <div className="bg-black/20 p-4 rounded-lg mb-6">
-                    <h4 className="font-semibold text-white mb-3">Premium Benefits:</h4>
-                    <ul className="space-y-2 text-sm">
-                      <PremiumBenefit icon={faBolt} text="Early access to new features" />
-                      <PremiumBenefit icon={faCrown} text="Exclusive content and roles" />
-                      <PremiumBenefit icon={faShieldHalved} text="Enhanced security options" />
-                      <PremiumBenefit icon={faInfinity} text="And much more..." />
-                    </ul>
+                   <h4 className="font-semibold text-white mb-3">Premium Benefits:</h4>
+                   <ul className="space-y-2 text-sm">
+                     <PremiumBenefit icon={faBolt} text="Early access to new features" />
+                     <PremiumBenefit icon={faCrown} text="Exclusive content and roles" />
+                     <PremiumBenefit icon={faShieldHalved} text="Enhanced security options" />
+                     <PremiumBenefit icon={faInfinity} text="And much more..." />
+                   </ul>
                  </div>
-                 
+
                  <div className="text-center mb-6">
-                    <p className="text-gray-400 text-sm">Upgrade / Renewal Price</p>
-                    <p className="text-3xl font-bold text-white">
-                      {premiumPrice !== null ? `${ethers.formatEther(premiumPrice)} ETH` : <FontAwesomeIcon icon={faSpinner} spin />}
-                    </p>
+                   <p className="text-gray-400 text-sm">Upgrade / Renewal Price</p>
+                   <p className="text-3xl font-bold text-white">
+                     {premiumPrice !== null ? `${ethers.formatEther(premiumPrice)} ETH` : <FontAwesomeIcon icon={faSpinner} spin />}
+                   </p>
                  </div>
 
                  <button
-                  onClick={handleUpgrade}
-                  disabled={isPremium || isActionLoading || isConfirming}
-                  className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                >
-                  {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin />}
-                  {isPremium ? "Already Premium" : "Upgrade to Premium"}
-                </button>
+                   onClick={handleUpgrade}
+                   disabled={isPremium || isActionLoading || isConfirming}
+                   className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                 >
+                   {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin />}
+                   {isPremium ? "Already Premium" : "Upgrade to Premium"}
+                 </button>
               </div>
             )}
 
@@ -278,9 +291,9 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                   <span className="break-all">{feedback.message}</span>
                 </div>
               )}
-              {feedback.hash && (
+              {feedback.hash && currentNetwork?.explorer && (
                 <div className="text-xs text-center text-gray-400">
-                  <a href={`${currentNetwork?.explorer}/tx/${feedback.hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+                  <a href={`${currentNetwork.explorer}/tx/${feedback.hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
                     View Transaction on Explorer
                   </a>
                 </div>
