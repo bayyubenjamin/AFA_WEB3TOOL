@@ -4,8 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faFingerprint, faArrowLeft, faSpinner, faCheckCircle,
     faTimesCircle, faWallet, faEnvelope, faCrown, faCube,
-    faBolt, faShieldHalved, faInfinity, faSatelliteDish, faCalendarCheck,
-    faExclamationTriangle // Ditambahkan untuk ikon peringatan
+    faBolt, faShieldHalved, faInfinity, faSatelliteDish, faCalendarCheck
 } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 import {
@@ -16,9 +15,9 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// ... (Komponen-komponen lain tidak berubah)
 const CONTRACT_ADDRESS = '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1';
 const NFT_IMAGE_URL = 'https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif';
+
 const chainInfo = {
     11155420: { name: "OP Sepolia", color: "bg-red-500", explorer: "https://sepolia-optimism.etherscan.io" },
 };
@@ -75,7 +74,6 @@ const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
 );
 
 const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
-    // ... (Isi komponen UpgradeView tidak berubah)
     const [selectedTier, setSelectedTier] = useState(0);
 
     const useTierPrice = (tierId) => {
@@ -153,6 +151,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
     );
 };
 
+
 export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const navigate = useNavigate();
     const { address, isConnected } = useAccount();
@@ -174,20 +173,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     });
 
     const userHasNFT = useMemo(() => !!balance && Number(balance) > 0, [balance]);
-
-    // ... (hooks lainnya tidak berubah)
-
-    // ▼▼▼ PENGECEKAN KETIDAKCOCOKAN WALLET ▼▼▼
-    const walletMismatch = useMemo(() => {
-        // Cek hanya jika wallet terhubung DAN data pengguna ada
-        if (isConnected && currentUser?.address && address) {
-            // Bandingkan alamat setelah diubah ke huruf kecil untuk konsistensi
-            return currentUser.address.toLowerCase() !== address.toLowerCase();
-        }
-        // Jika salah satu tidak ada, anggap tidak mismatch
-        return false;
-    }, [isConnected, currentUser, address]);
-
 
     const { data: wagmiTokenId, refetch: refetchTokenId } = useReadContract({
         address: CONTRACT_ADDRESS,
@@ -245,34 +230,35 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
     const prerequisites = useMemo(() => ({
         isLoggedIn: !!currentUser?.id,
-        walletConnected: !!currentUser?.address && isConnected && !walletMismatch, // Prasyarat kini juga mengecek mismatch
+        walletConnected: !!currentUser?.address && isConnected && currentUser.address.toLowerCase() === address?.toLowerCase(),
         telegramConnected: !!currentUser?.telegram_user_id,
         emailSecured: !isEmailDummy,
-    }), [currentUser, isConnected, walletMismatch, isEmailDummy]);
+    }), [currentUser, isConnected, address, isEmailDummy]);
 
     const allPrerequisitesMet = useMemo(() => Object.values(prerequisites).every(Boolean), [prerequisites]);
-    
-    // ... (fungsi handleMint dan handleUpgrade tidak berubah)
 
     const handleMint = async () => {
+        // ▼▼▼ GUARD CLAUSE DITAMBAHKAN ▼▼▼
         if (!allPrerequisitesMet) {
             setFeedback({ message: 'Please complete all steps to mint.', type: 'error' });
             return;
         }
-        if (!isConnected || walletMismatch) {
-            setFeedback({ message: 'Please connect the correct wallet first.', type: 'error' });
+        if (!isConnected) {
+            setFeedback({ message: 'Connector not connected. Please connect your wallet first.', type: 'error' });
             return;
         }
+        // ▲▲▲----------------------------▲▲▲
         
         setFeedback({ message: '', type: '' });
         resetWriteContract();
         setIsActionLoading(true);
 
         try {
+            // Pastikan nama fungsi dan argumen sesuai dengan smart contract Anda
             writeContract({
                 address: CONTRACT_ADDRESS,
                 abi: AfaIdentityABI,
-                functionName: 'safeMint',
+                functionName: 'safeMint', // Ganti jika nama fungsinya berbeda
                 args: [address],
             });
         } catch (err) {
@@ -282,10 +268,13 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     };
 
     const handleUpgrade = async (tier, price) => {
-        if (!isConnected || walletMismatch) {
-            setFeedback({ message: 'Please connect the correct wallet first.', type: 'error' });
+        // ▼▼▼ GUARD CLAUSE DITAMBAHKAN ▼▼▼
+        if (!isConnected) {
+            setFeedback({ message: 'Connector not connected. Please connect your wallet first.', type: 'error' });
             return; 
         }
+        // ▲▲▲----------------------------▲▲▲
+
         setFeedback({ message: '', type: '' });
         resetWriteContract();
         setIsActionLoading(true);
@@ -303,11 +292,13 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             setIsActionLoading(false);
         }
     };
-
+    
     const getWalletStatusMessage = () => {
         if (!isConnected) return 'Wallet not connected';
-        if (walletMismatch) return `Wrong wallet. Connect to ${currentUser?.address?.substring(0, 6)}...`;
         if (!currentUser || !currentUser.address) return 'Link a wallet in your profile';
+        if (currentUser.address.toLowerCase() !== address?.toLowerCase()) {
+            return `Wrong wallet. Connect to ${currentUser.address.substring(0, 6)}...`;
+        }
         return `${address.substring(0, 6)}...${address.slice(-4)}`;
     };
 
@@ -329,7 +320,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     <div className="flex flex-col items-center">
-                        {/* ... (Kartu NFT di sisi kiri tidak berubah) ... */}
                         <div className="w-full max-w-sm bg-dark-card p-6 rounded-3xl shadow-2xl shadow-primary/10 border border-white/5">
                             <img src={NFT_IMAGE_URL} alt="AFA Identity NFT" className="w-full rounded-2xl" />
                             <div className="mt-6 text-center">
@@ -356,56 +346,27 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                             Your unique, soul-bound token for the entire AFA ecosystem.
                         </p>
 
-                        {/* ▼▼▼ LOGIKA TAMPILAN YANG DIPERBARUI ▼▼▼ */}
-                        {!isConnected ? (
-                            // 1. Jika wallet BELUM terhubung
-                            <div className="card p-8 text-center flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-dark-card">
-                                <FontAwesomeIcon icon={faWallet} className="text-5xl text-primary mb-6" />
-                                <h3 className="font-bold text-xl text-light-text dark:text-white mb-2">Connect Your Wallet</h3>
-                                <p className="text-gray-500 dark:text-gray-400 mb-8">Connect your wallet to manage your AFA Identity.</p>
-                                <button onClick={onOpenWalletModal} className="btn-primary w-full max-w-xs py-3 text-lg rounded-xl shadow-lg shadow-primary/30">
-                                    Connect Wallet
-                                </button>
-                            </div>
-                        ) : walletMismatch ? (
-                            // 2. Jika wallet SUDAH terhubung TAPI ALAMATNYA SALAH
-                            <div className="card p-8 text-center flex flex-col items-center justify-center h-full bg-yellow-500/10 dark:bg-yellow-400/10 border border-yellow-500/30">
-                                <FontAwesomeIcon icon={faExclamationTriangle} className="text-5xl text-yellow-500 mb-6" />
-                                <h3 className="font-bold text-xl text-yellow-700 dark:text-yellow-300 mb-2">Wrong Wallet Connected</h3>
-                                <div className="space-y-4 w-full">
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        Your profile requires wallet:
-                                        <strong className="block font-mono text-xs break-all mt-1 p-2 bg-black/20 rounded">{currentUser?.address}</strong>
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        You are currently connected with:
-                                        <strong className="block font-mono text-xs break-all mt-1 p-2 bg-black/20 rounded">{address}</strong>
-                                    </p>
-                                </div>
-                                <button onClick={onOpenWalletModal} className="btn-primary w-full max-w-xs py-3 text-lg rounded-xl mt-8">
-                                    Switch Account
-                                </button>
-                            </div>
-                        ) : userHasNFT ? (
-                            // 3. Jika wallet BENAR dan PUNYA NFT
+                        {userHasNFT ? (
                             <UpgradeView tokenId={tokenId} isPremium={isPremium} expirationDate={expirationDate} onUpgrade={handleUpgrade} />
                         ) : (
-                            // 4. Jika wallet BENAR dan BELUM PUNYA NFT
                             <div className="card p-6">
                                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-4">Mint Your AFA Identity</h3>
                                 <div className="space-y-2 mb-6">
                                     <PrerequisiteItem icon={faCheckCircle} title="Log In to AFA Account" isComplete={prerequisites.isLoggedIn} value={currentUser?.email} action={() => navigate('/login')} actionLabel="Login" />
-                                    <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={getWalletStatusMessage()} action={onOpenWalletModal} actionLabel={'Connect'} />
+                                    <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={getWalletStatusMessage()} action={prerequisites.isLoggedIn && !currentUser.address ? () => navigate('/profile') : onOpenWalletModal} actionLabel={prerequisites.isLoggedIn && !currentUser.address ? 'Link' : 'Connect'} />
                                     <PrerequisiteItem icon={faTelegram} title="Link Telegram" isComplete={prerequisites.telegramConnected} value={prerequisites.telegramConnected ? 'Linked' : 'Not linked'} action={() => navigate('/profile')} actionLabel="Link" />
                                     <PrerequisiteItem icon={faEnvelope} title="Secure with Email" isComplete={!isEmailDummy} value={isEmailDummy ? 'Not secured' : 'Secured'} action={() => navigate('/profile')} actionLabel="Secure" />
                                 </div>
-                                <button onClick={handleMint} disabled={!allPrerequisitesMet || isActionLoading || isConfirming} className="btn-primary w-full py-3 text-lg rounded-xl">
+                                <button
+                                    onClick={handleMint}
+                                    disabled={!allPrerequisitesMet || isActionLoading || isConfirming}
+                                    className="btn-primary w-full py-3 text-lg rounded-xl"
+                                >
                                     {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />}
                                     Mint for Free
                                 </button>
                             </div>
                         )}
-                        {/* ▲▲▲ AKHIR DARI PERUBAHAN LOGIKA ▲▲▲ */}
                         
                         <div className="mt-6 space-y-2">
                             {feedback.message && (
