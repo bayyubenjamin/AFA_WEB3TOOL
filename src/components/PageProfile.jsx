@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit, faUser, faTimes, faSave, faImage, faSpinner,
   faChartSimple, faClipboardCheck, faStar, faWallet, faCopy, faTasks, faLink, faUnlink,
-  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear
+  faSignOutAlt, faSignInAlt, faEnvelope, faLock, faShieldHalved, faGear, faCrown, faArrowUp, faIdCard
 } from "@fortawesome/free-solid-svg-icons";
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
-
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect, useReadContract } from 'wagmi';
+
+// Import ABI dan Alamat Kontrak
+import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
+const AFA_IDENTITY_CONTRACT_ADDRESS = '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -56,11 +59,46 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [tokenId, setTokenId] = useState(null);
 
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const navigate = useNavigate();
   const settingsMenuRef = useRef(null);
+  
+  // --- WAGMI HOOKS untuk Cek Status Premium ---
+  const { data: balance } = useReadContract({
+    address: AFA_IDENTITY_CONTRACT_ADDRESS,
+    abi: AfaIdentityABI,
+    functionName: 'balanceOf',
+    args: [currentUser?.address],
+    enabled: !!currentUser?.address,
+  });
+
+  const { data: wagmiTokenId } = useReadContract({
+    address: AFA_IDENTITY_CONTRACT_ADDRESS,
+    abi: AfaIdentityABI,
+    functionName: 'tokenOfOwnerByIndex',
+    args: [currentUser?.address, 0],
+    enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
+  });
+  
+  const { data: isPremium } = useReadContract({
+    address: AFA_IDENTITY_CONTRACT_ADDRESS,
+    abi: AfaIdentityABI,
+    functionName: 'isPremium',
+    args: [tokenId],
+    enabled: !!tokenId,
+  });
+
+  const hasNFT = useMemo(() => balance && Number(balance) > 0, [balance]);
+  
+  useEffect(() => {
+    if (wagmiTokenId !== undefined) {
+      setTokenId(wagmiTokenId);
+    }
+  }, [wagmiTokenId]);
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -265,8 +303,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 {error || successMessage}
             </div>
         )}
-
-        <div className="card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6">
+        
+        {/* REVISED CARD with 3-state logic */}
+        <div className={`card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6 ${hasNFT && isPremium ? 'bg-gradient-to-br from-yellow-100/20 to-amber-200/20 dark:from-yellow-800/20 dark:to-amber-900/30 border-yellow-500/50 shadow-yellow-500/20' : ''}`}>
              <div className="absolute top-4 right-4" ref={settingsMenuRef}>
                   <button
                       onClick={() => setIsSettingsOpen(p => !p)}
@@ -292,11 +331,52 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             <img
                 src={currentUser.avatar_url}
                 alt="User Avatar"
-                className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-primary/50 shadow-lg"
+                className={`w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 shadow-lg ${hasNFT && isPremium ? 'border-yellow-400' : 'border-primary/50'}`}
             />
             <div className="flex-grow text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-bold text-light-text dark:text-white">{currentUser.name}</h2>
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
+                    <h2 className="text-2xl md:text-3xl font-bold text-light-text dark:text-white">{currentUser.name}</h2>
+                    {hasNFT && (
+                      isPremium ? (
+                        <div className="flex items-center gap-1 text-xs font-bold bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full">
+                          <FontAwesomeIcon icon={faCrown} />
+                          <span>PREMIUM</span>
+                        </div>
+                      ) : (
+                         <div className="flex items-center gap-1 text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full">
+                          <span>BASIC</span>
+                        </div>
+                      )
+                    )}
+                </div>
                 <p className="text-md text-light-subtle dark:text-gray-400">@{currentUser.username}</p>
+                
+                {/* --- REVISED CTA SECTION --- */}
+                <div className="mt-4 text-center md:text-left">
+                    {!hasNFT ? (
+                        // State 1: No NFT yet
+                        <>
+                            <Link to="/identity" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105">
+                                <FontAwesomeIcon icon={faIdCard}/>
+                                Mint AFA Identity
+                            </Link>
+                            <p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Get your soul-bound AFA Identity NFT.</p>
+                        </>
+                    ) : (
+                        !isPremium && (
+                            // State 2: Has basic NFT, not premium
+                            <>
+                                <Link to="/identity" className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105">
+                                   <FontAwesomeIcon icon={faArrowUp}/>
+                                   Upgrade to Premium
+                                </Link>
+                                <p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Unlock exclusive features and benefits.</p>
+                            </>
+                        )
+                    )}
+                    {/* State 3: Premium user - No CTA needed, so this part will be empty */}
+                </div>
+                
                 {currentUser.address && (
                   <div className="flex items-center gap-2 mt-2 justify-center md:justify-start">
                     <FontAwesomeIcon icon={faWallet} className="text-green-400" />
@@ -317,7 +397,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
                 <StatCard label={t.statPoints} value={currentUser.stats?.points || 0} icon={faStar} />
                 <StatCard label={t.statAirdropsClaimed} value={currentUser.stats?.airdropsClaimed || 0} icon={faClipboardCheck} />
-                <StatCard label={"NFT"} value={currentUser.stats?.nftsOwned || 0} icon={faImage} />
+                <StatCard label={"NFT"} value={hasNFT ? 1 : 0} icon={faImage} />
                 <StatCard label={t.statActiveTasks} value={activeAirdropsCount} icon={faTasks} />
             </div>
         </div>
