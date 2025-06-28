@@ -7,7 +7,6 @@ import { faSpinner, faLock, faArrowUp, faIdCard, faTicketAlt, faExclamationTrian
 import { faTelegram, faYoutube, faXTwitter, faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 
-// Import ABI dan Alamat Kontrak
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 const AFA_IDENTITY_CONTRACT_ADDRESS = '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1';
 
@@ -63,7 +62,6 @@ export default function PageEventDetail({ currentUser }) {
   const [verifyingTaskId, setVerifyingTaskId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // --- WAGMI HOOKS untuk Cek Status Pengguna ---
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: AFA_IDENTITY_CONTRACT_ADDRESS,
     abi: AfaIdentityABI,
@@ -96,7 +94,6 @@ export default function PageEventDetail({ currentUser }) {
     }
   }, [wagmiTokenId]);
   
-  // --- FETCH DATA EVENT ---
   const fetchEventData = useCallback(async () => {
     if (!currentUser || !eventSlug) return;
     
@@ -129,14 +126,11 @@ export default function PageEventDetail({ currentUser }) {
       fetchEventData();
   }, [fetchEventData]);
   
-  // --- KUMPULAN FUNGSI HANDLER ---
   const handleVerifyTask = async (task) => { /* ... (logika verifikasi tugas Anda) ... */ };
   const handleParticipate = async () => { /* ... (logika partisipasi Anda) ... */ };
   const allTasksCompleted = event?.event_tasks.every(task => verifiedTasks.has(task.id)) ?? false;
 
-  // --- RENDER LOGIC UTAMA ---
 
-  // 1. Tampilkan loading spinner HANYA saat data event diambil.
   if (loading) {
     return (
       <div className="page-content text-center py-20">
@@ -146,7 +140,6 @@ export default function PageEventDetail({ currentUser }) {
     );
   }
 
-  // 2. Jika ada error setelah loading, tampilkan pesan error.
   if (error) {
     return (
       <div className="page-content text-center py-20 text-red-400">
@@ -157,7 +150,6 @@ export default function PageEventDetail({ currentUser }) {
     );
   }
 
-  // 3. Jika tidak ada event (misalnya slug salah)
   if (!event) {
     return (
       <div className="page-content text-center py-20 text-gray-500">
@@ -167,7 +159,6 @@ export default function PageEventDetail({ currentUser }) {
     );
   }
 
-  // 4. Jika user belum punya NFT, tampilkan pesan untuk mint.
   if (!hasNFT && currentUser?.id) {
     return (
       <div className="page-content flex flex-col items-center justify-center text-center h-full pt-20">
@@ -183,7 +174,6 @@ export default function PageEventDetail({ currentUser }) {
     );
   }
 
-  // 5. Tampilan utama jika semua kondisi di atas tidak terpenuhi
   return (
     <section className="page-content space-y-8 py-8">
       <Link to="/events" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">

@@ -14,13 +14,8 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../supabaseClient';
 
-// ID Admin, pastikan ini sesuai dengan ID admin Anda di Supabase
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
-/**
- * Komponen untuk lencana level event (Premium/Basic).
- * Didesain agar menonjol dan informatif.
- */
 const EventLevelBadge = ({ level }) => {
   if (level === 'premium') {
     return (
@@ -44,15 +39,10 @@ const EventLevelBadge = ({ level }) => {
 };
 
 
-/**
- * Desain ulang total EventCard agar lebih premium dan menarik.
- */
 const EventCard = ({ event }) => {
-  // Cek apakah tanggal akhir event sudah lewat atau belum. Jika tidak ada tanggal, anggap aktif.
   const isEventActive = event.end_date ? new Date(event.end_date) > new Date() : true;
 
   return (
-    // Menggunakan class .card-premium dari style.css jika ada, atau styling inline
     <div className="card group h-full flex flex-col transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-primary/20">
       <Link to={`/events/${event.slug}`} className="block h-full flex flex-col">
         {/* Wrapper Gambar dengan efek */}
@@ -138,7 +128,6 @@ export default function PageEvents({ currentUser }) {
   if (loading) return <div className="page-content text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary"/></div>;
   if (error) return <div className="page-content text-center py-20 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4"/><p>{error}</p></div>;
   
-  // Guard untuk user yang belum login
   if (!currentUser?.id) {
     return (
       <div className="page-content flex items-center justify-center h-full">

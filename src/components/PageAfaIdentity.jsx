@@ -69,7 +69,6 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   const [premiumPrice, setPremiumPrice] = useState(null);
   const [tokenId, setTokenId] = useState(undefined);
 
-  // --- WAGMI HOOKS ---
   const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
   const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
   const chainId = useChainId();
