@@ -26,6 +26,8 @@ const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
     banner_image_url: initialData?.banner_image_url || '',
     reward_pool: initialData?.reward_pool || '',
     end_date: initialData?.end_date ? new Date(initialData.end_date).toISOString().substring(0, 16) : '',
+    // --- PENAMBAHAN STATE BARU ---
+    required_level: initialData?.required_level || 'basic',
   });
   
   const [tasks, setTasks] = useState(initialData?.event_tasks || initialData?.tasks || [{ task_type: 'twitter', title: 'Follow AFA on X', link_url: 'https://x.com/bayybayss' }]);
@@ -147,15 +149,32 @@ const EventForm = ({ onSave, onCancel, initialData, loading, currentUser }) => {
                     <label htmlFor="end_date" className={labelBaseClass}><FontAwesomeIcon icon={faCalendarAlt} className="mr-2 w-4"/>Tanggal Berakhir (Opsional)</label>
                     <input id="end_date" name="end_date" type="datetime-local" value={formData.end_date} onChange={handleFormChange} className={inputBaseClass} />
                  </div>
+                {/* --- INI BAGIAN YANG DITAMBAHKAN --- */}
+                <div>
+                    <label htmlFor="required_level" className={labelBaseClass}>
+                        <FontAwesomeIcon icon={faShieldHalved} className="mr-2 w-4"/>Tingkat Akses
+                    </label>
+                    <select
+                        id="required_level"
+                        name="required_level"
+                        value={formData.required_level}
+                        onChange={handleFormChange}
+                        className={inputBaseClass}
+                    >
+                        <option value="basic">Basic (Untuk Semua Member)</option>
+                        <option value="premium">Premium (Khusus Member Premium)</option>
+                    </select>
+                </div>
+                {/* --- AKHIR DARI BAGIAN YANG DITAMBAHKAN --- */}
               </div>
             </div>
-             <div className="flex flex-col gap-3 sticky top-24">
-                <button type="submit" disabled={loading} className="btn-primary w-full text-base py-3">
-                  {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrophy} className="mr-2" />}
-                  {initialData ? 'Simpan Perubahan' : 'Publikasikan Event'}
-                </button>
-                <button type="button" onClick={onCancel} className="btn-secondary w-full text-base py-3">Batal</button>
-            </div>
+               <div className="flex flex-col gap-3 sticky top-24">
+                   <button type="submit" disabled={loading} className="btn-primary w-full text-base py-3">
+                     {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrophy} className="mr-2" />}
+                     {initialData ? 'Simpan Perubahan' : 'Publikasikan Event'}
+                   </button>
+                   <button type="button" onClick={onCancel} className="btn-secondary w-full text-base py-3">Batal</button>
+               </div>
           </div>
         </div>
       </form>
@@ -276,9 +295,9 @@ export default function PageAdminEvents({ currentUser }) {
                     <img src={event.banner_image_url || 'https://placehold.co/600x400/101020/7f5af0?text=Event'} alt={event.title} className="w-full md:w-48 h-32 md:h-auto object-cover rounded-lg" />
                     <div className="flex-grow">
                         {event.slug ? (
-                             <Link to={`/events/${event.slug}`} className="text-xl font-bold text-light-text dark:text-white hover:text-primary transition-colors">{event.title}</Link>
+                                <Link to={`/events/${event.slug}`} className="text-xl font-bold text-light-text dark:text-white hover:text-primary transition-colors">{event.title}</Link>
                         ) : (
-                            <span className="text-xl font-bold text-light-text dark:text-white">{event.title}</span>
+                                <span className="text-xl font-bold text-light-text dark:text-white">{event.title}</span>
                         )}
                         <p className="text-sm text-green-400 font-semibold mb-2">{event.reward_pool}</p>
                         <div className="flex flex-wrap gap-4 text-xs text-light-subtle dark:text-gray-400 mt-2">
@@ -297,4 +316,3 @@ export default function PageAdminEvents({ currentUser }) {
         </section>
     );
 }
-
