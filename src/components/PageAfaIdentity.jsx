@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFingerprint, faArrowLeft, faSpinner, faCheckCircle,
   faTimesCircle, faWallet, faEnvelope, faCrown, faCube,
-  faBolt, faShieldHalved, faInfinity, faSatelliteDish
+  faBolt, faShieldHalved, faInfinity, faSatelliteDish, faCalendarCheck
 } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 import {
@@ -32,6 +32,18 @@ const chainInfo = {
   11155420: { name: "OP Sepolia", color: "bg-red-500", explorer: "https://sepolia-optimism.etherscan.io" },
 };
 
+const formatExpirationDate = (timestamp) => {
+  if (!timestamp || timestamp === 0n) return null;
+  const date = new Date(Number(timestamp) * 1000);
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  });
+};
+
+
 const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel }) => (
   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-card rounded-lg">
     <div className="flex items-center gap-4">
@@ -52,7 +64,7 @@ const PrerequisiteItem = ({ icon, title, value, isComplete, action, actionLabel 
 const PremiumBenefit = ({ icon, text }) => (
   <li className="flex items-center gap-3">
     <FontAwesomeIcon icon={icon} className="text-primary w-5" />
-    <span className="text-light-subtle dark:text-gray-300">{text}</span>
+    <span className="text-gray-600 dark:text-gray-300">{text}</span>
   </li>
 );
 
@@ -103,8 +115,18 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     enabled: !!tokenId,
   });
 
+  const { data: premiumExpirationTimestamp, refetch: refetchExpiration } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: AfaIdentityABI,
+    functionName: 'getPremiumExpiration',
+    args: [tokenId],
+    enabled: !!tokenId,
+  });
+
   const userHasNFT = useMemo(() => !!balance && Number(balance) > 0, [balance]);
   const currentNetwork = useMemo(() => chainInfo[chainId], [chainId]);
+  const expirationDate = useMemo(() => formatExpirationDate(premiumExpirationTimestamp), [premiumExpirationTimestamp]);
+
 
   useEffect(() => {
     if (rawPrice !== undefined && rawPrice !== null) setPremiumPrice(rawPrice);
@@ -123,9 +145,10 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         refetchPremiumStatus?.();
         refetchBalance?.();
         refetchTokenId?.();
+        refetchExpiration?.();
       }
     }
-  }, [receipt, hash, refetchPremiumStatus, refetchBalance, refetchTokenId]);
+  }, [receipt, hash, refetchPremiumStatus, refetchBalance, refetchTokenId, refetchExpiration]);
 
   useEffect(() => {
     if (writeError) {
@@ -190,7 +213,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
   };
 
   return (
-    <section className="bg-light-bg dark:bg-dark-bg min-h-screen text-light-text dark:text-dark-text">
+    // PERUBAHAN UTAMA: Menghapus `bg-light-bg dark:bg-dark-bg` agar latar belakang gradien utama terlihat
+    <section className="min-h-screen text-light-text dark:text-dark-text">
       <div className="page-content py-8 md:py-12 max-w-6xl mx-auto px-4">
         <header className="flex justify-between items-center mb-10">
           <Link to="/" className="text-sm text-primary hover:underline inline-flex items-center gap-2">
@@ -214,9 +238,15 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                 <h2 className="text-3xl font-bold text-white">AFA Identity</h2>
                 <p className="text-gray-400">{userHasNFT ? `Token ID: #${tokenId?.toString()}` : 'Not Minted Yet'}</p>
                 {userHasNFT && (
-                    <div className={`mt-4 inline-block font-bold text-xs py-1 px-4 rounded-full ${isPremium ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
-                      {isPremium ? 'PREMIUM MEMBER' : 'STANDARD MEMBER'}
-                    </div>
+                  <div className={`mt-4 inline-block font-bold text-xs py-1 px-4 rounded-full ${isPremium ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                    {isPremium ? 'PREMIUM MEMBER' : 'STANDARD MEMBER'}
+                  </div>
+                )}
+                {isPremium && expirationDate && (
+                  <div className="mt-2 text-xs text-yellow-500 flex items-center justify-center gap-2">
+                     <FontAwesomeIcon icon={faCalendarCheck} />
+                     <span>Expires on: {expirationDate}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -231,7 +261,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
             {!userHasNFT ? (
               // --- MINTING VIEW ---
-              <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
+              <div className="card p-6">
                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-4">Mint Your AFA Identity</h3>
                 <div className="space-y-2 mb-6">
                   <PrerequisiteItem icon={faCheckCircle} title="Log In to AFA Account" isComplete={prerequisites.isLoggedIn} value={currentUser?.email} action={() => navigate('/login')} actionLabel="Login" />
@@ -250,35 +280,41 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
               </div>
             ) : (
               // --- UPGRADE VIEW ---
-              <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl p-6">
-                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-2">Premium Membership</h3>
-                 <p className="text-gray-400 text-sm mb-4">Unlock the full potential of the AFA ecosystem.</p>
+              <div>
+                   <h3 className="font-bold text-xl text-black dark:text-white mb-2">Premium Membership</h3>
+                   <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Unlock the full potential of the AFA ecosystem.</p>
+                   
+                   <div className="p-4 mb-6 rounded-lg bg-gray-500/5 dark:bg-white/5">
+                     <h4 className="font-semibold text-black dark:text-white mb-3">Premium Benefits:</h4>
+                     <ul className="space-y-2 text-sm">
+                       <PremiumBenefit icon={faBolt} text="Early access to new features" />
+                       <PremiumBenefit icon={faCrown} text="Exclusive content and roles" />
+                       <PremiumBenefit icon={faShieldHalved} text="Enhanced security options" />
+                       <PremiumBenefit icon={faInfinity} text="And much more..." />
+                     </ul>
+                   </div>
 
-                 <div className="bg-black/20 p-4 rounded-lg mb-6">
-                   <h4 className="font-semibold text-white mb-3">Premium Benefits:</h4>
-                   <ul className="space-y-2 text-sm">
-                     <PremiumBenefit icon={faBolt} text="Early access to new features" />
-                     <PremiumBenefit icon={faCrown} text="Exclusive content and roles" />
-                     <PremiumBenefit icon={faShieldHalved} text="Enhanced security options" />
-                     <PremiumBenefit icon={faInfinity} text="And much more..." />
-                   </ul>
-                 </div>
+                   <div className="text-center mb-6">
+                     <p className="text-gray-500 dark:text-gray-400 text-sm">Upgrade / Renewal Price</p>
+                     <p className="text-3xl font-bold text-black dark:text-white">
+                       {premiumPrice !== null ? `${ethers.formatEther(premiumPrice)} ETH` : <FontAwesomeIcon icon={faSpinner} spin />}
+                     </p>
+                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">for 30 Days</p>
+                   </div>
 
-                 <div className="text-center mb-6">
-                   <p className="text-gray-400 text-sm">Upgrade / Renewal Price</p>
-                   <p className="text-3xl font-bold text-white">
-                     {premiumPrice !== null ? `${ethers.formatEther(premiumPrice)} ETH` : <FontAwesomeIcon icon={faSpinner} spin />}
-                   </p>
-                 </div>
-
-                 <button
-                   onClick={handleUpgrade}
-                   disabled={isPremium || isActionLoading || isConfirming}
-                   className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                 >
-                   {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin />}
-                   {isPremium ? "Already Premium" : "Upgrade to Premium"}
-                 </button>
+                   <button
+                     onClick={handleUpgrade}
+                     disabled={isPremium || isActionLoading || isConfirming}
+                     className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                   >
+                     {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin />}
+                     {isPremium ? "Already Premium" : "Upgrade to Premium"}
+                   </button>
+                    {isPremium && expirationDate && (
+                        <p className="text-xs text-center mt-3 text-yellow-500">
+                            Your premium status is active until {expirationDate}.
+                        </p>
+                    )}
               </div>
             )}
 
