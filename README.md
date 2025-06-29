@@ -44,34 +44,6 @@ Follow these steps to run the project in your local development environment.
 -   [NPM](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
 -   A [Supabase](https://supabase.com/) account for the backend.
 
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <YOUR_REPO_URL>
-    cd <REPO_FOLDER_NAME>
-    ```
-
-2.  **Install project dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Configure Environment Variables:**
-    Create a `.env` file in the project root by copying from `.env.example` (if available) and fill it with your credentials. The main variables needed are your Supabase credentials.
-
-    ```env
-    VITE_SUPABASE_URL="[https://your-project-ref.supabase.co](https://your-project-ref.supabase.co)"
-    VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
-    ```
-    You can get these values from your Supabase dashboard under **Project Settings > API**.
-
-4.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-    The application will now be running at `http://localhost:5173`.
-
 ## 🏗️ Project Structure
 
 ```
