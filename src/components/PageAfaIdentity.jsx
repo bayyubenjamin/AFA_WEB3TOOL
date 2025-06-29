@@ -282,7 +282,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             writeContract({
                 address: CONTRACT_ADDRESS,
                 abi: AfaIdentityABI,
-                functionName: 'mint',
+                functionName: 'mintIdentity',
                 args: [address],
             });
         } catch (err) {
