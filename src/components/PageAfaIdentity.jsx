@@ -261,35 +261,48 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const allPrerequisitesMet = useMemo(() => Object.values(prerequisites).every(Boolean), [prerequisites]);
 
     const handleMint = async () => {
-        if (!allPrerequisitesMet) {
-            setFeedback({ message: 'Please complete all steps to mint.', type: 'error' });
-            return;
-        }
-        if (!isConnected) {
-            onOpenWalletModal();
-            return;
-        }
-        if (!walletMatches) {
-             setFeedback({ message: 'Connected wallet does not match profile wallet.', type: 'error' });
-             return;
-        }
-        
-        setFeedback({ message: '', type: '' });
-        resetWriteContract();
-        setIsActionLoading(true);
+    if (!allPrerequisitesMet) {
+        setFeedback({ message: 'Please complete all prerequisites to mint.', type: 'error' });
+        return;
+    }
+    if (!isConnected || !walletMatches) {
+        setFeedback({ message: 'Please connect the correct wallet.', type: 'error' });
+        return;
+    }
 
-        try {
-            writeContract({
-                address: CONTRACT_ADDRESS,
-                abi: AfaIdentityABI,
-                functionName: 'mintIdentity',
-                args: [address],
-            });
-        } catch (err) {
-            setFeedback({ message: err.message, type: 'error' });
-            setIsActionLoading(false);
+    setFeedback({ message: '', type: '' });
+    resetWriteContract();
+    setIsActionLoading(true);
+
+    try {
+        setFeedback({ message: 'Requesting mint signature...', type: 'info' });
+        const { data: signatureData, error: signatureError } = await supabase.functions.invoke('generate-mint-signature', {
+            body: { userAddress: address },
+        });
+
+        if (signatureError) {
+            throw new Error(signatureError.message);
         }
-    };
+
+        const { signature } = signatureData;
+        if (!signature) {
+            throw new Error('Failed to retrieve a valid signature.');
+        }
+
+        setFeedback({ message: 'Signature received. Awaiting confirmation in your wallet...', type: 'info' });
+        writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: AfaIdentityABI,
+            functionName: 'mintIdentity',
+            args: [signature],
+        });
+
+    } catch (err) {
+        const errorMessage = err.message || 'An unexpected error occurred.';
+        setFeedback({ message: `Minting failed: ${errorMessage}`, type: 'error' });
+        setIsActionLoading(false);
+    }
+};
 
     const handleUpgrade = async (tier, price) => {
         if (!isConnected) {
