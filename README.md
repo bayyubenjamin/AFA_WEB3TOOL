@@ -1,6 +1,6 @@
 # AFA WEB3TOOL - An Integrated Web3 Platform
 
-![AFA Identity NFT](https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif)
+![Tool by Airdrop For All](https://ik.imagekit.io/5spt6gb2z/Cuplikan%20layar%20dari%202025-06-29%2022-41-56.png)
 
 AFA WEB3TOOL is a multi-functional Web3 platform designed to be the main gateway to the AFA ecosystem. This project integrates an on-chain identity through soul-bound NFTs, a portal for airdrops and events, and a flexible authentication system, all within a single modern and responsive application.
 
