@@ -74,7 +74,7 @@ const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
     </div>
 );
 
-const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnected, onOpenWalletModal, walletMatches }) => {
+const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnected, onOpenWalletModal, walletMatches, currentUser }) => {
     const [selectedTier, setSelectedTier] = useState(0);
 
     const useTierPrice = (tierId) => {
@@ -112,9 +112,10 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnecte
             return (
                 <button
                     onClick={onOpenWalletModal}
-                    className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-3"
+                    disabled={!currentUser?.address}
+                    className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Connect to Wallet
+                    {!currentUser?.address ? 'Please connect your wallet in your profile first.' : 'Connect to Wallet'}
                 </button>
             );
         }
@@ -296,8 +297,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             return;
         }
          if (!walletMatches) {
-             setFeedback({ message: 'Connected wallet does not match profile wallet.', type: 'error' });
-             return;
+               setFeedback({ message: 'Connected wallet does not match profile wallet.', type: 'error' });
+               return;
         }
 
         setFeedback({ message: '', type: '' });
@@ -332,9 +333,10 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             return (
                 <button
                     onClick={onOpenWalletModal}
-                    className="btn-primary w-full py-3 text-lg rounded-xl"
+                    disabled={!currentUser?.address}
+                    className="btn-primary w-full py-3 text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Connect to Wallet
+                    {!currentUser?.address ? 'Please connect your wallet in your profile first.' : 'Connect to Wallet' }
                 </button>
             );
         }
@@ -424,6 +426,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                                 isConnected={isConnected}
                                 onOpenWalletModal={onOpenWalletModal}
                                 walletMatches={walletMatches}
+                                currentUser={currentUser}
                             />
                         ) : (
                             <div className="card p-6">
