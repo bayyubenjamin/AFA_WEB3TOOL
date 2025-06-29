@@ -4,12 +4,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faFingerprint, faArrowLeft, faSpinner, faCheckCircle,
     faTimesCircle, faWallet, faEnvelope, faCrown, faCube,
-    faBolt, faShieldHalved, faInfinity, faSatelliteDish, faCalendarCheck
+    faBolt, faShieldHalved, faInfinity, faSatelliteDish, faCalendarCheck,
+    faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 import {
     useAccount, useWriteContract, useReadContract,
-    useWaitForTransactionReceipt, useChainId
+    useWaitForTransactionReceipt, useChainId, useDisconnect
 } from 'wagmi';
 import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
@@ -73,7 +74,7 @@ const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
     </div>
 );
 
-const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
+const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnected, onOpenWalletModal, walletMatches }) => {
     const [selectedTier, setSelectedTier] = useState(0);
 
     const useTierPrice = (tierId) => {
@@ -106,6 +107,31 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
         onUpgrade(selectedTier, selectedTierInfo.price);
     };
 
+    const renderButton = () => {
+        if (!isConnected) {
+            return (
+                <button
+                    onClick={onOpenWalletModal}
+                    className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-3"
+                >
+                    Connect to Wallet
+                </button>
+            );
+        }
+        if (!walletMatches) {
+            return null;
+        }
+        return (
+            <button
+                onClick={handleUpgradeClick}
+                disabled={isPremium}
+                className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            >
+                {isPremium ? "Extend Subscription" : "Upgrade to Premium"}
+            </button>
+        );
+    };
+
     return (
         <div>
             <h3 className="font-bold text-xl text-black dark:text-white mb-2">Premium Membership</h3>
@@ -134,13 +160,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
                 ))}
             </div>
 
-            <button
-                onClick={handleUpgradeClick}
-                disabled={isPremium}
-                className="btn-primary w-full py-3 text-lg rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-                {isPremium ? "Extend Subscription" : "Upgrade to Premium"}
-            </button>
+            {renderButton()}
 
             {isPremium && expirationDate && (
                 <p className="text-xs text-center mt-3 text-yellow-500">
@@ -155,6 +175,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade }) => {
 export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const navigate = useNavigate();
     const { address, isConnected } = useAccount();
+    const { disconnect } = useDisconnect();
 
     const [feedback, setFeedback] = useState({ message: '', type: '', hash: null });
     const [isActionLoading, setIsActionLoading] = useState(false);
@@ -200,6 +221,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
 
     const currentNetwork = useMemo(() => chainInfo[chainId], [chainId]);
     const expirationDate = useMemo(() => formatExpirationDate(premiumExpirationTimestamp), [premiumExpirationTimestamp]);
+    const walletMatches = useMemo(() => isConnected && currentUser?.address && address?.toLowerCase() === currentUser.address.toLowerCase(), [isConnected, address, currentUser?.address]);
 
     useEffect(() => {
         if (wagmiTokenId !== undefined) setTokenId(wagmiTokenId);
@@ -238,27 +260,28 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const allPrerequisitesMet = useMemo(() => Object.values(prerequisites).every(Boolean), [prerequisites]);
 
     const handleMint = async () => {
-        // ▼▼▼ GUARD CLAUSE DITAMBAHKAN ▼▼▼
         if (!allPrerequisitesMet) {
             setFeedback({ message: 'Please complete all steps to mint.', type: 'error' });
             return;
         }
         if (!isConnected) {
-            setFeedback({ message: 'Connector not connected. Please connect your wallet first.', type: 'error' });
+            onOpenWalletModal();
             return;
         }
-        // ▲▲▲----------------------------▲▲▲
+        if (!walletMatches) {
+             setFeedback({ message: 'Connected wallet does not match profile wallet.', type: 'error' });
+             return;
+        }
         
         setFeedback({ message: '', type: '' });
         resetWriteContract();
         setIsActionLoading(true);
 
         try {
-            // Pastikan nama fungsi dan argumen sesuai dengan smart contract Anda
             writeContract({
                 address: CONTRACT_ADDRESS,
                 abi: AfaIdentityABI,
-                functionName: 'safeMint', // Ganti jika nama fungsinya berbeda
+                functionName: 'safeMint',
                 args: [address],
             });
         } catch (err) {
@@ -268,12 +291,14 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     };
 
     const handleUpgrade = async (tier, price) => {
-        // ▼▼▼ GUARD CLAUSE DITAMBAHKAN ▼▼▼
         if (!isConnected) {
-            setFeedback({ message: 'Connector not connected. Please connect your wallet first.', type: 'error' });
-            return; 
+            onOpenWalletModal();
+            return;
         }
-        // ▲▲▲----------------------------▲▲▲
+         if (!walletMatches) {
+             setFeedback({ message: 'Connected wallet does not match profile wallet.', type: 'error' });
+             return;
+        }
 
         setFeedback({ message: '', type: '' });
         resetWriteContract();
@@ -300,6 +325,32 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
             return `Wrong wallet. Connect to ${currentUser.address.substring(0, 6)}...`;
         }
         return `${address.substring(0, 6)}...${address.slice(-4)}`;
+    };
+
+    const renderMintButton = () => {
+        if (!isConnected) {
+            return (
+                <button
+                    onClick={onOpenWalletModal}
+                    className="btn-primary w-full py-3 text-lg rounded-xl"
+                >
+                    Connect to Wallet
+                </button>
+            );
+        }
+        if (!walletMatches) {
+            return null;
+        }
+        return (
+            <button
+                onClick={handleMint}
+                disabled={!allPrerequisitesMet || isActionLoading || isConfirming}
+                className="btn-primary w-full py-3 text-lg rounded-xl"
+            >
+                {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />}
+                Mint for Free
+            </button>
+        );
     };
 
     return (
@@ -341,13 +392,39 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                     </div>
 
                     <div>
-                        <h1 className="text-4xl lg:text-5xl font-bold futuristic-text-gradient mb-3">Your AFA Identity</h1>
+                        <h1 className="text-4xl lg:text-5xl font-bold futuristic-text-gradient mb-3">Your On-Chain Identity</h1>
                         <p className="text-lg text-gray-400 mb-8">
                             Your unique, soul-bound token for the entire AFA ecosystem.
                         </p>
 
+                        {isConnected && !walletMatches && currentUser?.address && (
+                            <div className="mb-6 p-4 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30">
+                                <div className="flex items-start gap-3">
+                                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-xl mt-1" />
+                                    <div>
+                                        <p className="font-bold">Wrong Wallet Connected</p>
+                                        <p className="text-sm">Please connect to the wallet address saved in your profile to proceed.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => disconnect()}
+                                    className="mt-3 w-full bg-red-500/20 text-white font-bold text-sm py-2 px-4 rounded-md hover:bg-red-500/40 transition-colors"
+                                >
+                                    Disconnect
+                                </button>
+                            </div>
+                        )}
+
                         {userHasNFT ? (
-                            <UpgradeView tokenId={tokenId} isPremium={isPremium} expirationDate={expirationDate} onUpgrade={handleUpgrade} />
+                            <UpgradeView 
+                                tokenId={tokenId} 
+                                isPremium={isPremium} 
+                                expirationDate={expirationDate} 
+                                onUpgrade={handleUpgrade}
+                                isConnected={isConnected}
+                                onOpenWalletModal={onOpenWalletModal}
+                                walletMatches={walletMatches}
+                            />
                         ) : (
                             <div className="card p-6">
                                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-4">Mint Your AFA Identity</h3>
@@ -357,14 +434,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                                     <PrerequisiteItem icon={faTelegram} title="Link Telegram" isComplete={prerequisites.telegramConnected} value={prerequisites.telegramConnected ? 'Linked' : 'Not linked'} action={() => navigate('/profile')} actionLabel="Link" />
                                     <PrerequisiteItem icon={faEnvelope} title="Secure with Email" isComplete={!isEmailDummy} value={isEmailDummy ? 'Not secured' : 'Secured'} action={() => navigate('/profile')} actionLabel="Secure" />
                                 </div>
-                                <button
-                                    onClick={handleMint}
-                                    disabled={!allPrerequisitesMet || isActionLoading || isConfirming}
-                                    className="btn-primary w-full py-3 text-lg rounded-xl"
-                                >
-                                    {(isActionLoading || isConfirming) && <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />}
-                                    Mint for Free
-                                </button>
+                                {renderMintButton()}
                             </div>
                         )}
                         
