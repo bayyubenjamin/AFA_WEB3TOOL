@@ -12,8 +12,8 @@ export default function BottomNav({ currentUser }) {
     { to: '/', icon: faHome, label_id: 'Beranda', label_en: 'Home', isPrivate: false },
     { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events', isPrivate: false },
     { to: '/airdrops', icon: faParachuteBox, label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false },
-    { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work', isPrivate: true },
-    { to: '/profile', icon: faUser, label_id: 'Profil', label_en: 'Profile', isPrivate: true }
+    { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
+    { to: '/profile', icon: faUser, label_id: 'Profil', label_en: 'Profile', isPrivate: false }
   ];
 
   const navItems = allNavItems.filter(item => !item.isPrivate || isLoggedIn);
