@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faLock, faArrowUp, faIdCard, faTicketAlt, faExclamationTriangle, faArrowLeft, faTasks, faCheckCircle as fasFaCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { faTelegram, faYoutube, faXTwitter, faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
-const AFA_IDENTITY_CONTRACT_ADDRESS = '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1';
+
+// Alamat kontrak untuk jaringan yang berbeda
+const contractAddresses = {
+  11155420: '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1', // OP Sepolia
+  84532: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf',    // Base Sepolia
+};
 
 const taskIcons = {
   twitter: faXTwitter,
@@ -52,12 +57,16 @@ export default function PageEventDetail({ currentUser }) {
   const { eventSlug } = useParams();
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+
+  // Pilih alamat kontrak berdasarkan chainId yang aktif
+  const AFA_IDENTITY_CONTRACT_ADDRESS = useMemo(() => contractAddresses[chainId] || contractAddresses[11155420], [chainId]);
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tokenId, setTokenId] = useState(null);
-  
+ 
   const [verifiedTasks, setVerifiedTasks] = useState(new Set());
   const [verifyingTaskId, setVerifyingTaskId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -68,6 +77,7 @@ export default function PageEventDetail({ currentUser }) {
     functionName: 'balanceOf',
     args: [currentUser?.address],
     enabled: !!currentUser?.address,
+    chainId: chainId,
   });
 
   const { data: wagmiTokenId, refetch: refetchTokenId } = useReadContract({
@@ -76,6 +86,7 @@ export default function PageEventDetail({ currentUser }) {
     functionName: 'tokenOfOwnerByIndex',
     args: [currentUser?.address, 0],
     enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
+    chainId: chainId,
   });
 
   const { data: isPremium, isLoading: isLoadingPremiumStatus, refetch: refetchPremiumStatus } = useReadContract({
@@ -84,6 +95,7 @@ export default function PageEventDetail({ currentUser }) {
     functionName: 'isPremium',
     args: [tokenId],
     enabled: !!tokenId,
+    chainId: chainId,
   });
 
   const hasNFT = useMemo(() => balance && Number(balance) > 0, [balance]);
@@ -93,10 +105,10 @@ export default function PageEventDetail({ currentUser }) {
       setTokenId(wagmiTokenId);
     }
   }, [wagmiTokenId]);
-  
+ 
   const fetchEventData = useCallback(async () => {
     if (!currentUser || !eventSlug) return;
-    
+   
     setLoading(true);
     setError(null);
     try {
@@ -106,7 +118,7 @@ export default function PageEventDetail({ currentUser }) {
         .eq('slug', eventSlug)
         .eq('is_active', true)
         .single();
-      
+     
       if (fetchError || !data) {
         throw new Error('Event tidak ditemukan atau tidak aktif.');
       }
@@ -125,7 +137,7 @@ export default function PageEventDetail({ currentUser }) {
   useEffect(() => {
       fetchEventData();
   }, [fetchEventData]);
-  
+ 
   const handleVerifyTask = async (task) => { /* ... (logika verifikasi tugas Anda) ... */ };
   const handleParticipate = async () => { /* ... (logika partisipasi Anda) ... */ };
   const allTasksCompleted = event?.event_tasks.every(task => verifiedTasks.has(task.id)) ?? false;
@@ -189,7 +201,7 @@ export default function PageEventDetail({ currentUser }) {
           <h1 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{event.title}</h1>
           <p className="font-semibold text-green-400">{event.reward_pool}</p>
           {event.description && <p className="text-light-subtle dark:text-gray-400">{event.description}</p>}
-          
+         
           <div>
             <h3 className="text-xl font-semibold text-light-text dark:text-white mb-4 border-t border-black/10 dark:border-white/20 pt-6">Tugas yang Harus Diselesaikan:</h3>
             <div className="space-y-3">
@@ -204,30 +216,30 @@ export default function PageEventDetail({ currentUser }) {
               ))}
             </div>
           </div>
-          
+         
           <div className="mt-8 pt-6 border-t border-black/10 dark:border-white/20 text-center">
-             {/* Blok Tombol Aksi */}
-             {isLoadingPremiumStatus ? (
-                 <button className="btn-secondary w-full max-w-sm py-3 text-lg rounded-lg" disabled>
-                     <FontAwesomeIcon icon={faSpinner} spin /> Memeriksa Status...
+               {/* Blok Tombol Aksi */}
+               {isLoadingPremiumStatus ? (
+                   <button className="btn-secondary w-full max-w-sm py-3 text-lg rounded-lg" disabled>
+                       <FontAwesomeIcon icon={faSpinner} spin /> Memeriksa Status...
+                   </button>
+               ) : event.required_level === 'premium' && !isPremium ? (
+                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                       <FontAwesomeIcon icon={faLock} className="text-yellow-400 text-2xl mb-2" />
+                       <h4 className="font-bold text-yellow-300">Event Premium</h4>
+                       <p className="text-sm text-yellow-400/80 mb-4">Giveaway ini khusus untuk member Premium.</p>
+                       <Link to="/identity" className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm">
+                         <FontAwesomeIcon icon={faArrowUp}/> Upgrade ke Premium
+                       </Link>
+                   </div>
+               ) : isSubmitted ? (
+                   <p className="font-semibold text-green-400 text-lg">Anda sudah berpartisipasi!</p>
+               ) : (
+                 <button onClick={handleParticipate} disabled={!allTasksCompleted || !isConnected}
+                    className="btn-primary w-full max-w-sm py-3 text-lg rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                   { isConnected ? "Ikuti Giveaway" : "Connect Wallet" }
                  </button>
-             ) : event.required_level === 'premium' && !isPremium ? (
-                 <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                    <FontAwesomeIcon icon={faLock} className="text-yellow-400 text-2xl mb-2" />
-                    <h4 className="font-bold text-yellow-300">Event Premium</h4>
-                    <p className="text-sm text-yellow-400/80 mb-4">Giveaway ini khusus untuk member Premium.</p>
-                    <Link to="/identity" className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm">
-                      <FontAwesomeIcon icon={faArrowUp}/> Upgrade ke Premium
-                    </Link>
-                 </div>
-             ) : isSubmitted ? (
-                 <p className="font-semibold text-green-400 text-lg">Anda sudah berpartisipasi!</p>
-             ) : (
-                <button onClick={handleParticipate} disabled={!allTasksCompleted || !isConnected}
-                  className="btn-primary w-full max-w-sm py-3 text-lg rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                  { isConnected ? "Ikuti Giveaway" : "Connect Wallet" }
-                </button>
-             )}
+               )}
           </div>
         </div>
       </div>

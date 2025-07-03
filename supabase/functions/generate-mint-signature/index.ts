@@ -2,17 +2,20 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { ethers } from 'https://esm.sh/ethers@6.13.1'
 
+// Header CORS tidak berubah
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
+  // Handler untuk preflight request tidak berubah
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Otentikasi pengguna tidak berubah
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -21,9 +24,12 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) throw new Error("Akses ditolak: Pengguna tidak login.")
 
-    const { userAddress } = await req.json()
+    // --- PERUBAHAN 1: Ambil `chainId` dari body request ---
+    const { userAddress, chainId } = await req.json()
     if (!userAddress) throw new Error("Alamat wallet diperlukan.")
+    if (!chainId) throw new Error("ID Jaringan (chainId) diperlukan.")
 
+    // Logika validasi profil tidak berubah
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -41,25 +47,40 @@ serve(async (req) => {
 
     const userNonce = profile.nonce || 0
 
+    // Logika pembuatan message hash tidak berubah
     const messageHash = ethers.solidityPackedKeccak256(
       ["string", "address", "uint256"],
       ["AFA_MINT:", ethers.getAddress(userAddress), userNonce]
     )
 
-    const verifierPrivateKey = Deno.env.get('AFA_VERIFIER_PRIVATE_KEY')
-    if (!verifierPrivateKey) throw new Error("Kunci verifikator belum di-set.")
+    // --- PERUBAHAN 2: Pilih Private Key berdasarkan chainId ---
+    // Pastikan Anda sudah mengatur kedua environment variable ini di Supabase
+    const verifierKeys = {
+      '11155420': Deno.env.get('OP_SEPOLIA_VERIFIER_PK'),  // Kunci untuk Optimism Sepolia
+      '84532': Deno.env.get('BASE_SEPOLIA_VERIFIER_PK'),   // Kunci untuk Base Sepolia
+    };
 
+    const verifierPrivateKey = verifierKeys[chainId];
+
+    if (!verifierPrivateKey) {
+      throw new Error(`Jaringan (chainId: ${chainId}) tidak didukung.`);
+    }
+    
+    // Gunakan private key yang sudah dipilih
     const verifierWallet = new ethers.Wallet(verifierPrivateKey)
 
-    const sigObj = verifierWallet.signingKey.sign(messageHash); // messageHash harus bytes32/hex string
+    // Logika penandatanganan tidak berubah
+    const sigObj = verifierWallet.signingKey.sign(messageHash);
     const signature = ethers.Signature.from(sigObj).serialized;
 
+    // Respon tidak berubah
     return new Response(JSON.stringify({ signature }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     })
 
   } catch (error) {
+    // Penanganan error tidak berubah
     const msg = error?.message || error?.toString() || "Unknown error";
     console.log("=== EDGE FUNCTION ERROR ===");
     console.error(msg);
