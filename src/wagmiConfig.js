@@ -1,11 +1,5 @@
 import { http, createConfig, createStorage } from 'wagmi';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
-// Impor 'base' langsung dari wagmi untuk kemudahan
-import { base } from 'wagmi/chains';
-
-// =============================================================================
-// 1. Definisikan OBJEK untuk SETIAP JARINGAN yang didukung
-// =============================================================================
 
 const optimismSepolia = {
   id: 11155420,
@@ -33,10 +27,6 @@ const baseSepolia = {
   testnet: true,
 };
 
-// =============================================================================
-// 2. Konfigurasi wagmi
-// =============================================================================
-
 export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
 
 const metadata = {
@@ -47,8 +37,7 @@ const metadata = {
 };
 
 export const config = createConfig({
-  // --- EDIT: Tambahkan 'base' (Mainnet) ke dalam array chains ---
-  chains: [base, optimismSepolia, baseSepolia],
+  chains: [optimismSepolia, baseSepolia],
 
   connectors: [
     walletConnect({
@@ -57,19 +46,14 @@ export const config = createConfig({
       showQrModal: false,
     }),
     injected({ shimDisconnect: true }),
-    // --- EDIT: Modifikasi coinbaseWallet untuk Smart Wallet ---
     coinbaseWallet({
       appName: metadata.name,
       appLogoUrl: metadata.icons[0],
-      // Baris ini akan memprioritaskan pembuatan/koneksi ke Smart Wallet
-      preference: 'smartWalletOnly', 
     }),
   ],
   storage: createStorage({ storage: window.localStorage }),
 
-  // --- EDIT: Tambahkan transport untuk 'base' (Mainnet) ---
   transports: {
-    [base.id]: http(),
     [optimismSepolia.id]: http(),
     [baseSepolia.id]: http(),
   },
