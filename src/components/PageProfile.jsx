@@ -169,7 +169,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             setIsWalletActionLoading(false);
         }
     }, [currentUser, onUpdateUser, clearMessages]);
-
+    
     // --- FUNGSI INI MENJADI SATU-SATUNYA CARA UNTUK MENAUTKAN AFA WALLET ---
     const handleActivateSmartWallet = () => {
         clearMessages();
@@ -268,8 +268,17 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             setIsLinkingEmail(false);
         }
     };
-    // --- AKHIR DARI KODE YANG TIDAK DIUBAH ---
-
+    
+    // --- PERUBAHAN PALING KRUSIAL: Menghapus useEffect yang menyebabkan masalah ---
+    // useEffect(() => {
+    //     if (isConnected && address && !currentUser.address) {
+    //         // Baris inilah yang menyebabkan dompet eksternal otomatis tertaut
+    //         // sebagai AFA Wallet. Dengan menghapus useEffect ini, penautan
+    //         // hanya bisa terjadi secara manual melalui tombol aktivasi.
+    //         handleLinkWallet(); // Nama lama dari handleLinkAfaWallet
+    //     }
+    // }, [isConnected, address, currentUser, handleLinkWallet]); 
+    
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
