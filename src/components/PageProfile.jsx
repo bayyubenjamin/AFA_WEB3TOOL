@@ -183,7 +183,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         if (smartWalletConnector) {
             connect({ connector: smartWalletConnector }, {
                 onSuccess: (data) => {
-                    // Setelah sukses konek, langsung tautkan ke profil
                     handleLinkWallet(data.accounts[0]);
                 },
                 onError: (error) => {
@@ -218,7 +217,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             onUpdateUser(mapSupabaseDataToAppUser(session.user, refreshedProfile));
             setSuccessMessage("Tautan dompet AFA berhasil diputus.");
             
-            // Disconnect hanya jika dompet yang terhubung adalah AFA wallet
             if (isConnected && address?.toLowerCase() === currentUser.address?.toLowerCase()) {
                 disconnect();
             }
@@ -323,7 +321,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     </div>
                 )}
                 
-                {/* CARD PROFIL UTAMA (TIDAK DIUBAH) */}
                 <div className={`card relative rounded-xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6 ${hasNFT && isPremium ? 'bg-gradient-to-br from-yellow-100/20 to-amber-200/20 dark:from-yellow-800/20 dark:to-amber-900/30 border-yellow-500/50 shadow-yellow-500/20' : ''}`}>
                     <div className="absolute top-4 right-4" ref={settingsMenuRef}>
                         <button onClick={() => setIsSettingsOpen(p => !p)} className="h-10 w-10 flex items-center justify-center text-light-subtle dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors" aria-label="Profile Settings">
@@ -353,7 +350,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     </div>
                 </div>
 
-                {/* --- EDIT: CARD BARU KHUSUS UNTUK AFA SMART WALLET --- */}
+                {/*--- EDIT BARU: CARD KHUSUS UNTUK AFA SMART WALLET ---*/}
                 <div className="card rounded-xl p-6 md:p-8 shadow-xl">
                     <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
                         <FontAwesomeIcon icon={faIdCard} className="mr-3 text-primary" /> AFA Wallet (Smart Wallet)
@@ -378,7 +375,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     )}
                 </div>
 
-                {/* CARD AKTIVITAS (TIDAK DIUBAH) */}
                 <div className="card rounded-xl p-6 md:p-8 shadow-xl">
                     <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
                         <FontAwesomeIcon icon={faChartSimple} className="mr-3 text-primary" /> Your Activity
@@ -392,7 +388,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 </div>
             </div>
 
-            {/* SIDEBAR KONEKSI (SEKARANG FOKUS PADA EKSTERNAL) */}
             <div className="lg:col-span-1">
                 <div className="card rounded-xl p-6 md:p-8 shadow-xl sticky top-24">
                     <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
