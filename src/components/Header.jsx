@@ -8,7 +8,8 @@ import DesktopNav from './DesktopNav';
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
-export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible }) {
+// PENAMBAHAN PROP 'hasNewAirdropNotification'
+export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible, hasNewAirdropNotification }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const { language, changeLanguage } = useLanguage();
@@ -29,7 +30,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  
+ 
   const handleLanguageChange = (lang) => {
     changeLanguage(lang);
     setIsOptionsMenuOpen(false);
@@ -47,7 +48,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     }
     setIsOptionsMenuOpen(false);
   };
-  
+ 
   const handleLoginNav = () => {
     navigateTo('/login');
     setIsOptionsMenuOpen(false);
@@ -57,7 +58,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     navigateTo('/profile');
     setIsOptionsMenuOpen(false);
   }
-  
+ 
   const handleAdminNav = () => {
     navigate('/admin');
     setIsOptionsMenuOpen(false);
@@ -93,7 +94,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           </Link>
           {onlineUsers > 0 && (
             <div className="ml-2 flex items-center">
-               <span className="relative flex h-2 w-2">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
@@ -111,10 +112,11 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
         >
           {title}
         </h1>
-        
+       
         <div className="flex-1 flex justify-end items-center gap-2">
-          <DesktopNav currentUser={currentUser} />
-          
+          {/* PENAMBAHAN: Meneruskan prop 'hasNewAirdropNotification' ke DesktopNav */}
+          <DesktopNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />
+         
           <Link
             to="/forum"
             className="p-2 w-10 h-10 flex md:hidden items-center justify-center header-interactive-item"
@@ -122,7 +124,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           >
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
-          
+         
           <div className="relative" ref={menuRef}>
             <button
               onClick={toggleOptionsMenu}
@@ -131,42 +133,42 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
             >
               <FontAwesomeIcon icon={faBars} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
             </button>
-            
+           
             <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
-               <ul>
-                {isAdmin && (
-                  <li onClick={handleAdminNav}>
-                    <FontAwesomeIcon icon={faShieldHalved} /> Admin Panel
+                <ul>
+                 {isAdmin && (
+                    <li onClick={handleAdminNav}>
+                      <FontAwesomeIcon icon={faShieldHalved} /> Admin Panel
+                    </li>
+                  )}
+                  {currentUser && currentUser.id && (
+                    <li onClick={handleProfileNav}>
+                      <FontAwesomeIcon icon={faUserCircle} /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
+                    </li>
+                  )}
+                  <li onClick={handleToggleTheme}>
+                    <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   </li>
-                )}
-                 {currentUser && currentUser.id && (
-                  <li onClick={handleProfileNav}>
-                    <FontAwesomeIcon icon={faUserCircle} /> {language === 'id' ? 'Profil Saya' : 'My Profile'}
+                  <li onClick={() => handleLanguageChange('id')}>
+                    <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
                   </li>
-                )}
-                <li onClick={handleToggleTheme}>
-                  <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
-                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                </li>
-                <li onClick={() => handleLanguageChange('id')}>
-                  <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (ID)' : 'Language (ID)'}
-                </li>
-                <li onClick={() => handleLanguageChange('en')}>
-                  <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
-                </li>
-                <li onClick={handleShare}>
-                  <FontAwesomeIcon icon={faShareAlt} /> {language === 'id' ? 'Bagikan' : 'Share'}
-                </li>
-                {currentUser && currentUser.id ? (
-                  <li onClick={handleLogoutAction} className="text-red-500 dark:text-red-400 hover:!bg-red-500/10">
-                    <FontAwesomeIcon icon={faSignOutAlt} /> {language === 'id' ? 'Logout' : 'Logout'}
+                  <li onClick={() => handleLanguageChange('en')}>
+                    <FontAwesomeIcon icon={faGlobe} /> {language === 'id' ? 'Bahasa (EN)' : 'Language (EN)'}
                   </li>
-                ) : (
-                  <li onClick={handleLoginNav}>
-                    <FontAwesomeIcon icon={faSignInAlt} /> {language === 'id' ? 'Login' : 'Login'}
+                  <li onClick={handleShare}>
+                    <FontAwesomeIcon icon={faShareAlt} /> {language === 'id' ? 'Bagikan' : 'Share'}
                   </li>
-                )}
-              </ul>
+                  {currentUser && currentUser.id ? (
+                    <li onClick={handleLogoutAction} className="text-red-500 dark:text-red-400 hover:!bg-red-500/10">
+                      <FontAwesomeIcon icon={faSignOutAlt} /> {language === 'id' ? 'Logout' : 'Logout'}
+                    </li>
+                  ) : (
+                    <li onClick={handleLoginNav}>
+                      <FontAwesomeIcon icon={faSignInAlt} /> {language === 'id' ? 'Login' : 'Login'}
+                    </li>
+                  )}
+                </ul>
             </div>
           </div>
         </div>

@@ -4,14 +4,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faTasks, faCalendarAlt, faUser, faParachuteBox } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function BottomNav({ currentUser }) {
+// PENAMBAHAN PROP 'hasNewAirdropNotification'
+export default function BottomNav({ currentUser, hasNewAirdropNotification }) {
   const { language } = useLanguage();
   const isLoggedIn = currentUser && currentUser.id;
 
   const allNavItems = [
     { to: '/', icon: faHome, label_id: 'Beranda', label_en: 'Home', isPrivate: false },
     { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events', isPrivate: false },
-    { to: '/airdrops', icon: faParachuteBox, label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false },
+    // PENAMBAHAN: Menambahkan properti 'hasNotif'
+    { to: '/airdrops', icon: faParachuteBox, label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
     { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
     { to: '/profile', icon: faUser, label_id: 'Profil', label_en: 'Profile', isPrivate: false }
   ];
@@ -43,6 +45,10 @@ export default function BottomNav({ currentUser }) {
                     className={`relative z-10 text-lg transition-colors duration-200
                                ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-text group-hover:text-primary'}`} 
                   />
+                   {/* PENAMBAHAN: Tampilkan titik notifikasi jika ada dan item tidak aktif */}
+                   {item.hasNotif && !isActive && (
+                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card"></span>
+                  )}
                 </div>
                 <span 
                   className={`text-xs mt-1 font-semibold transition-colors duration-200

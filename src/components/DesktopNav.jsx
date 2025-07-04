@@ -2,14 +2,16 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function DesktopNav({ currentUser }) {
+// PENAMBAHAN PROP 'hasNewAirdropNotification'
+export default function DesktopNav({ currentUser, hasNewAirdropNotification }) {
   const { language } = useLanguage();
   const isLoggedIn = currentUser && currentUser.id;
 
   const navItemsList = [
     { to: '/', label_id: 'Beranda', label_en: 'Home', isPrivate: false },
     { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
-    { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false },
+    // PENAMBAHAN: Menambahkan properti 'hasNotif'
+    { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
     { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: true },
     { to: '/profile', label_id: 'Profil', label_en: 'Profile', isPrivate: true },
   ];
@@ -18,16 +20,13 @@ export default function DesktopNav({ currentUser }) {
   const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
   return (
-    // [PERUBAHAN]: Ganti 'md:flex' menjadi 'lg-desktop:flex'
-    // Navigasi ini sekarang akan disembunyikan secara default, dan baru ditampilkan (flex)
-    // saat lebar layar mencapai 1100px atau lebih.
     <nav className="hidden lg-desktop:flex items-center gap-1 lg:gap-2">
       {navItems.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
-            `px-3 py-2 rounded-md text-sm font-semibold transition-colors duration-200
+            `px-3 py-2 rounded-md text-sm font-semibold transition-colors duration-200 relative
             ${isActive 
               ? 'text-primary bg-primary/10'
               : 'text-light-subtle dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10'
@@ -35,9 +34,12 @@ export default function DesktopNav({ currentUser }) {
           }
         >
           {getLabel(item)}
+          {/* PENAMBAHAN: Tampilkan titik notifikasi jika ada */}
+          {item.hasNotif && (
+             <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 border border-white dark:border-gray-800"></span>
+          )}
         </NavLink>
       ))}
     </nav>
   );
 }
-
