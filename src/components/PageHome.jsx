@@ -21,7 +21,7 @@ const FeatureCard = ({ icon, title, description, actionText, actionTarget, color
         <FontAwesomeIcon icon={icon} />
       </div>
       {/* Warna Judul Kartu: #333333 (terang) & #E0E8F4 (gelap) */}
-      <h3 className="text-2xl font-bold text-[#333333] dark:text-dark-text mb-3">{title}</h3>
+      <h3 className="text-2xl font-bold text-[#333333] dark:text-[#E0E8F4] mb-3">{title}</h3>
       
       {/* Warna Deskripsi Kartu: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
       <p className="text-[#444444] dark:text-[#94A3B8] text-base mb-6 flex-grow leading-relaxed">{description}</p>
@@ -116,7 +116,7 @@ export default function PageHome({ currentUser, navigate }) {
         <div className="text-center max-w-2xl mx-auto">
           
           {/* Warna judul bagian: #333333 (terang) & #E0E8F4 (gelap) */}
-          <h2 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-dark-text mb-3 flex items-center justify-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-[#E0E8F4] mb-3 flex items-center justify-center">
             <FontAwesomeIcon icon={faShieldHalved} className="mr-3 text-primary" /> {tHome.featuresTitle}
           </h2>
 
@@ -144,23 +144,23 @@ export default function PageHome({ currentUser, navigate }) {
         <div className="relative max-w-3xl mx-auto p-8 md:p-12 card rounded-2xl border border-primary/20 overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent"></div>
            <div className="relative z-10">
-              
-              {/* Warna judul bagian: #333333 (terang) & #E0E8F4 (gelap) */}
-              <h3 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-dark-text mb-4">
-                {tHome.joinCtaTitle}
-              </h3>
+             
+             {/* Warna judul bagian: #333333 (terang) & #E0E8F4 (gelap) */}
+             <h3 className="text-3xl md:text-4xl font-bold text-[#333333] dark:text-[#E0E8F4] mb-4">
+               {tHome.joinCtaTitle}
+             </h3>
 
-              {/* Warna subjudul bagian: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
-              <p className="text-[#444444] dark:text-[#94A3B8] mb-8 text-lg leading-relaxed">
-                {tHome.joinCtaSubtitle}
-              </p>
-              <button
-                onClick={handleMainAction}
-                className="btn-secondary font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
-              >
-                {tHome.startNow}
-                <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
-              </button>
+             {/* Warna subjudul bagian: #444444 (terang) & #94A3B8 (gelap) + leading-relaxed */}
+             <p className="text-[#444444] dark:text-[#94A3B8] mb-8 text-lg leading-relaxed">
+               {tHome.joinCtaSubtitle}
+             </p>
+             <button
+               onClick={handleMainAction}
+               className="btn-secondary font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center"
+             >
+               {tHome.startNow}
+               <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+             </button>
            </div>
         </div>
       </div>
