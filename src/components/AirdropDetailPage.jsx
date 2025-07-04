@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus, faVideo,
-  faCoins, faClipboardQuestion, faListOl, faTimes
+  faCoins, faClipboardQuestion, faListOl, faTimes, faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 import ReactMarkdown from 'react-markdown';
@@ -21,7 +21,6 @@ const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// PENAMBAHAN: Komponen Modal untuk Daftar Update
 const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
   if (!isOpen) return null;
 
@@ -45,14 +44,15 @@ const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
           </button>
         </div>
         <div className="overflow-y-auto p-2 sm:p-4 space-y-2">
-          {updates.length > 0 ? updates.map((update, index) => (
+          {updates.length > 0 ? updates.map((update) => (
             <button
               key={update.id}
               onClick={() => onUpdateClick(update.id)}
               className="w-full text-left p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
             >
+              {/* PERUBAHAN: Nomor list dihapus */}
               <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white truncate">
-                {index + 1}. {update.title}
+                {update.title}
               </div>
               <div className="text-xs text-light-subtle dark:text-gray-500 mt-1">
                 {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -65,33 +65,43 @@ const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
   );
 };
 
-
+// PERUBAHAN: Desain Ulang Sidebar
 const UpdatesSidebar = ({ updates, onUpdateClick }) => {
   if (!updates || updates.length === 0) {
     return null;
   }
 
   return (
-    <div className="hidden lg:block w-64 flex-shrink-0">
-      <div className="sticky top-24 space-y-3">
-        <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-2 mb-3 p-2 border-b border-black/10 dark:border-white/10">
+    <div className="hidden lg:block w-72 flex-shrink-0">
+      <div className="sticky top-24 space-y-1 card p-4">
+        <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-3 mb-3 pb-3 border-b border-black/10 dark:border-white/10">
           <FontAwesomeIcon icon={faListOl} className="text-primary"/>
-          Daftar Isi Update
+          Navigasi Update
         </h3>
-        {updates.map((update, index) => (
-          <button 
-            key={update.id}
-            onClick={() => onUpdateClick(update.id)}
-            className="w-full text-left p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
-          >
-            <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white truncate">
-              {index + 1}. {update.title}
-            </div>
-            <div className="text-xs text-light-subtle dark:text-gray-500 mt-1">
-              {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </div>
-          </button>
-        ))}
+        <div className="relative">
+          {/* Garis vertikal untuk timeline */}
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-black/10 dark:bg-white/10"></div>
+          {updates.map((update) => (
+            <button 
+              key={update.id}
+              onClick={() => onUpdateClick(update.id)}
+              className="w-full text-left flex items-start gap-4 p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
+            >
+              <div className="relative z-10 mt-1">
+                <FontAwesomeIcon icon={faCheckCircle} className="text-black/20 dark:text-white/20 text-base group-hover:text-primary transition-colors" />
+              </div>
+              <div>
+                {/* PERUBAHAN: Nomor list dihapus */}
+                <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white leading-tight">
+                  {update.title}
+                </div>
+                <div className="text-xs text-light-subtle dark:text-gray-500 mt-1.5">
+                  {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -154,7 +164,7 @@ export default function AirdropDetailPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasNewUpdates, setHasNewUpdates] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false); // PENAMBAHAN: State untuk modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const updateRefs = useRef({});
   updates.forEach(update => {
@@ -173,7 +183,8 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
+      // PERUBAHAN: Urutan diubah menjadi 'ascending: true' agar update baru di bawah
+      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: true });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
 
@@ -196,22 +207,19 @@ export default function AirdropDetailPage({ currentUser }) {
     });
   };
 
-  // PENAMBAHAN: Fungsi untuk membuka modal
   const handleOpenUpdatesModal = () => {
     if (updates.length > 0) {
       setIsModalOpen(true);
     } else {
-      // Jika tidak ada update, langsung scroll ke section-nya
       updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // PENAMBAHAN: Fungsi untuk menangani klik dari dalam modal
   const handleSelectUpdateFromModal = (updateId) => {
     setIsModalOpen(false);
     setTimeout(() => {
       handleScrollToUpdate(updateId);
-    }, 100); // Timeout untuk memastikan modal sudah tertutup sebelum scroll
+    }, 100);
   };
 
   const handleDeleteUpdate = async (updateId) => {
@@ -236,10 +244,10 @@ export default function AirdropDetailPage({ currentUser }) {
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 md:py-8">
+      <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 md:py-8 px-4">
         <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
 
-        <div className="w-full lg:max-w-4xl">
+        <div className="w-full lg:max-w-4xl min-w-0">
           <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
             {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
@@ -343,7 +351,6 @@ export default function AirdropDetailPage({ currentUser }) {
         </div>
       </div>
       
-      {/* PENAMBAHAN: Render komponen modal */}
       <UpdatesModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
