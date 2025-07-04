@@ -33,7 +33,7 @@ const AirdropCard = ({ airdrop }) => {
     'Mainnet': 'bg-emerald-500/20 text-emerald-300',
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
-  
+ 
   const confirmationStyles = {
     'Potential': 'bg-yellow-500/20 text-yellow-300',
     'Confirmed': 'bg-green-500/20 text-green-300'
@@ -47,7 +47,7 @@ const AirdropCard = ({ airdrop }) => {
 
   return (
     <div className="bg-light-card dark:bg-dark-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
-      
+     
       {airdrop.hasNewUpdate && (
         <div className="absolute top-3 right-3 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Ada update baru!">
           <span className="relative flex h-2 w-2 mr-1.5">
@@ -75,7 +75,7 @@ const AirdropCard = ({ airdrop }) => {
         </div>
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-light-text dark:text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
-          
+         
           <div className="flex justify-between items-center mb-3 text-xs">
             {airdrop.raise_amount ? (
                 <div className="flex items-center bg-black/5 dark:bg-white/5 px-2 py-1 rounded-full text-light-subtle dark:text-gray-300" title="Total Pendanaan">
@@ -93,7 +93,7 @@ const AirdropCard = ({ airdrop }) => {
                 </div>
             )}
           </div>
-          
+         
           <p className="text-light-subtle dark:text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
             {airdrop.description}
           </p>
@@ -110,7 +110,8 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-export default function PageAirdrops({ currentUser }) {
+// PENAMBAHAN PROP 'setHasNewAirdropNotification'
+export default function PageAirdrops({ currentUser, setHasNewAirdropNotification }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
@@ -134,19 +135,20 @@ export default function PageAirdrops({ currentUser }) {
       if (error) throw error;
 
       const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      let newNotification = false; // <-- PENAMBAHAN VARIABEL LOKAL
 
       const processedData = (data || []).map(airdrop => {
         const updates = airdrop.AirdropUpdates;
         let lastActivityAt = new Date(airdrop.created_at);
         let hasNewUpdate = false;
-        
+       
         const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
 
         if (updates && updates.length > 0) {
           const mostRecentUpdateDate = new Date(
             Math.max(...updates.map(u => new Date(u.created_at)))
           );
-          
+         
           if (mostRecentUpdateDate > lastActivityAt) {
             lastActivityAt = mostRecentUpdateDate;
           }
@@ -155,21 +157,28 @@ export default function PageAirdrops({ currentUser }) {
             hasNewUpdate = true;
           }
         }
-        
+
+        // PENAMBAHAN: Jika ada post baru atau update baru, set flag notifikasi
+        if (isNewlyPosted || hasNewUpdate) {
+            newNotification = true;
+        }
+       
         const { AirdropUpdates, ...rest } = airdrop;
         return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt };
       });
-      
+     
       processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
-      
+     
       setAirdrops(processedData);
+      setHasNewAirdropNotification(newNotification); // <-- PENAMBAHAN: Set state di komponen App
 
     } catch (err) {
       setError(err.message || "Gagal memuat data airdrop.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  // PENAMBAHAN DEPENDENCY
+  }, [setHasNewAirdropNotification]);
 
   useEffect(() => {
     fetchAirdrops();
@@ -189,7 +198,7 @@ export default function PageAirdrops({ currentUser }) {
     upcoming: t.filterUpcoming || 'Mendatang',
     ended: t.filterEnded || 'Selesai'
   };
-  
+ 
   return (
     <>
       <section id="airdrops" className="page-content space-y-8 pt-8">
@@ -211,10 +220,10 @@ export default function PageAirdrops({ currentUser }) {
                 <div className="relative flex-grow">
                     <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-light-subtle dark:text-gray-500" />
                   <input 
-  type="text" 
-  placeholder={t.searchPlaceholder || "Cari airdrop..."} 
-  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
-  className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" 
+type="text" 
+placeholder={t.searchPlaceholder || "Cari airdrop..."} 
+value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" 
 />
                 </div>
                <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
