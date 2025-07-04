@@ -12,6 +12,8 @@ import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
+// PENAMBAHAN: Kunci untuk localStorage
+const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
@@ -40,7 +42,6 @@ const AirdropCard = ({ airdrop }) => {
   };
   const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'bg-gray-500/20 text-gray-300';
 
-
   const postDate = new Date(airdrop.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'short', year: 'numeric'
   });
@@ -48,6 +49,11 @@ const AirdropCard = ({ airdrop }) => {
   return (
     <div className="bg-light-card dark:bg-dark-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
      
+      {/* PENAMBAHAN: Notifikasi titik merah kecil di pojok kiri atas card */}
+      {airdrop.isNewForUser && (
+        <span className="absolute top-4 left-4 z-20 h-3 w-3 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card" title="Baru atau ada update"></span>
+      )}
+
       {airdrop.hasNewUpdate && (
         <div className="absolute top-3 right-3 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg" title="Ada update baru!">
           <span className="relative flex h-2 w-2 mr-1.5">
@@ -110,7 +116,6 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-// PENAMBAHAN PROP 'setHasNewAirdropNotification'
 export default function PageAirdrops({ currentUser, setHasNewAirdropNotification }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -128,6 +133,10 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
     setLoading(true);
     setError(null);
     try {
+      // PENAMBAHAN: Ambil waktu kunjungan terakhir dari localStorage
+      const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
+      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null;
+
       const { data, error } = await supabase
         .from('airdrops')
         .select('*, AirdropUpdates(created_at)');
@@ -135,7 +144,7 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
       if (error) throw error;
 
       const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-      let newNotification = false; // <-- PENAMBAHAN VARIABEL LOKAL
+      let newNotification = false;
 
       const processedData = (data || []).map(airdrop => {
         const updates = airdrop.AirdropUpdates;
@@ -145,39 +154,40 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
         const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
 
         if (updates && updates.length > 0) {
-          const mostRecentUpdateDate = new Date(
-            Math.max(...updates.map(u => new Date(u.created_at)))
-          );
-         
+          const mostRecentUpdateDate = new Date(Math.max(...updates.map(u => new Date(u.created_at))));
           if (mostRecentUpdateDate > lastActivityAt) {
             lastActivityAt = mostRecentUpdateDate;
           }
-
           if (mostRecentUpdateDate > fortyEightHoursAgo) {
             hasNewUpdate = true;
           }
         }
+       
+        // PENAMBAHAN: Tentukan apakah airdrop ini baru bagi pengguna
+        const isNewForUser = !lastVisitDate || lastActivityAt > lastVisitDate;
 
-        // PENAMBAHAN: Jika ada post baru atau update baru, set flag notifikasi
-        if (isNewlyPosted || hasNewUpdate) {
+        if (isNewForUser) {
             newNotification = true;
         }
        
         const { AirdropUpdates, ...rest } = airdrop;
-        return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt };
+        // PENAMBAHAN: Sertakan 'isNewForUser' dalam data
+        return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt, isNewForUser };
       });
      
       processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
      
       setAirdrops(processedData);
-      setHasNewAirdropNotification(newNotification); // <-- PENAMBAHAN: Set state di komponen App
+      setHasNewAirdropNotification(newNotification);
+
+      // PENAMBAHAN: Set waktu kunjungan saat ini, menandai semua sebagai 'telah dilihat' untuk kunjungan berikutnya
+      localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString());
 
     } catch (err) {
       setError(err.message || "Gagal memuat data airdrop.");
     } finally {
       setLoading(false);
     }
-  // PENAMBAHAN DEPENDENCY
   }, [setHasNewAirdropNotification]);
 
   useEffect(() => {
@@ -207,32 +217,32 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
           <p className="text-lg text-light-subtle dark:text-gray-400 max-w-2xl mx-auto">{t.getUpdates}</p>
         </div>
 
-{isAdmin && (
-  <div className="max-w-4xl mx-auto p-4 bg-light-card dark:bg-dark-card border border-primary/50 rounded-lg text-center">
-      <Link to="/airdrops/postairdrops" className="btn-secondary px-4 py-2 text-sm inline-flex items-center gap-2">
-        <FontAwesomeIcon icon={faShieldHalved}/> Go to Admin Panel
-    </Link>
-  </div>
-)}
+        {isAdmin && (
+          <div className="max-w-4xl mx-auto p-4 bg-light-card dark:bg-dark-card border border-primary/50 rounded-lg text-center">
+              <Link to="/airdrops/postairdrops" className="btn-secondary px-4 py-2 text-sm inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faShieldHalved}/> Go to Admin Panel
+            </Link>
+          </div>
+        )}
 
         <div className="py-4 px-2 -mx-2">
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
                 <div className="relative flex-grow">
                     <FontAwesomeIcon icon={faSearch} className="absolute top-1/2 left-4 -translate-y-1/2 text-light-subtle dark:text-gray-500" />
                   <input 
-type="text" 
-placeholder={t.searchPlaceholder || "Cari airdrop..."} 
-value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
-className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" 
-/>
+                    type="text" 
+                    placeholder={t.searchPlaceholder || "Cari airdrop..."} 
+                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" 
+                  />
                 </div>
                <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
-    {['all', 'active', 'upcoming', 'ended'].map(filter => (
-        <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-light-text dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5'}`}>
-            {filterTranslations[filter]}
-        </button>
-    ))}
-</div>
+                  {['all', 'active', 'upcoming', 'ended'].map(filter => (
+                      <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-light-text dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                          {filterTranslations[filter]}
+                      </button>
+                  ))}
+              </div>
             </div>
         </div>
 
