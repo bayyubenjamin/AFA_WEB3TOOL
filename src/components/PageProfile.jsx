@@ -141,6 +141,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         };
     };
 
+    // --- FUNGSI INI SEKARANG KHUSUS UNTUK MENAUTKAN AFA WALLET ---
     const handleLinkAfaWallet = useCallback(async (walletAddressToLink) => {
         if (!walletAddressToLink || !currentUser?.id) return;
         setIsWalletActionLoading(true);
@@ -149,23 +150,15 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             const lowerCaseAddress = walletAddressToLink.toLowerCase();
 
             const { data: existingProfile, error: checkError } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('web3_address', lowerCaseAddress)
-                .single();
+                .from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
 
             if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
             if (existingProfile && existingProfile.id !== currentUser.id) {
                 throw new Error("Dompet ini sudah ditautkan ke akun lain.");
             }
 
             const { data, error: updateError } = await supabase
-                .from('profiles')
-                .update({ web3_address: lowerCaseAddress })
-                .eq('id', currentUser.id)
-                .select()
-                .single();
+                .from('profiles').update({ web3_address: lowerCaseAddress }).eq('id', currentUser.id).select().single();
 
             if (updateError) throw updateError;
             onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
@@ -177,6 +170,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     }, [currentUser, onUpdateUser, clearMessages]);
 
+    // --- FUNGSI INI MENJADI SATU-SATUNYA CARA UNTUK MENAUTKAN AFA WALLET ---
     const handleActivateSmartWallet = () => {
         clearMessages();
         const smartWalletConnector = connectors.find((c) => c.id === 'coinbaseWalletSDK');
@@ -225,6 +219,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     };
 
+    // --- Kode yang tidak diubah tetap dipertahankan ---
     const handleUnlinkTelegram = async () => {
         if (!window.confirm("Are you sure you want to unlink this Telegram account?")) return;
         setIsTelegramConnecting(true);
@@ -234,21 +229,17 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 .from('profiles')
                 .update({ telegram_user_id: null })
                 .eq('id', currentUser.id);
-
             if (updateError) throw updateError;
-
             const { data: { session } } = await supabase.auth.getSession();
             const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
             onUpdateUser(mapSupabaseDataToAppUser(session.user, profile));
             setSuccessMessage('Telegram account unlinked successfully.');
-
         } catch (err) {
             setError(err.message || 'Failed to unlink Telegram account.');
         } finally {
             setIsTelegramConnecting(false);
         }
     };
-
     const handleLinkEmailPassword = async (e) => {
         e.preventDefault();
         if (!newEmail || !newPassword) {
@@ -265,30 +256,20 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             const { data, error } = await supabase.functions.invoke('link-email-password', {
                 body: { new_email: newEmail, new_password: newPassword },
             });
-
             if (error) throw error;
             if (data.error) throw new Error(data.error);
-
             setSuccessMessage(data.message);
             alert('Success! Please log in again with your new email and password.');
             onLogout();
             navigate('/login');
-
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLinkingEmail(false);
         }
     };
-    
-    // Ini adalah `useEffect` yang menyebabkan penggabungan, jadi kita hapus.
-    /* useEffect(() => {
-        if (isConnected && address && !currentUser.address) {
-            handleLinkWallet();
-        }
-    }, [isConnected, address, currentUser, handleLinkWallet]);
-    */
-    
+    // --- AKHIR DARI KODE YANG TIDAK DIUBAH ---
+
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
@@ -343,51 +324,19 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </ul>
                         </div>
                     </div>
-
                     <img src={currentUser.avatar_url} alt="User Avatar" className={`w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 shadow-lg ${hasNFT && isPremium ? 'border-yellow-400' : 'border-primary/50'}`} />
-                    
                     <div className="flex-grow text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
                             <h2 className="text-2xl md:text-3xl font-bold text-light-text dark:text-white">{currentUser.name}</h2>
-                            {hasNFT && (
-                                isPremium ? (
-                                    <div className="flex items-center gap-1 text-xs font-bold bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full">
-                                        <FontAwesomeIcon icon={faCrown} />
-                                        <span>PREMIUM</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1 text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full">
-                                        <span>BASIC</span>
-                                    </div>
-                                )
-                            )}
+                            {hasNFT && ( isPremium ? ( <div className="flex items-center gap-1 text-xs font-bold bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full"><FontAwesomeIcon icon={faCrown} /><span>PREMIUM</span></div>) : (<div className="flex items-center gap-1 text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full"><span>BASIC</span></div>) )}
                         </div>
                         <p className="text-md text-light-subtle dark:text-gray-400">@{currentUser.username}</p>
-                        
                         <div className="mt-4 text-center md:text-left">
-                            {!hasNFT ? (
-                                <>
-                                    <Link to="/identity" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105">
-                                        <FontAwesomeIcon icon={faIdCard}/> Mint AFA Identity
-                                    </Link>
-                                    <p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Get your soul-bound AFA Identity NFT.</p>
-                                </>
-                            ) : (
-                                !isPremium && (
-                                    <>
-                                        <Link to="/identity" className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105">
-                                           <FontAwesomeIcon icon={faArrowUp}/> Upgrade to Premium
-                                        </Link>
-                                        <p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Unlock exclusive features and benefits.</p>
-                                    </>
-                                )
-                            )}
+                            {!hasNFT ? (<><Link to="/identity" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105"> <FontAwesomeIcon icon={faIdCard}/> Mint AFA Identity</Link><p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Get your soul-bound AFA Identity NFT.</p></>) : ( !isPremium && (<><Link to="/identity" className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-transform transform hover:scale-105"><FontAwesomeIcon icon={faArrowUp}/> Upgrade to Premium</Link><p className="text-xs text-light-subtle dark:text-gray-500 mt-1">Unlock exclusive features and benefits.</p></>) )}
                         </div>
-                        
                     </div>
                 </div>
 
-                {/* --- KARTU BARU KHUSUS UNTUK AFA WALLET --- */}
                 <div className="card rounded-xl p-6 md:p-8 shadow-xl">
                     <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
                         <FontAwesomeIcon icon={faIdCard} className="mr-3 text-primary" /> AFA Wallet (Smart Wallet)
@@ -437,31 +386,17 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </div>
                             <div className="flex-grow">
                                 <h4 className="font-semibold text-light-text dark:text-white">Email & Password</h4>
-                                {isDummyEmail ? (
-                                    <>
-                                        <p className="text-xs text-light-subtle dark:text-gray-400 mt-1 mb-3">Your account is not secured with an email. Add one to enable traditional login.</p>
-                                        <form onSubmit={handleLinkEmailPassword} className="space-y-3">
-                                            <InputField id="new_email" type="email" label="New Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="your.email@example.com" parentLoading={isLinkingEmail} />
-                                            <InputField id="new_password" type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimum 6 characters" parentLoading={isLinkingEmail} />
-                                            <button type="submit" disabled={isLinkingEmail} className="btn-secondary w-full py-2 text-sm">
-                                                {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Save & Secure Account'}
-                                            </button>
-                                        </form>
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-green-400 font-semibold mt-1">Account is secured.</p>
-                                )}
+                                {isDummyEmail ? ( <> <p className="text-xs text-light-subtle dark:text-gray-400 mt-1 mb-3">Your account is not secured with an email. Add one to enable traditional login.</p><form onSubmit={handleLinkEmailPassword} className="space-y-3"> <InputField id="new_email" type="email" label="New Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} icon={faEnvelope} placeholder="your.email@example.com" parentLoading={isLinkingEmail} /> <InputField id="new_password" type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} icon={faLock} placeholder="Minimum 6 characters" parentLoading={isLinkingEmail} /><button type="submit" disabled={isLinkingEmail} className="btn-secondary w-full py-2 text-sm"> {isLinkingEmail ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Save & Secure Account'}</button></form></>) : (<p className="text-sm text-green-400 font-semibold mt-1">Account is secured.</p>)}
                             </div>
                         </li>
-
-                        {/* --- BAGIAN DOMPET EKSTERNAL --- */}
+                        
                         <li className="flex items-start gap-4">
                              <div className="bg-purple-500/10 text-purple-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
                                  <FontAwesomeIcon icon={faWallet} />
                              </div>
                              <div className="flex-grow">
                                  <h4 className="font-semibold text-light-text dark:text-white">Dompet Eksternal</h4>
-                                 {isConnected && address?.toLowerCase() !== currentUser.address?.toLowerCase() ? (
+                                 {isConnected && address && address.toLowerCase() !== currentUser.address?.toLowerCase() ? (
                                      <>
                                          <p className="text-xs text-green-400 mt-1">Terhubung ke:</p>
                                          <p className="text-sm font-mono text-light-text dark:text-white break-all" title={address}>{`${address.substring(0, 6)}...${address.substring(address.length - 4)}`}</p>
@@ -486,21 +421,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </div>
                             <div className="flex-grow">
                                 <h4 className="font-semibold text-light-text dark:text-white">Telegram</h4>
-                                {currentUser.telegram_user_id ? (
-                                    <>
-                                        <p className="text-xs text-green-400 mt-1">Account linked (ID: {currentUser.telegram_user_id})</p>
-                                        <button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                                            {isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />} Unlink
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your Telegram via our bot to verify tasks.</p>
-                                        <a href="https://t.me/afaweb3tool_bot" target="_blank" rel="noopener noreferrer" className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                                           <FontAwesomeIcon icon={faLink} /><span>Link via Bot</span>
-                                        </a>
-                                    </>
-                                )}
+                                {currentUser.telegram_user_id ? ( <> <p className="text-xs text-green-400 mt-1">Account linked (ID: {currentUser.telegram_user_id})</p><button onClick={handleUnlinkTelegram} disabled={isTelegramConnecting} className="btn-secondary text-red-400 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 font-semibold py-1.5 px-3 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">{isTelegramConnecting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUnlink} />} Unlink</button></>) : (<> <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your Telegram via our bot to verify tasks.</p><a href="https://t.me/afaweb3tool_bot" target="_blank" rel="noopener noreferrer" className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2"><FontAwesomeIcon icon={faLink} /><span>Link via Bot</span></a></>)}
                             </div>
                         </li>
                     </ul>
