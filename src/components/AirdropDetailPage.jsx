@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faArrowLeft, faCalendarAlt, faInfoCircle, faSpinner, faExclamationTriangle, 
   faClock, faAngleDoubleRight, faBell, faEdit, faTrashAlt, faPlus, faVideo,
-  faCoins, faClipboardQuestion, faListOl
+  faCoins, faClipboardQuestion, faListOl, faTimes
 } from '@fortawesome/free-solid-svg-icons';
 
 import ReactMarkdown from 'react-markdown';
@@ -21,7 +21,51 @@ const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
-// PENAMBAHAN: Komponen Sidebar Daftar Isi Update
+// PENAMBAHAN: Komponen Modal untuk Daftar Update
+const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 transition-opacity duration-300"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-light-card dark:bg-dark-card rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col transition-transform duration-300 transform scale-95"
+        onClick={(e) => e.stopPropagation()}
+        style={{ transform: isOpen ? 'scale(1)' : 'scale(0.95)', opacity: isOpen ? 1 : 0 }}
+      >
+        <div className="p-4 flex justify-between items-center border-b border-black/10 dark:border-white/10">
+          <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-2">
+            <FontAwesomeIcon icon={faListOl} className="text-primary"/>
+            Daftar Isi Update
+          </h3>
+          <button onClick={onClose} className="text-light-subtle dark:text-gray-400 hover:text-primary dark:hover:text-white">
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-2 sm:p-4 space-y-2">
+          {updates.length > 0 ? updates.map((update, index) => (
+            <button
+              key={update.id}
+              onClick={() => onUpdateClick(update.id)}
+              className="w-full text-left p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
+            >
+              <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white truncate">
+                {index + 1}. {update.title}
+              </div>
+              <div className="text-xs text-light-subtle dark:text-gray-500 mt-1">
+                {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            </button>
+          )) : <p className="text-center text-sm text-light-subtle dark:text-gray-500 p-4">Tidak ada update.</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const UpdatesSidebar = ({ updates, onUpdateClick }) => {
   if (!updates || updates.length === 0) {
     return null;
@@ -110,8 +154,8 @@ export default function AirdropDetailPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasNewUpdates, setHasNewUpdates] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // PENAMBAHAN: State untuk modal
 
-  // PENAMBAHAN: Kumpulan Refs untuk setiap item update
   const updateRefs = useRef({});
   updates.forEach(update => {
     updateRefs.current[update.id] = updateRefs.current[update.id] || React.createRef();
@@ -129,7 +173,6 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      // Mengurutkan dari yang paling baru ke yang paling lama
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: false });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
@@ -146,7 +189,6 @@ export default function AirdropDetailPage({ currentUser }) {
 
   useEffect(() => { fetchAirdropAndUpdates(); }, [fetchAirdropAndUpdates]);
   
-  // PENAMBAHAN: Fungsi untuk scroll ke update spesifik
   const handleScrollToUpdate = (updateId) => {
     updateRefs.current[updateId]?.current?.scrollIntoView({
       behavior: 'smooth',
@@ -154,7 +196,23 @@ export default function AirdropDetailPage({ currentUser }) {
     });
   };
 
-  const handleScrollToUpdatesSection = () => updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // PENAMBAHAN: Fungsi untuk membuka modal
+  const handleOpenUpdatesModal = () => {
+    if (updates.length > 0) {
+      setIsModalOpen(true);
+    } else {
+      // Jika tidak ada update, langsung scroll ke section-nya
+      updatesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // PENAMBAHAN: Fungsi untuk menangani klik dari dalam modal
+  const handleSelectUpdateFromModal = (updateId) => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      handleScrollToUpdate(updateId);
+    }, 100); // Timeout untuk memastikan modal sudah tertutup sebelum scroll
+  };
 
   const handleDeleteUpdate = async (updateId) => {
     if (window.confirm("Anda yakin ingin menghapus update ini? Tindakan ini tidak dapat diurungkan.")) {
@@ -177,112 +235,121 @@ export default function AirdropDetailPage({ currentUser }) {
   const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-400';
 
   return (
-    // PENAMBAHAN: Tata letak Grid untuk Sidebar dan Konten
-    <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 md:py-8">
-      <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
+    <>
+      <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 md:py-8">
+        <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
 
-      <div className="w-full lg:max-w-4xl">
-        <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
-        </Link>
-        <div className="card rounded-2xl shadow-2xl overflow-hidden">
-          <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
-          </div>
-          <div className="p-6 md:p-8">
-            <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
-            <div className="flex justify-between items-start gap-4 mb-3">
-              <h1 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{airdrop.title}</h1>
-              <button onClick={handleScrollToUpdatesSection} className="btn-secondary relative text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap" title="Lihat Aktivitas & Updates">
-                {hasNewUpdates && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                )}
-                <FontAwesomeIcon icon={faBell} className="mr-2" />Check Update
-              </button>
+        <div className="w-full lg:max-w-4xl">
+          <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
+          </Link>
+          <div className="card rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
             </div>
-
-            <div className="prose prose-base max-w-none dark:prose-invert text-light-subtle prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
-               <ReactMarkdown
-                  children={airdrop.description || ''}
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-               />
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-4 text-sm">
-              {airdrop.raise_amount && (
-                <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300">
-                  <FontAwesomeIcon icon={faCoins} className="mr-2 text-yellow-400"/>
-                  Raise: {airdrop.raise_amount}
-                </div>
-              )}
-              {airdrop.confirmation_status && (
-                <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${confirmationStyle}`}>
-                  <FontAwesomeIcon icon={faClipboardQuestion} className="mr-2"/>
-                  {airdrop.confirmation_status}
-                </div>
-              )}
-              <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
-              {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
-            </div>
-           
-            <div className="my-8">
-              <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
-              <div className="prose prose-base max-w-none dark:prose-invert prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
-                  <ReactMarkdown
-                      children={airdrop.tutorial || ''}
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                  />
+            <div className="p-6 md:p-8">
+              <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
+              <div className="flex justify-between items-start gap-4 mb-3">
+                <h1 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{airdrop.title}</h1>
+                <button onClick={handleOpenUpdatesModal} className="btn-secondary relative text-xs px-4 py-2 rounded-lg inline-flex items-center flex-shrink-0 whitespace-nowrap" title="Lihat Aktivitas & Updates">
+                  {hasNewUpdates && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                  )}
+                  <FontAwesomeIcon icon={faBell} className="mr-2" />Check Update
+                </button>
               </div>
-            </div>
 
-            {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
-           
-            {airdrop.video_url && (
+              <div className="prose prose-base max-w-none dark:prose-invert text-light-subtle prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+                 <ReactMarkdown
+                    children={airdrop.description || ''}
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                 />
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-4 text-sm">
+                {airdrop.raise_amount && (
+                  <div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300">
+                    <FontAwesomeIcon icon={faCoins} className="mr-2 text-yellow-400"/>
+                    Raise: {airdrop.raise_amount}
+                  </div>
+                )}
+                {airdrop.confirmation_status && (
+                  <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${confirmationStyle}`}>
+                    <FontAwesomeIcon icon={faClipboardQuestion} className="mr-2"/>
+                    {airdrop.confirmation_status}
+                  </div>
+                )}
+                <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
+                {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
+              </div>
+             
               <div className="my-8">
-                <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2 flex items-center">
-                  <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
-                  Video Tutorial
-                </h3>
-                <div className="my-4 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
-                  <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
-                </div>
-              </div>
-            )}
-
-            <div ref={updatesSectionRef} className="my-8">
-              <div className="flex justify-between items-center mb-4 border-b border-black/10 dark:border-white/10 pb-2">
-                <h3 className="text-2xl font-bold text-light-text dark:text-white">Aktivitas & Updates</h3>
-                {isAdmin && (
-                  <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
-                    <FontAwesomeIcon icon={faPlus} className="mr-1.5" /> Tambah Update
-                  </Link>
-                )}
-              </div>
-
-              {updates.length > 0 ? (
-                <div className="space-y-4">
-                  {updates.map(update => (
-                    <AirdropUpdateItem
-                      key={update.id}
-                      ref={updateRefs.current[update.id]} // PENAMBAHAN: Teruskan ref
-                      update={update}
-                      isAdmin={isAdmin}
-                      airdropSlug={airdropSlug}
-                      onDelete={handleDeleteUpdate}
+                <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
+                <div className="prose prose-base max-w-none dark:prose-invert prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
+                    <ReactMarkdown
+                        children={airdrop.tutorial || ''}
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
                     />
-                  ))}
                 </div>
-              ) : (<p className="text-center text-light-subtle dark:text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
+              </div>
+
+              {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
+             
+              {airdrop.video_url && (
+                <div className="my-8">
+                  <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2 flex items-center">
+                    <FontAwesomeIcon icon={faVideo} className="mr-3 text-primary" />
+                    Video Tutorial
+                  </h3>
+                  <div className="my-4 aspect-video w-full overflow-hidden rounded-xl shadow-lg">
+                    <ReactPlayer url={airdrop.video_url} width="100%" height="100%" controls={true} />
+                  </div>
+                </div>
+              )}
+
+              <div ref={updatesSectionRef} className="my-8">
+                <div className="flex justify-between items-center mb-4 border-b border-black/10 dark:border-white/10 pb-2">
+                  <h3 className="text-2xl font-bold text-light-text dark:text-white">Aktivitas & Updates</h3>
+                  {isAdmin && (
+                    <Link to={`/airdrops/${airdrop.slug}/update`} className="btn-primary text-xs px-3 py-1.5 rounded-md flex items-center">
+                      <FontAwesomeIcon icon={faPlus} className="mr-1.5" /> Tambah Update
+                    </Link>
+                  )}
+                </div>
+
+                {updates.length > 0 ? (
+                  <div className="space-y-4">
+                    {updates.map(update => (
+                      <AirdropUpdateItem
+                        key={update.id}
+                        ref={updateRefs.current[update.id]}
+                        update={update}
+                        isAdmin={isAdmin}
+                        airdropSlug={airdropSlug}
+                        onDelete={handleDeleteUpdate}
+                      />
+                    ))}
+                  </div>
+                ) : (<p className="text-center text-light-subtle dark:text-gray-500 py-4">Belum ada update untuk airdrop ini.</p>)}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      
+      {/* PENAMBAHAN: Render komponen modal */}
+      <UpdatesModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        updates={updates}
+        onUpdateClick={handleSelectUpdateFromModal}
+      />
+    </>
   );
 }
