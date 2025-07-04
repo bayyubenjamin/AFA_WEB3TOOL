@@ -1,5 +1,7 @@
 import { http, createConfig, createStorage } from 'wagmi';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+// Impor 'base' langsung dari wagmi untuk kemudahan
+import { base } from 'wagmi/chains';
 
 // =============================================================================
 // 1. Definisikan OBJEK untuk SETIAP JARINGAN yang didukung
@@ -18,7 +20,6 @@ const optimismSepolia = {
   testnet: true,
 };
 
-// --- TAMBAHKAN DEFINISI UNTUK BASE SEPOLIA ---
 const baseSepolia = {
   id: 84532,
   name: 'Base Sepolia',
@@ -46,8 +47,8 @@ const metadata = {
 };
 
 export const config = createConfig({
-  // --- TAMBAHKAN baseSepolia KE DALAM ARRAY chains ---
-  chains: [optimismSepolia, baseSepolia],
+  // --- EDIT: Tambahkan 'base' (Mainnet) ke dalam array chains ---
+  chains: [base, optimismSepolia, baseSepolia],
 
   connectors: [
     walletConnect({
@@ -56,15 +57,19 @@ export const config = createConfig({
       showQrModal: false,
     }),
     injected({ shimDisconnect: true }),
+    // --- EDIT: Modifikasi coinbaseWallet untuk Smart Wallet ---
     coinbaseWallet({
       appName: metadata.name,
       appLogoUrl: metadata.icons[0],
+      // Baris ini akan memprioritaskan pembuatan/koneksi ke Smart Wallet
+      preference: 'smartWalletOnly', 
     }),
   ],
   storage: createStorage({ storage: window.localStorage }),
 
-  // --- TAMBAHKAN transport UNTUK baseSepolia ---
+  // --- EDIT: Tambahkan transport untuk 'base' (Mainnet) ---
   transports: {
+    [base.id]: http(),
     [optimismSepolia.id]: http(),
     [baseSepolia.id]: http(),
   },

@@ -4,7 +4,8 @@ import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
+// --- EDIT: Impor 'useConnect' dari wagmi ---
+import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
 import AuthForm from './AuthForm';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
@@ -29,6 +30,9 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
+  
+  // --- EDIT: Tambahkan hook 'useConnect' untuk memulai koneksi ---
+  const { connect, connectors } = useConnect();
 
   const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
 
@@ -45,7 +49,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
       if (error) throw error;
-      
+     
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage(t.loginSuccess || "Login berhasil!");
@@ -56,7 +60,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       setLoading(false);
     }
   };
-  
+ 
   const handleWalletLogin = async () => {
     if (!address) return;
     clearMessages();
@@ -99,7 +103,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       });
 
       if (sessionError) throw sessionError;
-      
+     
       sessionStorage.removeItem('explicitlyLoggedOut');
 
       setSuccessMessage("Berhasil login dengan Telegram!");
@@ -119,40 +123,55 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
       }
   }, [isConnected, address]);
 
+  // --- EDIT: Buat fungsi baru untuk menangani login Smart Wallet ---
+  const handleSmartWalletLogin = () => {
+    clearMessages();
+    const smartWalletConnector = connectors.find(
+      (connector) => connector.id === 'coinbaseWalletSDK'
+    );
+    if (smartWalletConnector) {
+      connect({ connector: smartWalletConnector });
+    } else {
+      setError("Konektor Smart Wallet tidak ditemukan. Silakan muat ulang halaman.");
+    }
+  };
+
   return (
     <section className="page-content space-y-6 md:space-y-8 py-6">
        <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Kembali ke Beranda
-      </Link>
+       </Link>
 
        {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
        {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
 
-      <div className="max-w-lg mx-auto">
-        <AuthForm
-          isLoginForm={true}
-          onFormSubmit={handleLogin}
-          onWalletLogin={onOpenWalletModal} 
-          loading={loading}
-          isWalletActionLoading={isWalletActionLoading}
-          t={t}
-          loginEmail={loginEmail}
-          setLoginEmail={setLoginEmail}
-          loginPassword={loginPassword}
-          setLoginPassword={setLoginPassword}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-          onTelegramAuth={handleTelegramAuth}
-          isTelegramLoading={isTelegramLoading}
-        />
-         <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
-           {t.noAccountYet}{" "}
-           <Link to="/register" className="font-semibold text-primary hover:underline">
-             {t.signupHere}
-           </Link>
-         </p>
-      </div>
+       <div className="max-w-lg mx-auto">
+         <AuthForm
+           isLoginForm={true}
+           onFormSubmit={handleLogin}
+           onWalletLogin={onOpenWalletModal} 
+           // --- EDIT: Tambahkan prop baru untuk diteruskan ke AuthForm ---
+           onSmartWalletLogin={handleSmartWalletLogin}
+           loading={loading}
+           isWalletActionLoading={isWalletActionLoading}
+           t={t}
+           loginEmail={loginEmail}
+           setLoginEmail={setLoginEmail}
+           loginPassword={loginPassword}
+           setLoginPassword={setLoginPassword}
+           showPassword={showPassword}
+           setShowPassword={setShowPassword}
+           onTelegramAuth={handleTelegramAuth}
+           isTelegramLoading={isTelegramLoading}
+         />
+          <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
+            {t.noAccountYet}{" "}
+            <Link to="/register" className="font-semibold text-primary hover:underline">
+              {t.signupHere}
+            </Link>
+          </p>
+       </div>
     </section>
   );
 }

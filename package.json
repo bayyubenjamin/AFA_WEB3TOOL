@@ -16,6 +16,7 @@
     "@capacitor/android": "^7.3.0",
     "@capacitor/cli": "^7.3.0",
     "@capacitor/core": "^7.3.0",
+    "@coinbase/wallet-sdk": "^4.3.4",
     "@fontsource/baloo-2": "^5.0.20",
     "@fontsource/fredoka": "^5.0.10",
     "@fontsource/quicksand": "^5.0.18",
@@ -46,7 +47,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
-    "viem": "^2.31.3",
+    "viem": "^2.31.7",
     "wagmi": "^2.15.6"
   },
   "devDependencies": {
