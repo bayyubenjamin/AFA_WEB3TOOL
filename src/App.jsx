@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
@@ -29,6 +29,7 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
+const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp'; // Konstanta dipindahkan ke sini
 
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
@@ -78,7 +79,7 @@ export default function App() {
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
-  const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false); // <-- PENAMBAHAN STATE BARU
+  const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
 
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -91,16 +92,62 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-const handleScroll = (event) => {
-  const currentScrollY = event.currentTarget.scrollTop;
-  if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
-    setIsHeaderVisible(false);
-  } else {
-    setIsHeaderVisible(true);
-  }
-  lastScrollY.current = currentScrollY;
-};
+  const checkAirdropNotifications = useCallback(async () => {
+    try {
+      const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
+      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null;
 
+      if (!lastVisitDate) {
+        setHasNewAirdropNotification(true);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('airdrops')
+        .select('created_at, AirdropUpdates(created_at)');
+
+      if (error) throw error;
+      if (!data) return;
+
+      for (const airdrop of data) {
+        let lastActivityAt = new Date(airdrop.created_at);
+        if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) {
+          const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at))));
+          if (mostRecentUpdateDate > lastActivityAt) {
+            lastActivityAt = mostRecentUpdateDate;
+          }
+        }
+        
+        if (lastActivityAt > lastVisitDate) {
+          setHasNewAirdropNotification(true);
+          return;
+        }
+      }
+      setHasNewAirdropNotification(false);
+    } catch (err) {
+      console.error("Gagal mengecek notifikasi airdrop:", err);
+      setHasNewAirdropNotification(false);
+    }
+  }, []);
+
+  const handleMarkAirdropsAsSeen = () => {
+    localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString());
+    setHasNewAirdropNotification(false);
+  };
+
+  const handleScroll = (event) => {
+    const currentScrollY = event.currentTarget.scrollTop;
+    if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+      setIsHeaderVisible(false);
+    } else {
+      setIsHeaderVisible(true);
+    }
+    lastScrollY.current = currentScrollY;
+  };
+
+  useEffect(() => {
+    checkAirdropNotifications();
+  }, [checkAirdropNotifications]);
 
   useEffect(() => {
     setLoadingInitialSession(true);
@@ -208,14 +255,12 @@ const handleScroll = (event) => {
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      {/* PENAMBAHAN PROP 'hasNewAirdropNotification' */}
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-          {/* PENAMBAHAN PROP 'setHasNewAirdropNotification' */}
-          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} setHasNewAirdropNotification={setHasNewAirdropNotification} />} />
+          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
           <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
@@ -234,7 +279,6 @@ const handleScroll = (event) => {
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
       </main>
-      {/* PENAMBAHAN PROP 'hasNewAirdropNotification' */}
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />

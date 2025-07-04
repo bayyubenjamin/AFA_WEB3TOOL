@@ -12,7 +12,6 @@ import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
-// PENAMBAHAN: Kunci untuk localStorage
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
@@ -49,7 +48,6 @@ const AirdropCard = ({ airdrop }) => {
   return (
     <div className="bg-light-card dark:bg-dark-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
      
-      {/* PENAMBAHAN: Notifikasi titik merah kecil di pojok kiri atas card */}
       {airdrop.isNewForUser && (
         <span className="absolute top-4 left-4 z-20 h-3 w-3 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card" title="Baru atau ada update"></span>
       )}
@@ -116,7 +114,7 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
-export default function PageAirdrops({ currentUser, setHasNewAirdropNotification }) {
+export default function PageAirdrops({ currentUser, onEnterPage }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
@@ -129,13 +127,18 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
 
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
+  useEffect(() => {
+    if (onEnterPage) {
+      onEnterPage();
+    }
+  }, [onEnterPage]);
+
   const fetchAirdrops = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // PENAMBAHAN: Ambil waktu kunjungan terakhir dari localStorage
       const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
-      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null;
+      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : new Date(0);
 
       const { data, error } = await supabase
         .from('airdrops')
@@ -143,14 +146,12 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
 
       if (error) throw error;
 
-      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-      let newNotification = false;
-
       const processedData = (data || []).map(airdrop => {
         const updates = airdrop.AirdropUpdates;
         let lastActivityAt = new Date(airdrop.created_at);
         let hasNewUpdate = false;
        
+        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
         const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
 
         if (updates && updates.length > 0) {
@@ -163,32 +164,22 @@ export default function PageAirdrops({ currentUser, setHasNewAirdropNotification
           }
         }
        
-        // PENAMBAHAN: Tentukan apakah airdrop ini baru bagi pengguna
-        const isNewForUser = !lastVisitDate || lastActivityAt > lastVisitDate;
-
-        if (isNewForUser) {
-            newNotification = true;
-        }
+        const isNewForUser = lastActivityAt > lastVisitDate;
        
         const { AirdropUpdates, ...rest } = airdrop;
-        // PENAMBAHAN: Sertakan 'isNewForUser' dalam data
         return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt, isNewForUser };
       });
      
       processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
      
       setAirdrops(processedData);
-      setHasNewAirdropNotification(newNotification);
-
-      // PENAMBAHAN: Set waktu kunjungan saat ini, menandai semua sebagai 'telah dilihat' untuk kunjungan berikutnya
-      localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString());
 
     } catch (err) {
       setError(err.message || "Gagal memuat data airdrop.");
     } finally {
       setLoading(false);
     }
-  }, [setHasNewAirdropNotification]);
+  }, []);
 
   useEffect(() => {
     fetchAirdrops();
