@@ -11,7 +11,8 @@ import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
+// --- EDIT: Impor 'useConnect' untuk memulai koneksi Smart Wallet ---
+import { useAccount, useDisconnect, useReadContract, useChainId, useConnect } from 'wagmi';
 
 // --- PERBAIKAN 1: Buat konfigurasi untuk multi-jaringan ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
@@ -73,36 +74,35 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
+    // --- EDIT: Panggil hook 'useConnect' untuk mendapatkan fungsi koneksi ---
+    const { connect, connectors, isPending: isConnectingWallet } = useConnect();
     const navigate = useNavigate();
     const settingsMenuRef = useRef(null);
     const chainId = useChainId(); // Dapatkan chainId dari dompet yang terhubung
 
-    // --- PERBAIKAN 2: Dapatkan alamat & ABI kontrak secara dinamis berdasarkan jaringan yang terhubung ---
     const { address: contractAddress, abi } = useMemo(() => {
-        // Jika chainId ada di konfigurasi kita, gunakan. Jika tidak, kembalikan null.
         return contractConfig[chainId] || { address: null, abi: null };
     }, [chainId]);
 
-    // --- PERBAIKAN 3: Buat Wagmi Hooks menjadi dinamis ---
     const { data: balance } = useReadContract({
-        address: contractAddress, // Gunakan alamat dinamis
-        abi: abi,                 // Gunakan ABI dinamis
+        address: contractAddress,
+        abi: abi,
         functionName: 'balanceOf',
         args: [currentUser?.address],
-        enabled: !!currentUser?.address && !!contractAddress, // Hanya aktif jika jaringan didukung
+        enabled: !!currentUser?.address && !!contractAddress,
     });
 
     const { data: wagmiTokenId } = useReadContract({
-        address: contractAddress, // Gunakan alamat dinamis
-        abi: abi,                 // Gunakan ABI dinamis
+        address: contractAddress,
+        abi: abi,
         functionName: 'tokenOfOwnerByIndex',
         args: [currentUser?.address, 0],
         enabled: !!currentUser?.address && !!balance && Number(balance) > 0 && !!contractAddress,
     });
     
     const { data: isPremium } = useReadContract({
-        address: contractAddress, // Gunakan alamat dinamis
-        abi: abi,                 // Gunakan ABI dinamis
+        address: contractAddress,
+        abi: abi,
         functionName: 'isPremium',
         args: [tokenId],
         enabled: !!tokenId && !!contractAddress,
@@ -179,9 +179,23 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             setError(err.message || (t.linkWalletError || "Failed to link wallet."));
         } finally {
             setIsWalletActionLoading(false);
-            disconnect();
+            // Jangan disconnect otomatis agar pengguna bisa lihat perubahannya
+            // disconnect(); 
         }
-    }, [address, currentUser, onUpdateUser, disconnect, clearMessages, t]);
+    }, [address, currentUser, onUpdateUser, clearMessages, t]);
+
+    // --- EDIT: Buat fungsi baru untuk mengaktifkan Smart Wallet ---
+    const handleActivateSmartWallet = () => {
+        clearMessages();
+        const smartWalletConnector = connectors.find(
+            (c) => c.id === 'coinbaseWalletSDK'
+        );
+        if (smartWalletConnector) {
+            connect({ connector: smartWalletConnector });
+        } else {
+            setError("Konektor Smart Wallet tidak ditemukan. Pastikan Anda tidak menggunakan mode Private/Incognito.");
+        }
+    };
 
     const handleUnlinkWallet = async () => {
         if (!window.confirm("Are you sure you want to unlink this wallet?")) return;
@@ -274,6 +288,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     };
 
     useEffect(() => {
+        // Logika ini akan berjalan baik untuk Smart Wallet maupun dompet eksternal.
+        // Sangat efisien, tidak perlu diubah!
         if (isConnected && address && !currentUser.address) {
             handleLinkWallet();
         }
@@ -442,12 +458,16 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                         </button>
                                     </>
                                 ) : (
-                                    <>
-                                        <p className="text-xs text-light-subtle dark:text-gray-400 mt-1">Link your wallet to participate in events and claim rewards.</p>
-                                        <button onClick={onOpenWalletModal} disabled={isWalletActionLoading} className="btn-secondary font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2 mt-2">
-                                            {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />} Link Wallet
-                                        </button>
-                                    </>
+                                    // --- EDIT: Tampilkan dua opsi: AFA Wallet (Smart Wallet) atau dompet eksternal ---
+                                    <div className="space-y-3 mt-1">
+                                         <p className="text-xs text-light-subtle dark:text-gray-400">Tautkan dompet untuk berpartisipasi dalam event dan klaim hadiah.</p>
+                                         <button onClick={handleActivateSmartWallet} disabled={isConnectingWallet || isWalletActionLoading} className="btn-primary w-full font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-sm gap-2">
+                                            {isConnectingWallet ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faIdCard} />} Aktivasi AFA Wallet
+                                         </button>
+                                         <button onClick={onOpenWalletModal} disabled={isConnectingWallet || isWalletActionLoading} className="btn-secondary w-full font-semibold py-1.5 px-4 rounded-lg flex items-center justify-center text-xs gap-2">
+                                            {isWalletActionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faLink} />} Tautkan Dompet Lain
+                                         </button>
+                                    </div>
                                 )}
                             </div>
                         </li>
