@@ -141,22 +141,31 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         };
     };
 
-    const handleLinkAfaWallet = useCallback(async (walletAddress) => {
-        if (!walletAddress || !currentUser?.id) return;
+    const handleLinkAfaWallet = useCallback(async (walletAddressToLink) => {
+        if (!walletAddressToLink || !currentUser?.id) return;
         setIsWalletActionLoading(true);
         clearMessages();
         try {
-            const lowerCaseAddress = walletAddress.toLowerCase();
+            const lowerCaseAddress = walletAddressToLink.toLowerCase();
+
             const { data: existingProfile, error: checkError } = await supabase
-                .from('profiles').select('id').eq('web3_address', lowerCaseAddress).single();
+                .from('profiles')
+                .select('id')
+                .eq('web3_address', lowerCaseAddress)
+                .single();
 
             if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
             if (existingProfile && existingProfile.id !== currentUser.id) {
                 throw new Error("Dompet ini sudah ditautkan ke akun lain.");
             }
 
             const { data, error: updateError } = await supabase
-                .from('profiles').update({ web3_address: lowerCaseAddress }).eq('id', currentUser.id).select().single();
+                .from('profiles')
+                .update({ web3_address: lowerCaseAddress })
+                .eq('id', currentUser.id)
+                .select()
+                .single();
 
             if (updateError) throw updateError;
             onUpdateUser(mapSupabaseDataToAppUser(currentUser, data));
@@ -271,7 +280,15 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             setIsLinkingEmail(false);
         }
     };
-
+    
+    // Ini adalah `useEffect` yang menyebabkan penggabungan, jadi kita hapus.
+    /* useEffect(() => {
+        if (isConnected && address && !currentUser.address) {
+            handleLinkWallet();
+        }
+    }, [isConnected, address, currentUser, handleLinkWallet]);
+    */
+    
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
@@ -370,7 +387,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     </div>
                 </div>
 
-                {/* --- CARD BARU KHUSUS UNTUK AFA WALLET --- */}
+                {/* --- KARTU BARU KHUSUS UNTUK AFA WALLET --- */}
                 <div className="card rounded-xl p-6 md:p-8 shadow-xl">
                     <h3 className="text-xl md:text-2xl font-semibold mb-5 text-light-text dark:text-white border-b border-black/10 dark:border-white/10 pb-3 flex items-center">
                         <FontAwesomeIcon icon={faIdCard} className="mr-3 text-primary" /> AFA Wallet (Smart Wallet)
@@ -436,7 +453,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                 )}
                             </div>
                         </li>
-                        
+
+                        {/* --- BAGIAN DOMPET EKSTERNAL --- */}
                         <li className="flex items-start gap-4">
                              <div className="bg-purple-500/10 text-purple-400 h-10 w-10 flex-shrink-0 rounded-lg flex items-center justify-center">
                                  <FontAwesomeIcon icon={faWallet} />
