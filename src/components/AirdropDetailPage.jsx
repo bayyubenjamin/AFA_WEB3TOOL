@@ -69,37 +69,37 @@ const UpdatesSidebar = ({ updates, onUpdateClick }) => {
     return null;
   }
 
+  // PERUBAHAN: Sidebar diposisikan absolut di sebelah kiri konten utama
   return (
-    // PERUBAHAN: Menggunakan positioning absolute agar tidak menggeser konten utama
-    <div className="absolute top-24 left-0 h-full hidden xl:block">
-        <div className="sticky top-24 w-72 space-y-1 card p-4 ml-4">
-            <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-3 mb-3 pb-3 border-b border-black/10 dark:border-white/10">
-            <FontAwesomeIcon icon={faListOl} className="text-primary"/>
-            Navigasi Update
-            </h3>
-            <div className="relative">
-            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-black/10 dark:bg-white/10"></div>
-            {updates.map((update) => (
-                <button 
-                key={update.id}
-                onClick={() => onUpdateClick(update.id)}
-                className="w-full text-left flex items-start gap-4 p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
-                >
-                <div className="relative z-10 mt-1">
-                    <FontAwesomeIcon icon={faCheckCircle} className="text-black/20 dark:text-white/20 text-base group-hover:text-primary transition-colors" />
+    <div className="absolute top-0 right-full h-full hidden xl:block mr-8">
+      <div className="sticky top-24 w-72 space-y-1 card p-4">
+        <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-3 mb-3 pb-3 border-b border-black/10 dark:border-white/10">
+          <FontAwesomeIcon icon={faListOl} className="text-primary"/>
+          Navigasi Update
+        </h3>
+        <div className="relative">
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-black/10 dark:bg-white/10"></div>
+          {updates.map((update) => (
+            <button 
+              key={update.id}
+              onClick={() => onUpdateClick(update.id)}
+              className="w-full text-left flex items-start gap-4 p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
+            >
+              <div className="relative z-10 mt-1">
+                <FontAwesomeIcon icon={faCheckCircle} className="text-black/20 dark:text-white/20 text-base group-hover:text-primary transition-colors" />
+              </div>
+              <div>
+                <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white leading-tight">
+                  {update.title}
                 </div>
-                <div>
-                    <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white leading-tight">
-                    {update.title}
-                    </div>
-                    <div className="text-xs text-light-subtle dark:text-gray-500 mt-1.5">
-                    {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
-                    </div>
+                <div className="text-xs text-light-subtle dark:text-gray-500 mt-1.5">
+                  {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
                 </div>
-                </button>
-            ))}
-            </div>
+              </div>
+            </button>
+          ))}
         </div>
+      </div>
     </div>
   );
 };
@@ -239,21 +239,23 @@ export default function AirdropDetailPage({ currentUser }) {
   const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-400';
 
   return (
-    // PERUBAHAN: Layout diatur agar main content tetap di tengah dan sidebar "melayang" di kiri
     <>
-      <div className="relative py-6 md:py-8">
+      {/* PERUBAHAN: max-w-full lg:max-w-5xl, relative */}
+      <div className="relative max-w-full lg:max-w-5xl mx-auto py-6 md:py-8">
         <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
 
-        <div className="max-w-4xl mx-auto px-4">
-          <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
+        {/* PERUBAHAN: Menghilangkan mx-auto dan px-4 dari sini agar lebar penuh di mobile */}
+        <div className="w-full">
+          <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center px-4">
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
             {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
           </Link>
-          <div className="card rounded-2xl shadow-2xl overflow-hidden">
-            <div className="relative w-full h-48 md:h-64 overflow-hidden"><img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-light-card dark:from-card via-light-card/70 dark:via-card/70 to-transparent"></div>
+          <div className="card rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl overflow-hidden">
+            <div className="relative w-full h-48 md:h-64 overflow-hidden">
+                <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
+                {/* PERUBAHAN: gradasi pada gambar telah dihapus */}
             </div>
-            <div className="p-6 md:p-8">
+            <div className="p-4 sm:p-6 md:p-8">
               <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
               <div className="flex justify-between items-start gap-4 mb-3">
                 <h1 className="text-3xl md:text-4xl font-bold text-light-text dark:text-white">{airdrop.title}</h1>
