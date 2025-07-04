@@ -50,7 +50,6 @@ const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
               onClick={() => onUpdateClick(update.id)}
               className="w-full text-left p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
             >
-              {/* PERUBAHAN: Nomor list dihapus */}
               <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white truncate">
                 {update.title}
               </div>
@@ -65,44 +64,42 @@ const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
   );
 };
 
-// PERUBAHAN: Desain Ulang Sidebar
 const UpdatesSidebar = ({ updates, onUpdateClick }) => {
   if (!updates || updates.length === 0) {
     return null;
   }
 
   return (
-    <div className="hidden lg:block w-72 flex-shrink-0">
-      <div className="sticky top-24 space-y-1 card p-4">
-        <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-3 mb-3 pb-3 border-b border-black/10 dark:border-white/10">
-          <FontAwesomeIcon icon={faListOl} className="text-primary"/>
-          Navigasi Update
-        </h3>
-        <div className="relative">
-          {/* Garis vertikal untuk timeline */}
-          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-black/10 dark:bg-white/10"></div>
-          {updates.map((update) => (
-            <button 
-              key={update.id}
-              onClick={() => onUpdateClick(update.id)}
-              className="w-full text-left flex items-start gap-4 p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
-            >
-              <div className="relative z-10 mt-1">
-                <FontAwesomeIcon icon={faCheckCircle} className="text-black/20 dark:text-white/20 text-base group-hover:text-primary transition-colors" />
-              </div>
-              <div>
-                {/* PERUBAHAN: Nomor list dihapus */}
-                <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white leading-tight">
-                  {update.title}
+    // PERUBAHAN: Menggunakan positioning absolute agar tidak menggeser konten utama
+    <div className="absolute top-24 left-0 h-full hidden xl:block">
+        <div className="sticky top-24 w-72 space-y-1 card p-4 ml-4">
+            <h3 className="text-lg font-bold text-light-text dark:text-white flex items-center gap-3 mb-3 pb-3 border-b border-black/10 dark:border-white/10">
+            <FontAwesomeIcon icon={faListOl} className="text-primary"/>
+            Navigasi Update
+            </h3>
+            <div className="relative">
+            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-black/10 dark:bg-white/10"></div>
+            {updates.map((update) => (
+                <button 
+                key={update.id}
+                onClick={() => onUpdateClick(update.id)}
+                className="w-full text-left flex items-start gap-4 p-2.5 rounded-lg transition-colors duration-200 hover:bg-primary/10 group"
+                >
+                <div className="relative z-10 mt-1">
+                    <FontAwesomeIcon icon={faCheckCircle} className="text-black/20 dark:text-white/20 text-base group-hover:text-primary transition-colors" />
                 </div>
-                <div className="text-xs text-light-subtle dark:text-gray-500 mt-1.5">
-                  {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                <div>
+                    <div className="font-semibold text-sm text-light-text dark:text-gray-200 group-hover:text-primary dark:group-hover:text-white leading-tight">
+                    {update.title}
+                    </div>
+                    <div className="text-xs text-light-subtle dark:text-gray-500 mt-1.5">
+                    {new Date(update.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                    </div>
                 </div>
-              </div>
-            </button>
-          ))}
+                </button>
+            ))}
+            </div>
         </div>
-      </div>
     </div>
   );
 };
@@ -183,7 +180,6 @@ export default function AirdropDetailPage({ currentUser }) {
       if (airdropError) throw airdropError;
       setAirdrop(airdropData);
 
-      // PERUBAHAN: Urutan diubah menjadi 'ascending: true' agar update baru di bawah
       const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: true });
       if (updatesError) throw updatesError;
       setUpdates(updatesData || []);
@@ -243,11 +239,12 @@ export default function AirdropDetailPage({ currentUser }) {
   const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-400';
 
   return (
+    // PERUBAHAN: Layout diatur agar main content tetap di tengah dan sidebar "melayang" di kiri
     <>
-      <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto py-6 md:py-8 px-4">
+      <div className="relative py-6 md:py-8">
         <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
 
-        <div className="w-full lg:max-w-4xl min-w-0">
+        <div className="max-w-4xl mx-auto px-4">
           <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
             {language === 'id' ? 'Kembali ke Daftar Airdrop' : 'Back to Airdrop List'}
