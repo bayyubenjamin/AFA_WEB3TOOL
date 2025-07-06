@@ -1,5 +1,3 @@
-// src/App.jsx - KODE LENGKAP
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
@@ -7,7 +5,6 @@ import { useWeb3Modal } from "@web3modal/wagmi/react";
 
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-// DesktopNav tidak perlu di-import di sini lagi
 import BackToTopButton from './components/BackToTopButton';
 
 import PageHome from "./components/PageHome";
@@ -82,7 +79,7 @@ export default function App() {
   const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  
+ 
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
@@ -128,7 +125,7 @@ export default function App() {
       setShowBackToTop(false);
     }
   };
-  
+ 
   const scrollToTop = () => {
     if (pageContentRef.current) {
       pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -165,16 +162,26 @@ export default function App() {
       setHasNewAirdropNotification(false);
     }
   }, []);
-  
+ 
   const handleMarkAirdropsAsSeen = () => {
     localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString());
     setHasNewAirdropNotification(false);
   };
-  
+ 
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
 
   useEffect(() => {
     setLoadingInitialSession(true);
+    
+    // --- PERBAIKAN DIMULAI ---
+    // Timeout untuk memastikan loading tidak stuck
+    const loadingTimeout = setTimeout(() => {
+      if (loadingInitialSession) {
+        console.warn("Session loading timed out. Forcing UI to display.");
+        setLoadingInitialSession(false);
+      }
+    }, 5000); // 5 detik
+
     const handleAuthChange = async (session) => {
       try {
         if (session && session.user) {
@@ -204,13 +211,22 @@ export default function App() {
         setCurrentUser(defaultGuestUserForApp);
         localStorage.removeItem(LS_CURRENT_USER_KEY);
       } finally {
+        // Hapus timeout dan set loading ke false jika proses selesai
+        clearTimeout(loadingTimeout);
         setLoadingInitialSession(false);
       }
     };
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => handleAuthChange(session));
     supabase.auth.getSession().then(({ data: { session } }) => handleAuthChange(session));
-    return () => subscription?.unsubscribe();
-  }, [navigate, address]);
+    
+    // Cleanup function untuk membersihkan subscription dan timeout
+    return () => {
+      subscription?.unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
+    // --- PERBAIKAN SELESAI ---
+  }, [navigate, address]); // dependensi tetap sama
 
   useEffect(() => {
     const updateOnlineCount = () => {
@@ -253,18 +269,16 @@ export default function App() {
     setCurrentUser(updatedUserData);
     localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
   };
-  
+ 
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => openWalletModal();
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
   return (
-    // Struktur utama kembali menjadi satu kolom vertikal
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      {/* Header akan merender navigasi desktop di dalamnya */}
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      
+     
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
@@ -288,12 +302,11 @@ export default function App() {
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
       </main>
-      
-      {/* Navigasi bawah untuk mobile */}
+     
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      
+     
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-      
+     
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
