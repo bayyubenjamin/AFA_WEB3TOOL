@@ -1,17 +1,15 @@
-// src/App.jsx - KODE LENGKAP DENGAN PERBAIKAN LAYOUT DESKTOP
+// src/App.jsx - KODE LENGKAP
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Komponen Aplikasi
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-import DesktopNav from './components/DesktopNav';
+// DesktopNav tidak perlu di-import di sini lagi
 import BackToTopButton from './components/BackToTopButton';
 
-// Halaman-halaman Aplikasi
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
@@ -30,7 +28,6 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
-// Utilitas & Lainnya
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -263,42 +260,37 @@ export default function App() {
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
   return (
-    // 👇 PERUBAHAN UTAMA DI SINI: MENGGUNAKAN lg-desktop UNTUK KONSISTENSI
-    <div className="app-container font-sans h-screen flex flex-col lg-desktop:flex-row overflow-hidden">
-      {/* Sidebar untuk Desktop */}
-      {showNav && <DesktopNav currentUser={userForHeader} hasNewAirdropNotification={hasNewAirdropNotification} />}
+    // Struktur utama kembali menjadi satu kolom vertikal
+    <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
+      {/* Header akan merender navigasi desktop di dalamnya */}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
       
-      {/* Kontainer Utama untuk Header, Main, dan BottomNav */}
-      <div className="flex flex-col flex-grow h-screen overflow-hidden">
-        {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
-        
-        <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
-          <Routes>
-            <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-            <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-            <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
-            <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-            <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
-            <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-            <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
-            <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-            <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
-            <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-            <Route path="/admin" element={<PageAdminDashboard />} />
-            <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-            <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-            <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-          </Routes>
-        </main>
-        
-        {/* Navigasi Bawah untuk Mobile */}
-        {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      </div>
+      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
+        <Routes>
+          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+          <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
+          <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+          <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+          <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+          <Route path="/admin" element={<PageAdminDashboard />} />
+          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+        </Routes>
+      </main>
+      
+      {/* Navigasi bawah untuk mobile */}
+      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
       
