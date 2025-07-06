@@ -1,4 +1,4 @@
-// src/App.jsx - KODE LENGKAP FINAL YANG SUDAH DIPERBAIKI
+// src/App.jsx - KODE LENGKAP DENGAN PERBAIKAN LAYOUT DESKTOP
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -263,9 +263,12 @@ export default function App() {
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
   return (
-    <div className="app-container font-sans h-screen flex flex-col md:flex-row overflow-hidden">
+    // 👇 PERUBAHAN UTAMA DI SINI: MENGGUNAKAN lg-desktop UNTUK KONSISTENSI
+    <div className="app-container font-sans h-screen flex flex-col lg-desktop:flex-row overflow-hidden">
+      {/* Sidebar untuk Desktop */}
       {showNav && <DesktopNav currentUser={userForHeader} hasNewAirdropNotification={hasNewAirdropNotification} />}
       
+      {/* Kontainer Utama untuk Header, Main, dan BottomNav */}
       <div className="flex flex-col flex-grow h-screen overflow-hidden">
         {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
         
@@ -293,6 +296,7 @@ export default function App() {
           </Routes>
         </main>
         
+        {/* Navigasi Bawah untuk Mobile */}
         {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       </div>
       
