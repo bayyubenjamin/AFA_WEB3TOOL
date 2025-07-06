@@ -1,10 +1,16 @@
+// src/App.jsx - Kode Lengkap dengan Fitur Back to Top
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
+// Komponen Aplikasi
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
+import BackToTopButton from './components/BackToTopButton'; // <-- IMPORT BARU
+
+// Halaman-halaman Aplikasi
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
@@ -23,13 +29,14 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
+// Utilitas & Lainnya
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 
 const LS_CURRENT_USER_KEY = 'web3AirdropCurrentUser_final_v9';
-const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp'; // Konstanta dipindahkan ke sini
+const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
@@ -80,8 +87,9 @@ export default function App() {
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
-
+  
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false); // <-- STATE BARU
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
 
@@ -137,12 +145,27 @@ export default function App() {
 
   const handleScroll = (event) => {
     const currentScrollY = event.currentTarget.scrollTop;
+    
+    // Logika sembunyikan/tampilkan header
     if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
       setIsHeaderVisible(false);
     } else {
       setIsHeaderVisible(true);
     }
     lastScrollY.current = currentScrollY;
+
+    // <-- LOGIKA BARU untuk tombol Back to Top
+    setShowBackToTop(currentScrollY > 400); 
+  };
+  
+  // <-- FUNGSI BARU untuk scroll ke atas
+  const scrollToTop = () => {
+    if (pageContentRef.current) {
+      pageContentRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
@@ -256,6 +279,7 @@ export default function App() {
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
+      
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto custom-scrollbar`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
@@ -279,7 +303,12 @@ export default function App() {
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
       </main>
-      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
+
+      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} isVisible={isHeaderVisible} />}
+      
+      {/* <-- RENDER TOMBOL BARU DI SINI --> */}
+      <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
+      
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>

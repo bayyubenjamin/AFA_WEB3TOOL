@@ -1,4 +1,4 @@
-/* src/styles/style.css - Kode Lengkap dengan Penambahan Efek Stroke & Custom Scrollbar */
+/* src/styles/style.css - Kode Lengkap dengan Efek Stroke, Scrollbar, & Back to Top Button */
 
 @tailwind base;
 @tailwind components;
@@ -23,9 +23,8 @@
 }
 
 @layer components {
-  /* === [PENAMBAHAN BARU] CSS UNTUK EFEK STROKE PADA TEKS === */
+  /* CSS untuk Efek Stroke pada Teks */
   .text-stroke-primary {
-    /* Menggunakan warna primer (#1B4DC1) dari tema Anda sebagai warna stroke */
     text-shadow:
       -1.5px -1.5px 0 #1B4DC1,
        1.5px -1.5px 0 #1B4DC1,
@@ -36,7 +35,6 @@
         0    -1.5px 0 #1B4DC1,
         0     1.5px 0 #1B4DC1;
   }
-  /* === AKHIR PENAMBAHAN BARU === */
 
   /* Main App Container background */
   .app-container {
@@ -135,45 +133,51 @@
   }
   .content-enter { @apply opacity-0 translate-y-5; }
 
-  /* === [PENAMBAHAN BARU] SCROLLBAR KUSTOM === */
-  /* Kustomisasi untuk Webkit (Chrome, Safari, Edge baru) */
+  /* Scrollbar Kustom */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px; /* Lebar scrollbar */
+    width: 8px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent; /* Membuat track transparan */
+    background: transparent;
     margin-block: 5px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #34495e; /* Warna thumb scrollbar untuk mode terang */
+    background: #34495e;
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #2c3e50; /* Warna thumb saat di-hover */
+    background: #2c3e50;
   }
-
-  /* Kustomisasi untuk Dark Mode */
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #94A3B8; /* Warna thumb scrollbar untuk mode gelap */
+    background: #94A3B8;
   }
-
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #E0E8F4; /* Warna thumb saat di-hover di mode gelap */
+    background: #E0E8F4;
   }
-
-  /* Kustomisasi untuk Firefox */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: #34495e transparent;
   }
-
   .dark .custom-scrollbar {
       scrollbar-color: #94A3B8 transparent;
+  }
+
+  /* === [PENAMBAHAN BARU] BACK TO TOP BUTTON === */
+  .back-to-top-btn {
+    @apply fixed bottom-20 md:bottom-6 right-6 z-50;
+    @apply bg-primary text-white rounded-full p-3 shadow-lg;
+    @apply opacity-0 invisible scale-90 translate-y-2;
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  .back-to-top-btn.active {
+    @apply opacity-100 visible scale-100 translate-y-0;
+  }
+
+  .back-to-top-btn:hover {
+    @apply bg-accent scale-110;
   }
   /* === AKHIR PENAMBAHAN BARU === */
 }
