@@ -256,7 +256,7 @@ export default function App() {
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto`}>
+      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${showNav ? mainPaddingBottomClass : ''} overflow-y-auto custom-scrollbar`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />

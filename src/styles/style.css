@@ -1,5 +1,4 @@
-/* src/styles/style.css - Kode Lengkap dengan Penambahan Efek Stroke */
-
+/* src/styles/style.css - Kode Lengkap dengan Penambahan Efek Stroke & Custom Scrollbar */
 
 @tailwind base;
 @tailwind components;
@@ -135,4 +134,46 @@
     transform: translateY(0px) !important;
   }
   .content-enter { @apply opacity-0 translate-y-5; }
+
+  /* === [PENAMBAHAN BARU] SCROLLBAR KUSTOM === */
+  /* Kustomisasi untuk Webkit (Chrome, Safari, Edge baru) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px; /* Lebar scrollbar */
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; /* Membuat track transparan */
+    margin-block: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #34495e; /* Warna thumb scrollbar untuk mode terang */
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2c3e50; /* Warna thumb saat di-hover */
+  }
+
+  /* Kustomisasi untuk Dark Mode */
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #94A3B8; /* Warna thumb scrollbar untuk mode gelap */
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #E0E8F4; /* Warna thumb saat di-hover di mode gelap */
+  }
+
+  /* Kustomisasi untuk Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #34495e transparent;
+  }
+
+  .dark .custom-scrollbar {
+      scrollbar-color: #94A3B8 transparent;
+  }
+  /* === AKHIR PENAMBAHAN BARU === */
 }
