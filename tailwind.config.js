@@ -11,6 +11,7 @@ module.exports = {
     extend: {
       screens: {
         'lg-desktop': '1100px',
+        'logo-bp': '1099px', // Tambahkan baris ini
       },
       colors: {
         'primary': {

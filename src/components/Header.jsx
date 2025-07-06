@@ -1,3 +1,5 @@
+// src/components/Header.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -87,7 +89,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           />
           <Link
             to="/forum"
-            className="p-2 w-10 h-10 hidden md:flex items-center justify-center header-interactive-item ml-2"
+            className="p-2 w-10 h-10 hidden logo-bp:flex items-center justify-center header-interactive-item ml-2"
             aria-label="Forum"
           >
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
@@ -119,7 +121,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
          
           <Link
             to="/forum"
-            className="p-2 w-10 h-10 flex md:hidden items-center justify-center header-interactive-item"
+            className="p-2 w-10 h-10 flex logo-bp:hidden items-center justify-center header-interactive-item"
             aria-label="Forum"
           >
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
