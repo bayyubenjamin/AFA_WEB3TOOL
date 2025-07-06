@@ -1,14 +1,17 @@
+// src/components/Header.jsx - KODE LENGKAP DIPERBAIKI
+
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, faComments, faShieldHalved, faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import DesktopNav from './DesktopNav';
+
+// DesktopNav sudah tidak perlu di-import lagi di sini
+// import DesktopNav from './DesktopNav'; 
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
-// PENAMBAHAN PROP 'hasNewAirdropNotification'
 export default function Header({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeaderVisible, hasNewAirdropNotification }) {
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -30,7 +33,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
- 
+  
   const handleLanguageChange = (lang) => {
     changeLanguage(lang);
     setIsOptionsMenuOpen(false);
@@ -48,7 +51,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     }
     setIsOptionsMenuOpen(false);
   };
- 
+  
   const handleLoginNav = () => {
     navigateTo('/login');
     setIsOptionsMenuOpen(false);
@@ -58,7 +61,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
     navigateTo('/profile');
     setIsOptionsMenuOpen(false);
   }
- 
+  
   const handleAdminNav = () => {
     navigate('/admin');
     setIsOptionsMenuOpen(false);
@@ -112,11 +115,10 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
         >
           {title}
         </h1>
-       
+        
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* PENAMBAHAN: Meneruskan prop 'hasNewAirdropNotification' ke DesktopNav */}
-          <DesktopNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />
-         
+          {/* BARIS DESKTOPNAV DI BAWAH INI SUDAH DIHAPUS */}
+          
           <Link
             to="/forum"
             className="p-2 w-10 h-10 flex md:hidden items-center justify-center header-interactive-item"
@@ -124,7 +126,7 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
           >
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
-         
+          
           <div className="relative" ref={menuRef}>
             <button
               onClick={toggleOptionsMenu}
@@ -133,10 +135,10 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
             >
               <FontAwesomeIcon icon={faBars} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
             </button>
-           
+            
             <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
                 <ul>
-                 {isAdmin && (
+                  {isAdmin && (
                     <li onClick={handleAdminNav}>
                       <FontAwesomeIcon icon={faShieldHalved} /> Admin Panel
                     </li>
