@@ -35,6 +35,7 @@ import { useLanguage } from "./context/LanguageContext";
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
+// Objek default untuk pengguna yang belum login (Guest)
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
@@ -42,6 +43,7 @@ const defaultGuestUserForApp = {
   user_metadata: {}
 };
 
+// Fungsi untuk memetakan data Supabase ke objek user yang dipakai di aplikasi
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   if (!authUser) return defaultGuestUserForApp;
   return {
@@ -63,7 +65,6 @@ const createProfileForUser = async (user) => {
     const { data, error } = await supabase.from('profiles').insert({
         id: user.id,
         email: user.email,
-        // Ambil data dari metadata jika ada (misal dari login via Google/Telegram)
         username: user.user_metadata?.user_name || user.email.split('@')[0],
         name: user.user_metadata?.full_name || user.email.split('@')[0],
         avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,2).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
@@ -86,7 +87,6 @@ const createProfileForUser = async (user) => {
   }
 };
 
-
 export default function App() {
   // --- STATE MANAGEMENT ---
   const [currentUser, setCurrentUser] = useState(null);
@@ -96,12 +96,14 @@ export default function App() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(0);
   const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
   
-  // Refs
+  // Refs & Hooks
+  const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
-  
-  // Hooks
+  const backToTopTimeoutRef = useRef(null);
+  const scrollUpStartPosRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -109,12 +111,15 @@ export default function App() {
   const { address } = useAccount();
   const { open: openWalletModal } = useWeb3Modal();
 
-  // --- EFEK UTAMA UNTUK AUTENTIKASI ---
+  // --- EFEK UTAMA UNTUK AUTENTIKASI (VERSI FINAL) ---
   useEffect(() => {
     // Failsafe: jika dalam 7 detik masih loading, paksa hilangkan.
     const loadingTimeout = setTimeout(() => {
       console.error("TIMEOUT: Proses loading macet. Cek RLS & koneksi Supabase. Menampilkan UI secara paksa.");
-      setLoadingInitialSession(false);
+      if (loadingInitialSession) {
+        setLoadingInitialSession(false);
+        setCurrentUser(defaultGuestUserForApp);
+      }
     }, 7000);
 
     // Fungsi ini adalah jantung dari sistem. Dipanggil setiap kali status auth berubah.
@@ -136,7 +141,6 @@ export default function App() {
 
         if (profileError) {
           console.error("GAGAL mengambil profil. Pastikan RLS di tabel 'profiles' sudah benar!", profileError);
-          // Jangan lanjutkan jika RLS error. Logout paksa.
           await supabase.auth.signOut();
           return;
         }
@@ -147,7 +151,6 @@ export default function App() {
           profile = await createProfileForUser(session.user);
         }
 
-        // Jika profil berhasil didapat atau dibuat, set user.
         if (profile) {
           console.log("Profil berhasil dimuat. Mengatur user di aplikasi.");
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
@@ -182,9 +185,11 @@ export default function App() {
       subscription?.unsubscribe();
       clearTimeout(loadingTimeout);
     };
-  }, []); // <-- Dependensi kosong, hanya berjalan sekali.
+  }, []);
 
-  // Sinkronisasi alamat dompet Wagmi ke profil Supabase
+  // --- EFEK LAIN-LAIN ---
+
+  // Efek untuk sinkronisasi alamat dompet
   useEffect(() => {
     if (address && currentUser?.id && address !== currentUser.address) {
       console.log(`Alamat dompet terdeteksi: ${address}. Menyimpan ke profil...`);
@@ -192,47 +197,76 @@ export default function App() {
         .then(({ error }) => {
           if (error) console.error("Gagal update alamat dompet ke Supabase:", error);
           else {
-            // Update state lokal juga agar UI sinkron
             setCurrentUser(prevUser => ({...prevUser, address}));
           }
         });
     }
   }, [address, currentUser?.id]);
+  
+  // Efek untuk mengubah judul header berdasarkan halaman
+  useEffect(() => {
+    const path = location.pathname.split('/')[1] || 'home';
+    const titles = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" };
+    setHeaderTitle(titles[path] || "AFA WEB3TOOL");
+  }, [location, language]);
 
   // Handler Logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     disconnect(); // Dari Wagmi
+    setCurrentUser(null);
     navigate('/login');
   };
   
-  // Sisa komponen... (tidak ada perubahan logika)
+  const handleUpdateUserInApp = (updatedUserData) => {
+    setCurrentUser(updatedUserData);
+  };
+  
+  // --- RENDER ---
+
+  // Jika masih loading, tampilkan spinner. Ini untuk mencegah render komponen lain sebelum sesi siap.
+  if (loadingInitialSession) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg">
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
+        <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
+      </div>
+    );
+  }
+
+  // Setelah loading selesai, render aplikasi utama.
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register');
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} isHeaderVisible={isHeaderVisible} />}
+      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
+
       <main ref={pageContentRef} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all pb-[var(--bottomnav-height)] md:pb-6 overflow-y-auto custom-scrollbar`}>
         <Routes>
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} />} />
+          <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+          <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
           <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
           <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
           <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
           <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-          <Route path="/login" element={<PageLogin />} />
-          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} />} />
+          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+          <Route path="/admin" element={<PageAdminDashboard />} />
+          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
+          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} onOpenWalletModal={openWalletModal} />} />
           <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
         </Routes>
       </main>
-      {showNav && <BottomNav currentUser={currentUser} />}
+
+      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <BackToTopButton show={showBackToTop} onClick={() => pageContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} />
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-        <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
-      </div>
     </div>
   );
 }
