@@ -1,106 +1,110 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+// ⚠️ Kalau pakai Deno di Supabase Edge Function, tidak bisa pakai 'node:crypto'
+import { encode as encodeHex } from "https://deno.land/std@0.224.0/encoding/hex.ts";
+
+function checkTelegramAuth(initData: string, botToken: string): boolean {
+  const encoder = new TextEncoder();
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  params.delete("hash");
+
+  const dataCheckString = [...params.entries()]
+    .map(([key, value]) => `${key}=${value}`)
+    .sort()
+    .join("\n");
+
+  const secretKey = new Uint8Array(
+    crypto.subtle
+      .digestSync?.("SHA-256", encoder.encode(botToken)) ??
+    []
+  );
+
+  return crypto.subtle.importKey(
+    "raw",
+    secretKey,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  ).then((key) =>
+    crypto.subtle.sign("HMAC", key, encoder.encode(dataCheckString))
+  ).then((sig) => {
+    const hmac = Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hmac === hash;
+  });
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
   }
 
   try {
     const { initData } = await req.json();
-    if (!initData) throw new Error('initData tidak ditemukan');
-
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) throw new Error("Hash tidak ada di dalam initData");
-
-    // ✅ Pembuatan data_check_string sesuai Telegram docs
-    const entries = [...params.entries()]
-      .filter(([key]) => key !== 'hash')
-      .sort((a, b) => a[0].localeCompare(b[0]));
-    const dataCheckString = entries.map(([key, value]) => `${key}=${value}`).join('\n');
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(BOT_TOKEN!),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      new TextEncoder().encode(dataCheckString)
-    );
-    const serverHash = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    if (serverHash !== hash) {
-      console.error(`❌ [Hash Tidak Cocok]
-Client hash: ${hash}
-📥 DataCheckString: ${dataCheckString}
-Server hash: ${serverHash}`);
-      throw new Error("Verifikasi data gagal. Hash tidak cocok.");
-    }
-
-    const userRaw = params.get('user');
-    if (!userRaw) throw new Error("User data tidak ditemukan di initData");
-    const user = JSON.parse(userRaw);
-
-    const telegramUserId = user.id;
-    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-
-    let { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('telegram_user_id', telegramUserId)
-      .single();
-
-    if (!profile) {
-      const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: `${telegramUserId}@telegram.user`,
-        email_confirm: true,
+    if (!initData) {
+      return new Response(JSON.stringify({ error: "Missing initData" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
       });
-      if (authError) throw authError;
-
-      const { data: newProfile, error: newProfileError } = await supabaseAdmin.from('profiles').insert({
-        id: newUser.user.id,
-        telegram_user_id: telegramUserId,
-        username: user.username || `user_${telegramUserId}`,
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || `User ${telegramUserId}`,
-        avatar_url: user.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name || 'U')}&background=1a1a2e&color=fff`,
-        email: newUser.user.email
-      }).select().single();
-
-      if (newProfileError) throw newProfileError;
-      profile = newProfile;
     }
 
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: profile.email,
-    });
-    if (sessionError) throw sessionError;
+    const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const isValid = await checkTelegramAuth(initData, TELEGRAM_BOT_TOKEN);
 
-    return new Response(JSON.stringify({
-      access_token: sessionData.properties.access_token,
-      refresh_token: sessionData.properties.refresh_token,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!isValid) {
+      return new Response(JSON.stringify({ error: "Invalid hash" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const searchParams = new URLSearchParams(initData);
+    const userJson = searchParams.get("user");
+    const telegramUserId = JSON.parse(userJson || "{}").id;
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: "telegram",
+      token: telegramUserId,
+    });
+
+    if (error) {
+      console.error("SignIn error:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify(data), {
       status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+      },
     });
-
-  } catch (error) {
-    console.error(`❗ [ERROR Telegram Auth Function] ${error}`);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+  } catch (e) {
+    console.error("Unexpected error:", e);
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+      },
     });
   }
 });

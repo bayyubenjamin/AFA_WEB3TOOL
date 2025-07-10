@@ -1,0 +1,20 @@
+[functions]
+[functions.telegram-auth]
+verify_jwt = { required = false }
+cors = { 
+  allow_origin = ["https://afatestweb.vercel.app", "https://web.telegram.org"], 
+  allow_methods = ["GET", "POST", "OPTIONS"],
+  allow_headers = ["*"]
+}
+import_map = "./functions/telegram-auth/deno.json"
+entrypoint = "./functions/telegram-auth/index.ts"
+[functions.login-with-wallet]
+verify_jwt = { required = true }
+cors = { 
+  allow_origin = ["https://afatestweb.vercel.app"], 
+  allow_methods = ["GET", "POST", "OPTIONS"],
+  allow_headers = ["*"]
+}
+import_map = "./functions/login-with-wallet/deno.json"
+entrypoint = "./functions/login-with-wallet/index.ts"
+
