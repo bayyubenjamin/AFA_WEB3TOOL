@@ -1,4 +1,4 @@
-// supabase/functions/telegram-auth/index.ts (VERSI FINAL DENGAN PARSING MANUAL)
+// supabase/functions/telegram-auth/index.ts (VERSI FINAL & PRODUKSI)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -18,13 +18,13 @@ serve(async (req) => {
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
     if (!hash) throw new Error("Hash tidak ada di dalam initData");
-    
+
     // --- [PERBAIKAN UTAMA] Cara paling andal untuk membuat data_check_string ---
     // Memecah string mentah, memfilter hash, mengurutkan, lalu menggabungkan.
     const dataCheckArr = initData
       .split('&')
       .map(pair => decodeURIComponent(pair))
-      .filter(pair => !pair.startsWith('hash='))
+      .filter(pair => !pair.startsWith('hash=')) // Filter hash secara eksplisit
       .sort();
     
     const dataCheckString = dataCheckArr.join('\n');
@@ -40,6 +40,7 @@ serve(async (req) => {
       throw new Error('Verifikasi data gagal! Hash tidak cocok.');
     }
 
+    // Jika hash cocok, lanjutkan ke logika login
     const user = JSON.parse(params.get('user') || '{}');
     if (!user.id) throw new Error("Data user tidak valid di dalam initData.");
     
@@ -72,6 +73,7 @@ serve(async (req) => {
 
     if (sessionError) throw sessionError;
 
+    // Kembalikan token ke client
     return new Response(JSON.stringify({
       access_token: sessionData.properties.access_token,
       refresh_token: sessionData.properties.refresh_token,

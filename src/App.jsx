@@ -3,7 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Komponen-komponen Anda (tidak berubah)
+// Komponen-komponen Anda
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BackToTopButton from './components/BackToTopButton';
@@ -32,6 +32,7 @@ import { useLanguage } from "./context/LanguageContext";
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
+// User default jika tidak login
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
@@ -39,7 +40,7 @@ const defaultGuestUserForApp = {
   user_metadata: {}
 };
 
-// Fungsi ini tidak perlu diubah, kita gunakan yang sudah ada.
+// Fungsi untuk memetakan data user Supabase ke format user aplikasi
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   if (!authUser) return defaultGuestUserForApp;
   return {
@@ -58,7 +59,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
 
-  // State lain yang tidak berhubungan dengan auth tetap di sini
+  // State lainnya tetap sama
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(0);
@@ -66,13 +67,13 @@ export default function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Semua refs tetap ada
+  // Refs tetap sama
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
   const scrollUpStartPosRef = useRef(null);
 
-  // Semua hooks lain tetap ada
+  // Hooks lainnya tetap sama
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // --- PERBAIKAN UTAMA ADA DI useEffect INI ---
+  // --- PERBAIKAN LOGIKA AUTENTIKASI ---
   useEffect(() => {
     setLoadingInitialSession(true);
     console.log("[Auth] Memulai pengecekan sesi...");
@@ -101,29 +102,45 @@ export default function App() {
             console.log("[Auth] Tidak ada sesi aktif, user adalah Guest.");
             setCurrentUser(null);
         }
+        // Pastikan loading selesai setelah sesi ditangani
         setLoadingInitialSession(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         console.log(`[Auth] Event terdeteksi: ${_event}`);
+        // `onAuthStateChange` akan menangani update user secara otomatis
         handleSessionUpdate(session);
     });
 
-    // Fungsi untuk autentikasi khusus di Telegram
+    // --- FUNGSI AUTENTIKASI TELEGRAM YANG DIPERBAIKI ---
     const authInTelegram = async () => {
-        console.log("[Auth] Lingkungan Telegram terdeteksi. Menunggu WebApp siap...");
+        console.log("[Auth] Lingkungan Telegram terdeteksi. Memeriksa sesi lokal...");
+
+        // 1. Coba dapatkan sesi dari local storage terlebih dahulu
+        const { data: { session: localSession } } = await supabase.auth.getSession();
+
+        // 2. Periksa apakah sesi lokal valid dan belum kedaluwarsa
+        if (localSession && localSession.expires_at && localSession.expires_at > Date.now() / 1000) {
+            console.log("[Auth] Sesi lokal valid ditemukan. Menggunakan sesi yang ada.");
+            // Panggil handleSessionUpdate untuk mengatur state user, lalu hentikan loading.
+            handleSessionUpdate(localSession);
+            return; // Hentikan eksekusi lebih lanjut
+        }
+
+        // 3. Jika tidak ada sesi valid, lanjutkan dengan alur autentikasi initData
+        console.log("[Auth] Tidak ada sesi lokal yang valid, melanjutkan dengan alur initData.");
         window.Telegram.WebApp.ready(); // Beri tahu Telegram UI siap
 
         try {
             const initData = window.Telegram.WebApp.initData;
             if (!initData) {
-                console.warn("[Auth] initData kosong, menunggu sesi normal.");
+                console.warn("[Auth] initData kosong, mencoba getSession() sebagai fallback.");
                 const { data: { session } } = await supabase.auth.getSession();
-                handleSessionUpdate(session);
+                handleSessionUpdate(session); // Handle sesi fallback
                 return;
             }
 
-            console.log("[Auth] Mengirim initData ke function...");
+            console.log("[Auth] Mengirim initData ke function 'telegram-auth'...");
             const { data, error } = await supabase.functions.invoke('telegram-auth', {
                 body: { initData },
             });
@@ -136,20 +153,22 @@ export default function App() {
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
             });
-            // onAuthStateChange akan menangani sisanya
+            // `onAuthStateChange` akan terpanggil secara otomatis setelah setSession dan menangani sisanya.
+
         } catch (err) {
             console.error("[Auth] Gagal autentikasi via Telegram:", err);
-            // Jika gagal, coba pulihkan sesi dari local storage (jika ada)
+            // Jika gagal, tetap coba pulihkan sesi dari local storage (jika ada)
             const { data: { session } } = await supabase.auth.getSession();
             handleSessionUpdate(session);
         }
     };
 
-    // Jalankan alur yang sesuai
+    // --- PEMILIHAN ALUR AUTENTIKASI ---
     if (window.Telegram?.WebApp?.initData) {
-        authInTelegram();
+        authInTelegram(); // Jalankan alur khusus Telegram
     } else {
         console.log("[Auth] Lingkungan Non-Telegram, menjalankan getSession().");
+        // Untuk browser biasa, cukup dapatkan sesi
         supabase.auth.getSession().then(({ data: { session } }) => {
             handleSessionUpdate(session);
         });
@@ -158,7 +177,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, []); // Dependensi kosong agar hanya berjalan sekali.
+  }, []); // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat.
 
   // Semua fungsi dan useEffect lain di bawah ini TIDAK ADA PERUBAHAN
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
@@ -183,32 +202,38 @@ export default function App() {
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
 
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
-        <Routes>
-          <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-          <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-          <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
-          <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-          <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
-          <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-          <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
-          <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-          <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
-          <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
-          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-          <Route path="/admin" element={<PageAdminDashboard />} />
-          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-          <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-        </Routes>
+        {/* Loading state ditempatkan di luar Routes agar tidak terpengaruh navigasi */}
+        {!loadingInitialSession ? (
+          <Routes>
+            <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+            <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+            <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
+            <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+            <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+            <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+            <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+            <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+            <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+            <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+            <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+            <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+            <Route path="/admin" element={<PageAdminDashboard />} />
+            <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+            <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+          </Routes>
+        ) : (
+          <div>{/* Biarkan kosong sementara komponen loading utama yang aktif */}</div>
+        )}
       </main>
 
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
       
+      {/* Layar Loading Global */}
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
