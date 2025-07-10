@@ -1,3 +1,5 @@
+// src/components/PageEvents.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -13,8 +15,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../supabaseClient';
+import { useEvents } from '../hooks/useEvents'; // <-- 1. IMPORT HOOK BARU
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
+
+// =================================================================
+// KOMPONEN `EventLevelBadge` dan `EventCard` TIDAK DIUBAH SAMA SEKALI
+// =================================================================
 
 const EventLevelBadge = ({ level }) => {
   if (level === 'premium') {
@@ -37,7 +44,6 @@ const EventLevelBadge = ({ level }) => {
   
   return null; 
 };
-
 
 const EventCard = ({ event }) => {
   const isEventActive = event.end_date ? new Date(event.end_date) > new Date() : true;
@@ -98,36 +104,25 @@ const EventCard = ({ event }) => {
 
 export default function PageEvents({ currentUser }) {
   const { t } = useLanguage();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // 2. MENGGUNAKAN HOOK BARU UNTUK MENGELOLA DATA EVENT
+  const { events, loading, error } = useEvents();
+  
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
-  const fetchEventsData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-        const { data, error: fetchError } = await supabase
-            .from('events')
-            .select(`*`) // Ambil semua kolom, termasuk required_level
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
-        if (fetchError) throw fetchError;
-        setEvents(data || []);
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setLoading(false);
-    }
-  }, []);
-  
-  useEffect(() => {
-    fetchEventsData();
-  }, [fetchEventsData]);
+  // 3. LOGIKA FETCH DATA (fetchEventsData dan useEffect) SUDAH DIHAPUS
+  // dan dipindahkan ke dalam hook.
 
-  if (loading) return <div className="page-content text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary"/></div>;
-  if (error) return <div className="page-content text-center py-20 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4"/><p>{error}</p></div>;
+  // 4. PENYESUAIAN LOGIKA RENDER UNTUK CACHING
+  if (loading && events.length === 0) {
+    return <div className="page-content text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary"/></div>;
+  }
   
+  if (error && events.length === 0) {
+    return <div className="page-content text-center py-20 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="3x" className="mb-4"/><p>{error}</p></div>;
+  }
+  
+  // Logika untuk user yang belum login tidak berubah
   if (!currentUser?.id) {
     return (
       <div className="page-content flex items-center justify-center h-full">
@@ -142,6 +137,7 @@ export default function PageEvents({ currentUser }) {
     );
   }
   
+  // Return JSX tidak ada perubahan struktur sama sekali.
   return (
     <section className="page-content space-y-10 py-8">
       <div className="text-center">
