@@ -82,102 +82,83 @@ export default function App() {
   const { address } = useAccount();
 
   // --- PERBAIKAN LOGIKA AUTENTIKASI ---
-  useEffect(() => {
-    setLoadingInitialSession(true);
-    console.log("[Auth] Memulai pengecekan sesi...");
+useEffect(() => {
+  setLoadingInitialSession(true);
+  console.log("[Auth] Memulai pengecekan sesi...");
 
-    const handleSessionUpdate = async (session) => {
-        if (session?.user) {
-            console.log("[Auth] Sesi ditemukan. Mengambil profil untuk user:", session.user.id);
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            
-            const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
-            setCurrentUser(appUser);
-            console.log("[Auth] Profil dimuat, user di-set:", appUser.username);
-        } else {
-            console.log("[Auth] Tidak ada sesi aktif, user adalah Guest.");
-            setCurrentUser(null);
-        }
-        // Pastikan loading selesai setelah sesi ditangani
-        setLoadingInitialSession(false);
-    };
+  const handleSessionUpdate = async (session) => {
+    if (session?.user) {
+      console.log("[Auth] Sesi ditemukan. Mengambil profil untuk user:", session.user.id);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        console.log(`[Auth] Event terdeteksi: ${_event}`);
-        // `onAuthStateChange` akan menangani update user secara otomatis
-        handleSessionUpdate(session);
-    });
-
-    // --- FUNGSI AUTENTIKASI TELEGRAM YANG DIPERBAIKI ---
-    const authInTelegram = async () => {
-        console.log("[Auth] Lingkungan Telegram terdeteksi. Memeriksa sesi lokal...");
-
-        // 1. Coba dapatkan sesi dari local storage terlebih dahulu
-        const { data: { session: localSession } } = await supabase.auth.getSession();
-
-        // 2. Periksa apakah sesi lokal valid dan belum kedaluwarsa
-        if (localSession && localSession.expires_at && localSession.expires_at > Date.now() / 1000) {
-            console.log("[Auth] Sesi lokal valid ditemukan. Menggunakan sesi yang ada.");
-            // Panggil handleSessionUpdate untuk mengatur state user, lalu hentikan loading.
-            handleSessionUpdate(localSession);
-            return; // Hentikan eksekusi lebih lanjut
-        }
-
-        // 3. Jika tidak ada sesi valid, lanjutkan dengan alur autentikasi initData
-        console.log("[Auth] Tidak ada sesi lokal yang valid, melanjutkan dengan alur initData.");
-        window.Telegram.WebApp.ready(); // Beri tahu Telegram UI siap
-
-        try {
-            const initData = window.Telegram.WebApp.initData;
-            if (!initData) {
-                console.warn("[Auth] initData kosong, mencoba getSession() sebagai fallback.");
-                const { data: { session } } = await supabase.auth.getSession();
-                handleSessionUpdate(session); // Handle sesi fallback
-                return;
-            }
-
-            console.log("[Auth] Mengirim initData ke function 'telegram-auth'...");
-            const { data, error } = await supabase.functions.invoke('telegram-auth', {
-                body: { initData },
-            });
-
-            if (error) throw error;
-            if (data.error) throw new Error(data.error);
-
-            console.log("[Auth] Sukses! Mengatur sesi dari function.");
-            await supabase.auth.setSession({
-                access_token: data.access_token,
-                refresh_token: data.refresh_token,
-            });
-            // `onAuthStateChange` akan terpanggil secara otomatis setelah setSession dan menangani sisanya.
-
-        } catch (err) {
-            console.error("[Auth] Gagal autentikasi via Telegram:", err);
-            // Jika gagal, tetap coba pulihkan sesi dari local storage (jika ada)
-            const { data: { session } } = await supabase.auth.getSession();
-            handleSessionUpdate(session);
-        }
-    };
-
-    // --- PEMILIHAN ALUR AUTENTIKASI ---
-    if (window.Telegram?.WebApp?.initData) {
-        authInTelegram(); // Jalankan alur khusus Telegram
+      const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
+      setCurrentUser(appUser);
+      console.log("[Auth] Profil dimuat, user di-set:", appUser.username);
     } else {
-        console.log("[Auth] Lingkungan Non-Telegram, menjalankan getSession().");
-        // Untuk browser biasa, cukup dapatkan sesi
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            handleSessionUpdate(session);
-        });
+      console.log("[Auth] Tidak ada sesi aktif, user adalah Guest.");
+      setCurrentUser(null);
     }
+    setLoadingInitialSession(false);
+  };
 
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat.
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    console.log(`[Auth] Event terdeteksi: ${_event}`);
+    handleSessionUpdate(session);
+  });
+
+  const authInTelegram = async () => {
+    console.log("[Auth] Memulai authInTelegram...");
+    window.Telegram.WebApp.ready();
+
+    try {
+      const initData = window.Telegram.WebApp.initData;
+      if (!initData) {
+        console.error("[Auth] initData tidak tersedia, tidak bisa autentikasi.");
+        setCurrentUser(null);
+        setLoadingInitialSession(false);
+        return;
+      }
+
+      console.log("[Auth] Kirim initData ke Supabase Function...");
+      const { data, error } = await supabase.functions.invoke('telegram-auth', {
+        body: { initData },
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error.message);
+      }
+
+      console.log("[Auth] Berhasil dapat token dari function, setSession ke Supabase...");
+      await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+    } catch (err) {
+      console.error("[Auth] Gagal login via Telegram initData:", err.message);
+      setCurrentUser(null);
+      setLoadingInitialSession(false);
+    }
+  };
+
+  if (window.Telegram?.WebApp?.initData) {
+    authInTelegram();
+  } else {
+    console.log("[Auth] Lingkungan Non-Telegram, menjalankan getSession().");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSessionUpdate(session);
+    });
+  }
+
+  return () => {
+    subscription?.unsubscribe();
+  };
+}, []);
+ // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat.
 
   // Semua fungsi dan useEffect lain di bawah ini TIDAK ADA PERUBAHAN
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
