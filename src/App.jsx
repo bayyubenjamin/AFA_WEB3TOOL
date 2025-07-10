@@ -30,20 +30,18 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 
+// Konstanta dan fungsi helper tidak berubah
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
-
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
   address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
   user_metadata: {}
 };
-
 const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return defaultGuestUserForApp;
     return {
-        id: authUser.id,
-        email: authUser.email,
+        id: authUser.id, email: authUser.email,
         username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
         name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
         avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
@@ -55,8 +53,11 @@ const mapSupabaseDataToAppUser = (authUser, profileData) => {
 };
 
 export default function App() {
+  // =================================================================
+  // PERUBAHAN UTAMA: State management untuk auth
+  // =================================================================
+  const [authStatus, setAuthStatus] = useState('initializing'); // 'initializing', 'authenticating', 'done'
   const [currentUser, setCurrentUser] = useState(null);
-  const [loadingInitialSession, setLoadingInitialSession] = useState(true);
 
   // State lain tidak berubah
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
@@ -79,104 +80,76 @@ export default function App() {
   const { address } = useAccount();
 
   // =================================================================
-  // PERUBAHAN UTAMA ADA DI SINI
+  // PERUBAHAN UTAMA: Logika Autentikasi Terpusat
   // =================================================================
   useEffect(() => {
-    console.log("App.jsx: Mulai proses autentikasi...");
-    setLoadingInitialSession(true);
+    console.log('[AUTH_FLOW] 1. Memulai proses autentikasi...');
+    setAuthStatus('initializing');
 
-    const handleSession = async (session) => {
+    const handleSessionUpdate = async (session) => {
         if (session?.user) {
-            console.log("handleSession: Sesi ditemukan, mengambil profil untuk user:", session.user.id);
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            
-            if (profile) {
-                const appUser = mapSupabaseDataToAppUser(session.user, profile);
-                console.log("handleSession: Profil ditemukan, user di-set:", appUser.username);
-                setCurrentUser(appUser);
-            } else {
-                console.warn("handleSession: Profil tidak ditemukan untuk user:", session.user.id);
-                setCurrentUser(mapSupabaseDataToAppUser(session.user, null));
-            }
+            console.log('[AUTH_FLOW] 4a. Sesi aktif ditemukan untuk user ID:', session.user.id);
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+            const appUser = mapSupabaseDataToAppUser(session.user, profile);
+            setCurrentUser(appUser);
+            console.log('[AUTH_FLOW] 4b. Profil dimuat, user di-set:', appUser.username);
         } else {
-            console.log("handleSession: Tidak ada sesi, user di-set ke null.");
+            console.log('[AUTH_FLOW] 4c. Tidak ada sesi aktif, user adalah Guest.');
             setCurrentUser(null);
         }
-        setLoadingInitialSession(false);
-        console.log("App.jsx: Proses autentikasi selesai.");
+        setAuthStatus('done');
+        console.log('[AUTH_FLOW] 5. Proses autentikasi selesai.');
     };
 
-    // Listener ini akan menjadi satu-satunya yang mengubah state currentUser
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        console.log("onAuthStateChange: Event terdeteksi, event:", _event);
-        handleSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log(`[AUTH_FLOW] Event onAuthStateChange terdeteksi: ${event}`);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            handleSessionUpdate(session);
+        } else if (event === 'SIGNED_OUT') {
+            handleSessionUpdate(null);
+        }
     });
 
-    const runAuthFlow = async () => {
-        // Cek apakah ini lingkungan Telegram
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-            console.log("runAuthFlow: Lingkungan Telegram terdeteksi.");
+    const initializeAuth = async () => {
+        // Cek apakah di lingkungan Telegram
+        if (window.Telegram?.WebApp?.initData) {
+            console.log('[AUTH_FLOW] 2a. Lingkungan Telegram terdeteksi.');
+            setAuthStatus('authenticating');
             try {
                 const { initData } = window.Telegram.WebApp;
-                console.log("runAuthFlow: Mengirim initData ke Supabase Function...");
+                console.log('[AUTH_FLOW] 3a. Mengirim initData ke Supabase Function...');
+                const { data, error } = await supabase.functions.invoke('telegram-auth', { body: { initData } });
 
-                const { data, error } = await supabase.functions.invoke('telegram-auth', {
-                    body: { initData },
-                });
+                if (error) throw new Error(`Function invoke error: ${error.message}`);
+                if (data.error) throw new Error(`Function logic error: ${data.error}`);
 
-                if (error) throw error;
-                if (data.error) throw new Error(data.error);
-
-                console.log("runAuthFlow: Sukses! Mengatur sesi dari token yang diterima.");
-                const { access_token, refresh_token } = data;
-                // setSession akan memicu onAuthStateChange secara otomatis
-                await supabase.auth.setSession({ access_token, refresh_token });
-
+                console.log('[AUTH_FLOW] 3b. Sukses! Mengatur sesi dari token.');
+                // setSession akan memicu onAuthStateChange, yang akan memanggil handleSessionUpdate
+                await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
             } catch (err) {
-                console.error("runAuthFlow: Gagal autentikasi via Telegram:", err);
-                // Jika gagal, biarkan loading selesai dengan state user null
-                setLoadingInitialSession(false);
+                console.error('[AUTH_FLOW] Gagal total autentikasi Telegram:', err);
+                // Jika gagal, anggap sebagai guest
+                handleSessionUpdate(null);
             }
         } else {
-            // Jika bukan di Telegram, jalankan alur login browser biasa
-            console.log("runAuthFlow: Lingkungan non-Telegram, cek sesi yang ada.");
+            // Alur browser biasa
+            console.log('[AUTH_FLOW] 2b. Lingkungan non-Telegram. Cek sesi yang ada.');
             const { data: { session } } = await supabase.auth.getSession();
-            handleSession(session);
+            handleSessionUpdate(session);
         }
     };
 
-    // SOLUSI UTAMA: Tunggu event 'ready' dari Telegram sebelum menjalankan apapun
-    if (window.Telegram && window.Telegram.WebApp) {
-        console.log("Menunggu Telegram.WebApp.ready()...");
-        window.Telegram.WebApp.ready(); // Pastikan UI Telegram sudah siap
-        runAuthFlow(); // Jalankan alur setelahnya
-    } else {
-        // Jika objek Telegram belum ada, tunggu sebentar lalu coba lagi
-        // Ini untuk mengatasi race condition saat load awal
-        setTimeout(() => {
-            if (window.Telegram && window.Telegram.WebApp) {
-                console.log("Objek Telegram ditemukan setelah delay. Menunggu ready()...");
-                window.Telegram.WebApp.ready();
-                runAuthFlow();
-            } else {
-                console.log("Objek Telegram tidak ditemukan. Menjalankan alur non-Telegram.");
-                runAuthFlow();
-            }
-        }, 500); // delay 500ms
+    // Panggil `ready()` untuk memberi tahu Telegram bahwa aplikasi siap
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
     }
+    
+    initializeAuth();
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat
-
-  // =================================================================
-  // AKHIR DARI PERUBAHAN UTAMA
-  // =================================================================
+  }, []); // Dependensi kosong, hanya berjalan sekali.
 
   // Semua fungsi dan useEffect lain di bawah ini TIDAK ADA PERUBAHAN
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
@@ -186,7 +159,7 @@ export default function App() {
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
   useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
-  useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
+  useEffect(() => { if (authStatus !== 'done') return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, authStatus]);
   
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
@@ -195,6 +168,16 @@ export default function App() {
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => openWalletModal();
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
+
+  // Tampilkan loading screen sampai proses auth benar-benar selesai
+  if (authStatus !== 'done') {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg">
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
+        <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
@@ -225,13 +208,7 @@ export default function App() {
       </main>
 
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
-
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-      
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-        <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
-      </div>
     </div>
   );
 }
