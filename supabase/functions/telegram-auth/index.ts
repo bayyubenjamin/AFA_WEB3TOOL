@@ -1,10 +1,10 @@
-// supabase/functions/telegram-auth/index.ts (VERSI FINAL DENGAN PARSING MANUAL)
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,49 +19,65 @@ serve(async (req) => {
     const hash = params.get('hash');
     if (!hash) throw new Error("Hash tidak ada di dalam initData");
 
-    // --- [PERBAIKAN UTAMA] Cara paling andal untuk membuat data_check_string ---
-    // Memecah string mentah, memfilter hash, mengurutkan, lalu menggabungkan.
-    const dataCheckArr = initData
-      .split('&')
-      .map(pair => decodeURIComponent(pair))
-      .filter(pair => !pair.startsWith('hash=')) // Filter hash secara eksplisit
-      .sort();
-    
-    const dataCheckString = dataCheckArr.join('\n');
-    // --- AKHIR DARI PERBAIKAN ---
+    // ✅ Pembuatan data_check_string sesuai Telegram docs
+    const entries = [...params.entries()]
+      .filter(([key]) => key !== 'hash')
+      .sort((a, b) => a[0].localeCompare(b[0]));
+    const dataCheckString = entries.map(([key, value]) => `${key}=${value}`).join('\n');
 
-    const secretKey = await crypto.subtle.importKey('raw', new TextEncoder().encode('WebAppData'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-    const hmac = await crypto.subtle.sign('HMAC', secretKey, new TextEncoder().encode(dataCheckString));
-    const hex = new Uint8Array(hmac).reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(BOT_TOKEN!),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(dataCheckString)
+    );
+    const serverHash = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
-    if (hex !== hash) {
-      console.error(`Validasi Hash Gagal. Server: ${hex} | Client: ${hash}`);
-      console.error(`Data Check String yang digunakan server: \n${dataCheckString}`);
-      throw new Error('Verifikasi data gagal! Hash tidak cocok.');
+    if (serverHash !== hash) {
+      console.error(`❌ [Hash Tidak Cocok]
+Client hash: ${hash}
+📥 DataCheckString: ${dataCheckString}
+Server hash: ${serverHash}`);
+      throw new Error("Verifikasi data gagal. Hash tidak cocok.");
     }
 
-    // Jika hash cocok, lanjutkan ke logika login
-    const user = JSON.parse(params.get('user') || '{}');
-    if (!user.id) throw new Error("Data user tidak valid di dalam initData.");
-    
-    const telegramUserId = user.id;
-    const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    const userRaw = params.get('user');
+    if (!userRaw) throw new Error("User data tidak ditemukan di initData");
+    const user = JSON.parse(userRaw);
 
-    let { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('telegram_user_id', telegramUserId).single();
+    const telegramUserId = user.id;
+    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    let { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('telegram_user_id', telegramUserId)
+      .single();
 
     if (!profile) {
-      const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({ email: `${telegramUserId}@telegram.user`, email_confirm: true });
+      const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: `${telegramUserId}@telegram.user`,
+        email_confirm: true,
+      });
       if (authError) throw authError;
-      
+
       const { data: newProfile, error: newProfileError } = await supabaseAdmin.from('profiles').insert({
-          id: newUser.user.id,
-          telegram_user_id: telegramUserId,
-          username: user.username || `user_${telegramUserId}`,
-          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || `User ${telegramUserId}`,
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name || 'T')}&background=1a1a2e&color=fff`,
-          email: newUser.user.email
-        }).select().single();
-        
+        id: newUser.user.id,
+        telegram_user_id: telegramUserId,
+        username: user.username || `user_${telegramUserId}`,
+        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || `User ${telegramUserId}`,
+        avatar_url: user.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name || 'U')}&background=1a1a2e&color=fff`,
+        email: newUser.user.email
+      }).select().single();
+
       if (newProfileError) throw newProfileError;
       profile = newProfile;
     }
@@ -70,10 +86,8 @@ serve(async (req) => {
       type: 'magiclink',
       email: profile.email,
     });
-
     if (sessionError) throw sessionError;
 
-    // Kembalikan token ke client
     return new Response(JSON.stringify({
       access_token: sessionData.properties.access_token,
       refresh_token: sessionData.properties.refresh_token,
@@ -83,10 +97,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error(`[ERROR FINAL DI FUNGSI] ${error.message}`);
+    console.error(`❗ [ERROR Telegram Auth Function] ${error}`);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
   }
 });
+
