@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom'; // Import Navigate
+import { Routes, Route, useLocation, useNavigate, Navigate, Outlet } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
@@ -55,25 +55,25 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-// --- KOMPONEN BARU: PENJAGA RUTE ---
-const ProtectedRoute = ({ currentUser, loading, children }) => {
+// --- KOMPONEN PENJAGA RUTE YANG DIPERBAIKI ---
+const ProtectedRoute = ({ currentUser, loading, redirectPath = '/login' }) => {
     const location = useLocation();
 
     if (loading) {
-        // Saat sesi masih loading, jangan tampilkan apa-apa di area konten.
-        // Layar loading global sudah menangani tampilan visualnya.
+        // Saat loading, jangan render apapun, layar loading global akan tampil.
         return null;
     }
 
     if (!currentUser) {
-        // Jika loading selesai dan TIDAK ADA user, alihkan ke halaman login.
-        // `state={{ from: location }}` berguna agar setelah login bisa kembali ke halaman asal.
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        // Jika tidak ada user setelah loading selesai, alihkan ke halaman login.
+        return <Navigate to={redirectPath} state={{ from: location }} replace />;
     }
 
-    // Jika loading selesai dan ADA user, tampilkan halaman yang diminta.
-    return children;
+    // Jika ada user, tampilkan konten halaman yang diproteksi.
+    // Outlet adalah placeholder untuk komponen anak (misal: PageProfile).
+    return <Outlet />;
 };
+
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -87,6 +87,12 @@ export default function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  // Refs tetap sama
+  const lastScrollY = useRef(0);
+  const pageContentRef = useRef(null); // <- Referensi yang menyebabkan error
+  const backToTopTimeoutRef = useRef(null);
+  const scrollUpStartPosRef = useRef(null);
+
   // Hooks lainnya tetap sama
   const { language } = useLanguage();
   const location = useLocation();
@@ -95,7 +101,7 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // --- Logika Autentikasi (TIDAK BERUBAH DARI SEBELUMNYA, SUDAH BENAR) ---
+  // --- Logika Autentikasi (TIDAK BERUBAH) ---
   useEffect(() => {
     setLoadingInitialSession(true);
     console.log("[Auth] Memulai pengecekan sesi...");
@@ -182,51 +188,53 @@ export default function App() {
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
-
-      <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
-        <Routes>
-          {/* --- Rute Publik (bisa diakses tanpa login) --- */}
-          <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
-          <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
-          <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-          
-          {/* --- Rute yang Diproteksi (harus login) --- */}
-          <Route path="/*" element={
-              <ProtectedRoute currentUser={currentUser} loading={loadingInitialSession}>
-                  {/* Di dalam sini, kita definisikan semua rute yang butuh login */}
-                  <Routes>
-                      <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-                      <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-                      <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
-                      <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-                      <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
-                      <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
-                      <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
-                      <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-                      <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
-                      <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-                      <Route path="/admin" element={<PageAdminDashboard />} />
-                      <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-                      <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
-                      <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
-                      {/* Rute fallback jika halaman tidak ditemukan, arahkan ke home */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-              </ProtectedRoute>
-          }/>
-        </Routes>
-      </main>
-
-      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-      
-      {/* Layar Loading Global (TIDAK BERUBAH) */}
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {/* Layar Loading Global ditampilkan terlebih dahulu */}
+      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-300 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
+
+      {/* Tampilkan sisa UI hanya setelah loading selesai */}
+      {!loadingInitialSession && (
+        <>
+          {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
+
+          <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
+            <Routes>
+              {/* Rute Publik */}
+              <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+              <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
+              <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+              <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+              
+              {/* Rute yang Diproteksi */}
+              <Route element={<ProtectedRoute currentUser={currentUser} loading={loadingInitialSession} />}>
+                {/* Semua halaman yang butuh login diletakkan di sini */}
+                <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+                <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+                <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
+                <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+                <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+                <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+                <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+                <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+                <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+                <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+                <Route path="/admin" element={<PageAdminDashboard />} />
+                <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+                <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
+                <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+              </Route>
+              
+              {/* Fallback untuk rute yang tidak ditemukan */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+
+          {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
+          <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
+        </>
+      )}
     </div>
   );
 }
