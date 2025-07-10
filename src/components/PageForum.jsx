@@ -1,8 +1,11 @@
+// src/components/PageForum.jsx
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from '../supabaseClient';
 import { useLanguage } from "../context/LanguageContext";
+import { useForumMessages } from "../hooks/useForumMessages"; // <-- 1. IMPORT HOOK BARU
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
@@ -10,6 +13,9 @@ const getTranslations = (lang) => {
     return lang === 'id' ? translationsId : translationsEn;
 };
 
+// =================================================================
+// KOMPONEN `Message` TIDAK DIUBAH SAMA SEKALI
+// =================================================================
 const Message = React.memo(({ msg, isCurrentUser, profile }) => {
     const senderName = isCurrentUser ? (profile?.username || 'You') : (profile?.username || 'guest');
     const avatarUrl = profile?.avatar_url || `https://ui-avatars.com/api/?name=${senderName.charAt(0)}&background=random`;
@@ -49,74 +55,29 @@ export default function PageForum({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).forumPage || {}; 
 
-  const [messages, setMessages] = useState([]);
-  const [profiles, setProfiles] = useState({});
+  // 2. MENGGUNAKAN HOOK BARU UNTUK DATA
+  const { messages, profiles, loading, error, setMessages } = useForumMessages(currentUser);
+
+  // State untuk UI (input form) tetap di sini
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef(null);
   
+  // Fungsi `scrollToBottom` tidak berubah
   const scrollToBottom = (behavior = "auto") => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
-
-  const fetchProfiles = useCallback(async (userIds) => {
-    const idsToFetch = [...userIds].filter(id => id && !profiles[id]);
-    if (idsToFetch.length === 0) return;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url')
-      .in('id', idsToFetch);
-
-    if (!error && data) {
-      const newProfiles = data.reduce((acc, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {});
-      setProfiles(prev => ({ ...prev, ...newProfiles }));
-    }
-  }, [profiles]);
-
-  const fetchMessages = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await supabase
-      .from('messages')
-      .select(`*`)
-      .order('created_at', { ascending: true })
-      .limit(100);
-
-    if (fetchError) {
-      console.error('PageForum - Error fetching messages:', fetchError);
-      setError(t.errorFetch || "Failed to load messages.");
-    } else {
-      setMessages(data);
-      const userIds = new Set(data.map(m => m.user_id));
-      await fetchProfiles(userIds);
-    }
-    setLoading(false);
-  }, [t, fetchProfiles]);
-
-  useEffect(() => {
-    fetchMessages();
-    const channel = supabase.channel('forum-messages-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        if (payload.new.user_id !== currentUser?.id) {
-          setMessages(prev => [...prev, payload.new]);
-          fetchProfiles(new Set([payload.new.user_id]));
-        }
-      })
-      .subscribe();
-      
-    return () => supabase.removeChannel(channel);
-  }, [fetchMessages, fetchProfiles, currentUser?.id]);
+  
+  // 3. LOGIKA FETCH DATA YANG LAMA (fetchMessages, fetchProfiles, useEffect)
+  // SUDAH DIHAPUS dan dipindahkan ke dalam hook.
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  // Fungsi `handleSendMessage` tidak berubah secara logika,
+  // hanya disesuaikan untuk update state dari hook.
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (newMessage.trim() === "" || !currentUser || !currentUser.id || sending) return;
@@ -129,6 +90,17 @@ export default function PageForum({ currentUser }) {
       channel_id: 'general' 
     };
 
+    // Optimistic UI update: langsung tampilkan pesan
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMessage = {
+      id: tempId,
+      ...messageToSend,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prevMessages => [...prevMessages, optimisticMessage]);
+    setNewMessage("");
+    setTimeout(() => scrollToBottom("smooth"), 100);
+
     const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert(messageToSend)
@@ -137,25 +109,27 @@ export default function PageForum({ currentUser }) {
 
     if (insertError) {
       alert((t.sendMessageError || "Failed to send message: ") + insertError.message); 
+      // Rollback jika gagal
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
     } else if (insertedMessage) {
-      setMessages(prevMessages => [...prevMessages, insertedMessage]);
-      setNewMessage("");
-      setTimeout(() => scrollToBottom("smooth"), 100);
+      // Ganti pesan temporary dengan data dari server
+      setMessages(prev => prev.map(msg => msg.id === tempId ? insertedMessage : msg));
     }
     setSending(false);
   };
 
   return (
     <div className="flex flex-col h-[calc(100%-var(--bottomnav-height))] lg-desktop:h-full overflow-hidden">
-      
+        
       <div className="flex-grow overflow-y-auto px-2 md:px-4 pt-4">
-          {loading && (
+          {/* 4. PENYESUAIAN LOGIKA RENDER UNTUK CACHING */}
+          {loading && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500">
                   <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3" />
                   <span>{t.loading || "Loading messages..."}</span>
               </div>
           )}
-          {error && (
+          {error && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-red-400 text-center">
                   <FontAwesomeIcon icon={faExclamationTriangle} className="text-3xl mb-3"/>
                   <p className="font-bold">{t.errorTitle || "An Error Occurred"}</p>
@@ -164,17 +138,17 @@ export default function PageForum({ currentUser }) {
           )}
           {!loading && !error && messages.length === 0 && (
              <div className="flex flex-col items-center justify-center h-full text-light-subtle dark:text-gray-500 text-center">
-                <p>{t.noMessages || "No messages yet. Be the first to say hi!"}</p>
-            </div>
+               <p>{t.noMessages || "No messages yet. Be the first to say hi!"}</p>
+           </div>
           )}
-          {!loading && !error && (
+          {messages.length > 0 && (
               <div>
                   {messages.map(msg => (
                       <Message
                           key={msg.id}
                           msg={msg}
                           isCurrentUser={msg.user_id === currentUser?.id}
-                          profile={profiles[msg.user_id] || currentUser}
+                          profile={profiles[msg.user_id] || (msg.user_id === currentUser?.id ? currentUser : null)}
                       />
                   ))}
               </div>
