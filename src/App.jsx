@@ -1,16 +1,15 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Impor komponen Anda
+// Impor semua komponen Anda
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BackToTopButton from './components/BackToTopButton';
 import PageHome from "./components/PageHome";
 import PageMyWork from "./components/PageMyWork";
 import PageAirdrops from "./components/PageAirdrops";
-// ... (pastikan semua komponen lain diimpor)
 import PageAdminAirdrops from "./components/PageAdminAirdrops";
 import PageForum from "./components/PageForum";
 import PageProfile from "./components/PageProfile";
@@ -26,39 +25,48 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
-
-// Impor utilitas
+// Impor semua utilitas Anda
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 
-// --- KONSTANTA & FUNGSI HELPER ---
-const defaultGuestUserForApp = { id: null, name: "Guest User", username: "Guest User", email: null, avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`, address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 }, user_metadata: {} };
+
+// --- KONSTANTA & FUNGSI HELPER (DARI KODE ASLI ANDA) ---
+const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
+
+const defaultGuestUserForApp = {
+  id: null, name: "Guest User", username: "Guest User", email: null,
+  avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
+  address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
+  user_metadata: {}
+};
 
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
-    if (!authUser || !profileData) return defaultGuestUserForApp;
-    return {
-        id: authUser.id, email: authUser.email,
-        username: profileData.username || "User", name: profileData.name || "User",
-        avatar_url: profileData.avatar_url || defaultGuestUserForApp.avatar_url,
-        stats: profileData.stats || defaultGuestUserForApp.stats,
-        address: profileData.web3_address || null,
-        telegram_user_id: profileData.telegram_user_id || null,
-        user_metadata: authUser.user_metadata || {}
-    };
+  if (!authUser) return defaultGuestUserForApp;
+  return {
+    id: authUser.id, email: authUser.email,
+    username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
+    name: profileData?.name || profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
+    avatar_url: profileData?.avatar_url || authUser.user_metadata?.avatar_url || defaultGuestUserForApp.avatar_url,
+    stats: profileData?.stats || defaultGuestUserForApp.stats,
+    address: profileData?.web3_address || null,
+    telegram_user_id: profileData?.telegram_user_id || null,
+    user_metadata: authUser.user_metadata || {}
+  };
 };
 
 const createProfileForUser = async (user) => {
   console.log(`Mencoba membuat profil untuk user baru: ${user.id}`);
   try {
     const { data, error } = await supabase.from('profiles').insert({
-        id: user.id, email: user.email,
-        username: user.user_metadata?.user_name || user.email.split('@')[0],
-        name: user.user_metadata?.full_name || user.email.split('@')[0],
-        avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,2).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
+        id: user.id,
+        email: user.email,
+        username: user.user_metadata?.username || user.email.split('@')[0],
+        name: user.user_metadata?.name || user.email.split('@')[0],
+        avatar_url: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email.substring(0,1).toUpperCase()}&background=1B4DC1&color=FFF8F0`,
       }).select().single();
-    if (error && error.code !== '23505') throw error;
+    if (error && error.code !== '23505') throw error; // Abaikan error jika profil sudah ada
     if (error?.code === '23505') {
         const { data: existingProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         return existingProfile;
@@ -72,118 +80,252 @@ const createProfileForUser = async (user) => {
 
 
 export default function App() {
+  // --- SEMUA STATE DARI KODE ASLI ANDA DIKEMBALIKAN ---
+  const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [currentUser, setCurrentUser] = useState(null);
+  const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
-  const [loadingError, setLoadingError] = useState(null); // <-- State baru untuk menampilkan error
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
+  // --- SEMUA REFS & HOOKS DARI KODE ASLI ANDA DIKEMBALIKAN ---
+  const lastScrollY = useRef(0);
+  const pageContentRef = useRef(null);
+  const backToTopTimeoutRef = useRef(null);
+  const scrollUpStartPosRef = useRef(null);
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
-  const { open: openWalletModal } = useWeb3Modal();
-  const pageContentRef = useRef(null);
-  
-  // --- EFEK UTAMA UNTUK AUTENTIKASI ---
+
+  // --- MESIN AUTENTIKASI BARU YANG SUDAH STABIL ---
   useEffect(() => {
     let isMounted = true;
-
     const timeoutId = setTimeout(() => {
-      if (isMounted && loadingInitialSession) {
-        console.error("TIMEOUT: Proses loading macet.");
-        setLoadingError("Gagal terhubung ke server. Periksa koneksi dan coba lagi. (Pastikan RLS di Supabase sudah benar)");
-        setLoadingInitialSession(false);
-      }
-    }, 8000); // Timeout 8 detik
+        if (isMounted && loadingInitialSession) {
+            console.warn("Session loading timed out. Forcing UI to display with guest user.");
+            setCurrentUser(defaultGuestUserForApp);
+            setLoadingInitialSession(false);
+        }
+    }, 8000);
 
     const processSession = async (session) => {
-      if (!session?.user) {
-        setCurrentUser(defaultGuestUserForApp);
-        return;
-      }
-      try {
-        console.log(`Sesi ditemukan untuk user: ${session.user.id}. Mengambil profil...`);
-        let { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-        if (profileError) throw profileError;
-
-        if (!profile) {
-          console.warn("Profil tidak ditemukan, membuat yang baru...");
-          profile = await createProfileForUser(session.user);
+        if (!session?.user) {
+            setCurrentUser(defaultGuestUserForApp);
+            return;
         }
-
-        if (profile) {
-          const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
-          setCurrentUser(appUser);
-          setLoadingError(null); // Hapus error jika sukses
-        } else {
-          throw new Error("Gagal mendapatkan atau membuat profil pengguna.");
+        try {
+            let { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+            if (error) throw error;
+            if (!profile) {
+                profile = await createProfileForUser(session.user);
+            }
+            if (profile) {
+                const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
+                setCurrentUser(appUser);
+            } else {
+                throw new Error("Gagal mendapatkan atau membuat profil.");
+            }
+        } catch (error) {
+            console.error("Gagal memproses sesi:", error);
+            await supabase.auth.signOut().catch(() => {}); // Logout paksa jika gagal total
+            setCurrentUser(defaultGuestUserForApp);
         }
-      } catch (error) {
-        console.error("Error saat memproses sesi:", error);
-        setLoadingError(`Gagal memuat data profil. Error: ${error.message}. Cek RLS di tabel 'profiles'.`);
-        await supabase.auth.signOut();
-        setCurrentUser(defaultGuestUserForApp);
-      }
     };
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await processSession(session);
-      if (isMounted) {
-        clearTimeout(timeoutId);
-        setLoadingInitialSession(false);
-      }
+        await processSession(session);
+        if (isMounted) {
+            clearTimeout(timeoutId);
+            setLoadingInitialSession(false);
+        }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'INITIAL_SESSION') {
-         processSession(session);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+            await processSession(session);
+        }
     });
 
     return () => {
-      isMounted = false;
-      subscription?.unsubscribe();
-      clearTimeout(timeoutId);
+        isMounted = false;
+        subscription?.unsubscribe();
+        clearTimeout(timeoutId);
     };
   }, []);
 
-  // --- RENDER ---
+  // --- SEMUA FUNGSI & EFEK LAIN DARI KODE ASLI ANDA DIKEMBALIKAN ---
+
+  const handleScroll = (event) => {
+    const currentScrollY = event.currentTarget.scrollTop;
+    const SCROLL_UP_THRESHOLD = 60;
+    if (currentScrollY < 80) {
+      setIsHeaderVisible(true);
+      scrollUpStartPosRef.current = null;
+    } else if (currentScrollY > lastScrollY.current) {
+      setIsHeaderVisible(false);
+      scrollUpStartPosRef.current = null;
+    } else if (currentScrollY < lastScrollY.current) {
+      if (scrollUpStartPosRef.current === null) {
+        scrollUpStartPosRef.current = lastScrollY.current;
+      }
+      const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY;
+      if (distanceScrolledUp > SCROLL_UP_THRESHOLD) {
+        setIsHeaderVisible(true);
+      }
+    }
+    lastScrollY.current = currentScrollY;
+    if (backToTopTimeoutRef.current) clearTimeout(backToTopTimeoutRef.current);
+    if (currentScrollY > 400) {
+      setShowBackToTop(true);
+      backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000);
+    } else {
+      setShowBackToTop(false);
+    }
+  };
+
+  const scrollToTop = () => {
+    if (pageContentRef.current) {
+      pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    setShowBackToTop(false);
+    if (backToTopTimeoutRef.current) clearTimeout(backToTopTimeoutRef.current);
+  };
+
+  const checkAirdropNotifications = useCallback(async () => {
+    try {
+      const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
+      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null;
+      if (!lastVisitDate) {
+        setHasNewAirdropNotification(true);
+        return;
+      }
+      const { data, error } = await supabase.from('airdrops').select('created_at, AirdropUpdates(created_at)');
+      if (error) throw error; if (!data) return;
+      for (const airdrop of data) {
+        let lastActivityAt = new Date(airdrop.created_at);
+        if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) {
+          const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at))));
+          if (mostRecentUpdateDate > lastActivityAt) lastActivityAt = mostRecentUpdateDate;
+        }
+        if (lastActivityAt > lastVisitDate) {
+          setHasNewAirdropNotification(true); return;
+        }
+      }
+      setHasNewAirdropNotification(false);
+    } catch (err) {
+      console.error("Gagal mengecek notifikasi airdrop:", err);
+      setHasNewAirdropNotification(false);
+    }
+  }, []);
+
+  const handleMarkAirdropsAsSeen = () => {
+    localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString());
+    setHasNewAirdropNotification(false);
+  };
+
+  useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
+
+  useEffect(() => {
+    if (address && currentUser?.id && address !== currentUser.address) {
+      const updatedUser = { ...currentUser, address: address };
+      setCurrentUser(updatedUser);
+      supabase.from('profiles').update({ web3_address: address }).eq('id', currentUser.id)
+        .then(({ error }) => { if (error) console.error("Failed to sync address to Supabase:", error) });
+    }
+  }, [address, currentUser?.id]);
+
+  useEffect(() => {
+    const updateOnlineCount = () => {
+      const min = 15, max = 42;
+      setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min);
+    };
+    updateOnlineCount();
+    const intervalId = setInterval(updateOnlineCount, 7000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const path = location.pathname.split('/')[1] || 'home';
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" };
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" };
+    const currentTitles = language === 'id' ? titles_id : titles_en;
+    setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL");
+  }, [location, language]);
+
+  useEffect(() => {
+    if (loadingInitialSession) return;
+    if (pageContentRef.current) {
+      const el = pageContentRef.current;
+      el.classList.remove("content-enter-active", "content-enter");
+      void el.offsetWidth;
+      el.classList.add("content-enter");
+      const timer = setTimeout(() => el.classList.add("content-enter-active"), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, loadingInitialSession]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    disconnect();
+    setCurrentUser(null);
+    navigate('/login');
+  };
+
+  const handleUpdateUserInApp = (updatedUserData) => {
+    setCurrentUser(updatedUserData);
+  };
+
+  // --- STRUKTUR JSX DARI KODE ASLI ANDA DIKEMBALIKAN ---
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register');
+  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
+  const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      {/* Header akan selalu tampil jika bukan halaman login/admin */}
-      {showNav && <Header title="AFA WEB3TOOL" currentUser={userForHeader} onLogout={async () => { await supabase.auth.signOut(); navigate('/login'); }} />}
-
-      <main className="flex-grow pt-[var(--header-height)] px-4 overflow-y-auto">
-        {loadingInitialSession ? (
-          <div className="flex flex-col items-center justify-center h-full">
+      {/* Loading overlay diletakkan di sini */}
+      {loadingInitialSession && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg">
             <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-            <span>Memuat Sesi...</span>
-          </div>
-        ) : loadingError ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <h2 className="text-red-500 font-bold text-lg">Terjadi Masalah</h2>
-            <p className="mt-2 text-sm">{loadingError}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-            >
-              Coba Lagi
-            </button>
-          </div>
-        ) : (
-          <Routes>
-            <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-            <Route path="/profile" element={<PageProfile currentUser={userForHeader} />} />
-            {/* Tambahkan rute lainnya di sini */}
-            <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-          </Routes>
-        )}
-      </main>
+            <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
+        </div>
+      )}
 
-      {showNav && <BottomNav currentUser={currentUser} />}
+      {/* Aplikasi utama hanya dirender setelah loading selesai */}
+      {!loadingInitialSession && (
+        <>
+          {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
+          <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
+            <Routes>
+              <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+              <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+              <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
+              <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+              <Route path="/airdrops/:airdropSlug/update" element={<PageManageUpdate currentUser={userForHeader} />} />
+              <Route path="/airdrops/:airdropSlug/update/:updateId" element={<PageManageUpdate currentUser={userForHeader} />} />
+              <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+              <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+              <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
+              <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+              <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+              <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+              <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
+              <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+              <Route path="/admin" element={<PageAdminDashboard />} />
+              <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+              <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
+              <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={openWalletModal} />} />
+              <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+            </Routes>
+          </main>
+          {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
+          <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
+        </>
+      )}
     </div>
   );
 }
