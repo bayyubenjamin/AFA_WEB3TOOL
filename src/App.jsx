@@ -113,6 +113,22 @@ export default function App() {
     const authInTelegram = async () => {
         console.log("[Auth] Lingkungan Telegram terdeteksi. Menunggu WebApp siap...");
         window.Telegram.WebApp.ready(); // Beri tahu Telegram UI siap
+        
+        // --- PERBAIKAN DIMULAI DI SINI ---
+        // Cek dulu apakah sudah ada sesi yang valid
+        const { data: { session: existingSession }, error: getSessionError } = await supabase.auth.getSession();
+
+        if (getSessionError) {
+             console.error("[Auth] Gagal mendapatkan sesi yang ada:", getSessionError);
+        }
+
+        // Jika ada sesi dan belum kedaluwarsa, gunakan sesi itu dan hentikan eksekusi lebih lanjut.
+        if (existingSession && !getSessionError) {
+            console.log("[Auth] Sesi yang ada ditemukan, tidak perlu autentikasi ulang.");
+            handleSessionUpdate(existingSession);
+            return; // Hentikan fungsi di sini
+        }
+        // --- AKHIR DARI PERBAIKAN ---
 
         try {
             const initData = window.Telegram.WebApp.initData;
@@ -169,10 +185,10 @@ export default function App() {
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
   useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
-  
+ 
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
-  
+ 
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => openWalletModal();
@@ -208,7 +224,7 @@ export default function App() {
 
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-      
+     
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
