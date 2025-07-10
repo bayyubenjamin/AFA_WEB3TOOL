@@ -1,3 +1,5 @@
+// src/components/PageAirdrops.jsx
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -10,12 +12,16 @@ import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { supabase } from '../supabaseClient';
+import { useAirdropsWithUpdates } from "../hooks/useAirdropsWithUpdates"; // <-- 1. IMPORT HOOK BARU
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
 
+// =================================================================
+// KOMPONEN `AirdropCard` TIDAK DIUBAH SAMA SEKALI
+// =================================================================
 const AirdropCard = ({ airdrop }) => {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
@@ -34,7 +40,7 @@ const AirdropCard = ({ airdrop }) => {
     'Mainnet': 'bg-emerald-500/20 text-emerald-300',
     'NFT Drop': 'bg-orange-500/20 text-orange-300'
   }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
- 
+  
   const confirmationStyles = {
     'Potential': 'bg-yellow-500/20 text-yellow-300',
     'Confirmed': 'bg-green-500/20 text-green-300'
@@ -47,7 +53,7 @@ const AirdropCard = ({ airdrop }) => {
 
   return (
     <div className="bg-light-card dark:bg-dark-card rounded-2xl group relative h-full flex flex-col border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1">
-     
+      
       {airdrop.isNewForUser && (
         <span className="absolute top-4 left-4 z-20 h-3 w-3 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card" title="Baru atau ada update"></span>
       )}
@@ -79,7 +85,7 @@ const AirdropCard = ({ airdrop }) => {
         </div>
         <div className="p-5 flex flex-col flex-grow">
           <h3 className="text-xl font-bold text-light-text dark:text-white mb-2 truncate group-hover:text-primary transition-colors">{airdrop.title}</h3>
-         
+          
           <div className="flex justify-between items-center mb-3 text-xs">
             {airdrop.raise_amount ? (
                 <div className="flex items-center bg-black/5 dark:bg-white/5 px-2 py-1 rounded-full text-light-subtle dark:text-gray-300" title="Total Pendanaan">
@@ -97,7 +103,7 @@ const AirdropCard = ({ airdrop }) => {
                 </div>
             )}
           </div>
-         
+          
           <p className="text-light-subtle dark:text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis flex-grow">
             {airdrop.description}
           </p>
@@ -114,77 +120,30 @@ const AirdropCard = ({ airdrop }) => {
   );
 };
 
+
 export default function PageAirdrops({ currentUser, onEnterPage }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
-  const [airdrops, setAirdrops] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // 2. MENGGUNAKAN HOOK BARU UNTUK MENGELOLA DATA
+  const { airdrops, loading, error } = useAirdropsWithUpdates();
 
+  // State untuk UI (pencarian, filter) tetap di sini
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
+  // 3. LOGIKA `fetchAirdrops` dan `useEffect`-nya sudah dipindahkan ke dalam hook.
+  
+  // useEffect ini tetap ada untuk menjalankan fungsi dari App.js
   useEffect(() => {
     if (onEnterPage) {
       onEnterPage();
     }
   }, [onEnterPage]);
 
-  const fetchAirdrops = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
-      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : new Date(0);
-
-      const { data, error } = await supabase
-        .from('airdrops')
-        .select('*, AirdropUpdates(created_at)');
-
-      if (error) throw error;
-
-      const processedData = (data || []).map(airdrop => {
-        const updates = airdrop.AirdropUpdates;
-        let lastActivityAt = new Date(airdrop.created_at);
-        let hasNewUpdate = false;
-       
-        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-        const isNewlyPosted = new Date(airdrop.created_at) > fortyEightHoursAgo;
-
-        if (updates && updates.length > 0) {
-          const mostRecentUpdateDate = new Date(Math.max(...updates.map(u => new Date(u.created_at))));
-          if (mostRecentUpdateDate > lastActivityAt) {
-            lastActivityAt = mostRecentUpdateDate;
-          }
-          if (mostRecentUpdateDate > fortyEightHoursAgo) {
-            hasNewUpdate = true;
-          }
-        }
-       
-        const isNewForUser = lastActivityAt > lastVisitDate;
-       
-        const { AirdropUpdates, ...rest } = airdrop;
-        return { ...rest, hasNewUpdate, isNewlyPosted, lastActivityAt, isNewForUser };
-      });
-     
-      processedData.sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
-     
-      setAirdrops(processedData);
-
-    } catch (err) {
-      setError(err.message || "Gagal memuat data airdrop.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAirdrops();
-  }, [fetchAirdrops]);
-
+  // useMemo ini tetap ada dan akan berjalan otomatis saat `airdrops` dari hook berubah
   const filteredAirdrops = useMemo(() => {
     return airdrops
       .filter(airdrop => activeFilter === 'all' || airdrop.status === activeFilter)
@@ -199,7 +158,7 @@ export default function PageAirdrops({ currentUser, onEnterPage }) {
     upcoming: t.filterUpcoming || 'Mendatang',
     ended: t.filterEnded || 'Selesai'
   };
- 
+  
   return (
     <>
       <section id="airdrops" className="page-content space-y-8 pt-8">
@@ -212,7 +171,7 @@ export default function PageAirdrops({ currentUser, onEnterPage }) {
           <div className="max-w-4xl mx-auto p-4 bg-light-card dark:bg-dark-card border border-primary/50 rounded-lg text-center">
               <Link to="/airdrops/postairdrops" className="btn-secondary px-4 py-2 text-sm inline-flex items-center gap-2">
                 <FontAwesomeIcon icon={faShieldHalved}/> Go to Admin Panel
-            </Link>
+              </Link>
           </div>
         )}
 
@@ -227,7 +186,7 @@ export default function PageAirdrops({ currentUser, onEnterPage }) {
                     className="w-full bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg py-2.5 pl-11 pr-4 text-light-text dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" 
                   />
                 </div>
-               <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
+              <div className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-lg p-1 flex items-center space-x-1 flex-wrap justify-center">
                   {['all', 'active', 'upcoming', 'ended'].map(filter => (
                       <button key={filter} onClick={() => setActiveFilter(filter)} className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeFilter === filter ? 'bg-primary text-white' : 'text-light-text dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5'}`}>
                           {filterTranslations[filter]}
@@ -237,9 +196,10 @@ export default function PageAirdrops({ currentUser, onEnterPage }) {
             </div>
         </div>
 
-        {loading ? (
+        {/* 4. PENYESUAIAN LOGIKA RENDER UNTUK CACHING */}
+        {(loading && airdrops.length === 0) ? (
           <div className="flex justify-center items-center h-64"><FontAwesomeIcon icon={faSpinner} className="text-primary text-4xl animate-spin" /></div>
-        ) : error ? (
+        ) : (error && airdrops.length === 0) ? (
           <div className="flex flex-col items-center justify-center h-64 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
