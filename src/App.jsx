@@ -40,6 +40,24 @@ const defaultGuestUserForApp = {
   user_metadata: {}
 };
 
+// Fungsi untuk memuat pengguna awal dari Local Storage secara sinkron
+const getInitialUser = () => {
+    try {
+        const storedUser = localStorage.getItem(LS_CURRENT_USER_KEY);
+        // Pastikan data yang tersimpan tidak null atau 'undefined' sebagai string
+        if (storedUser && storedUser !== 'null' && storedUser !== 'undefined') {
+            return JSON.parse(storedUser);
+        }
+    } catch (e) {
+        console.error("Gagal mem-parsing pengguna dari local storage:", e);
+        // Hapus data yang rusak dari local storage
+        localStorage.removeItem(LS_CURRENT_USER_KEY);
+    }
+    // Jika tidak ada data, kembalikan null agar effect dapat menanganinya
+    return null;
+};
+
+
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   if (!authUser) return defaultGuestUserForApp;
   return {
@@ -65,14 +83,15 @@ const createProfileForUser = async (user) => {
     if (error) throw error;
     return data;
   } catch (creationError) {
-    console.error("Error creating missing profile:", creationError);
+    console.error("Error membuat profil yang hilang:", creationError);
     return null;
   }
 };
 
 export default function App() {
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
-  const [currentUser, setCurrentUser] = useState(null);
+  // PERBAIKAN: Inisialisasi state dengan pengguna dari Local Storage
+  const [currentUser, setCurrentUser] = useState(getInitialUser);
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(0);
@@ -170,61 +189,67 @@ export default function App() {
 
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
 
-  // --- PERBAIKAN: useEffect untuk Sesi dan Profil Pengguna ---
+  // --- PERBAIKAN UTAMA: useEffect untuk Sesi dan Profil Pengguna ---
   useEffect(() => {
-    setLoadingInitialSession(true);
-    const loadingTimeout = setTimeout(() => {
-      console.warn("Session loading timed out. Forcing UI to display.");
-      setLoadingInitialSession(false);
-    }, 5000);
+    // Fungsi terpusat untuk memproses sesi
+    const processSession = async (session) => {
+        try {
+            if (session && session.user) {
+                // Ada sesi aktif, ambil profil pengguna
+                let { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                
+                // Jika profil belum ada, buat profil baru
+                if (!profile) {
+                    console.log("Profil tidak ditemukan, membuat profil baru...");
+                    profile = await createProfileForUser(session.user);
+                }
 
-    const handleAuthChange = async (session) => {
-      try {
-        if (session && session.user) {
-          let { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-          if (!profile) {
-            profile = await createProfileForUser(session.user);
-          }
-          if (profile) {
-            const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
-            setCurrentUser(appUser);
-            localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
-          } else {
-             setCurrentUser(defaultGuestUserForApp);
-             localStorage.removeItem(LS_CURRENT_USER_KEY);
-          }
-        } else {
-          setCurrentUser(defaultGuestUserForApp);
-          localStorage.removeItem(LS_CURRENT_USER_KEY);
+                if (profile) {
+                    const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
+                    setCurrentUser(appUser);
+                    localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(appUser));
+                } else {
+                    // Gagal membuat profil, kembali ke Guest
+                    throw new Error("Gagal mengambil atau membuat profil pengguna.");
+                }
+            } else {
+                // Tidak ada sesi, atur pengguna sebagai Guest
+                setCurrentUser(defaultGuestUserForApp);
+                localStorage.removeItem(LS_CURRENT_USER_KEY);
+            }
+        } catch (e) {
+            console.error("Error saat memproses sesi:", e);
+            setCurrentUser(defaultGuestUserForApp);
+            localStorage.removeItem(LS_CURRENT_USER_KEY);
+        } finally {
+            // Sembunyikan layar loading setelah proses selesai
+            setLoadingInitialSession(false);
         }
-      } catch (e) {
-        console.error("Error during auth state change:", e);
-        setCurrentUser(defaultGuestUserForApp);
-        localStorage.removeItem(LS_CURRENT_USER_KEY);
-      } finally {
-        clearTimeout(loadingTimeout);
-        setLoadingInitialSession(false);
-      }
     };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        handleAuthChange(session);
-    });
-
+    
+    // 1. Dapatkan sesi saat ini untuk menangani pemuatan halaman awal
     supabase.auth.getSession().then(({ data: { session } }) => {
-        handleAuthChange(session);
+        processSession(session);
     });
 
-    return () => {
-      subscription?.unsubscribe();
-      clearTimeout(loadingTimeout);
-    };
-  }, []); // Dependensi dikosongkan agar hanya berjalan sekali saat mount
+    // 2. Dengarkan perubahan status otentikasi (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Abaikan event INITIAL_SESSION karena sudah ditangani oleh getSession()
+        if (_event !== 'INITIAL_SESSION') {
+          processSession(session);
+        }
+    });
 
-  // --- PERBAIKAN: useEffect untuk Sinkronisasi Alamat Dompet ---
+    // Cleanup subscription saat komponen di-unmount
+    return () => {
+        subscription?.unsubscribe();
+    };
+}, []); // Dependensi kosong agar hanya berjalan sekali saat mount
+
+  // --- useEffect untuk Sinkronisasi Alamat Dompet (Tidak ada perubahan) ---
   useEffect(() => {
     if (address && currentUser && currentUser.id && address !== currentUser.address) {
-      console.log(`Wallet address ${address} detected. Syncing with profile.`);
+      console.log(`Alamat dompet ${address} terdeteksi. Sinkronisasi dengan profil.`);
       
       const updatedUser = { ...currentUser, address: address };
       setCurrentUser(updatedUser);
@@ -236,7 +261,7 @@ export default function App() {
         .eq('id', currentUser.id)
         .then(({ error }) => {
           if (error) {
-            console.error("Failed to sync address to Supabase:", error);
+            console.error("Gagal sinkronisasi alamat ke Supabase:", error);
           }
         });
     }
@@ -275,8 +300,10 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     disconnect();
+    // State akan di-handle oleh onAuthStateChange, cukup hapus local storage & redirect
     localStorage.removeItem(LS_CURRENT_USER_KEY);
-    window.location.href = '/login';
+    // Menggunakan navigate lebih baik daripada reload halaman penuh
+    navigate('/login');
   };
 
   const handleUpdateUserInApp = (updatedUserData) => {
@@ -284,6 +311,7 @@ export default function App() {
     localStorage.setItem(LS_CURRENT_USER_KEY, JSON.stringify(updatedUserData));
   };
 
+  // Gunakan currentUser langsung, atau guest jika null/loading
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => openWalletModal();
@@ -321,7 +349,7 @@ export default function App() {
 
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
 
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-300 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
       </div>
