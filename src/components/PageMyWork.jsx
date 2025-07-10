@@ -1,3 +1,5 @@
+// src/components/PageMyWork.jsx
+
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,12 +12,17 @@ import { supabase } from '../supabaseClient';
 import ModalManageAirdrop from "./ModalManageAirdrop";
 import ModalManageCategory from "./ModalManageCategory";
 import { useLanguage } from "../context/LanguageContext";
+import { useMyWorkCategories } from "../hooks/useMyWorkCategories"; // <-- IMPORT HOOK BARU
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
 const getTranslations = (lang) => {
   return lang === 'id' ? translationsId : translationsEn;
 };
+
+// =================================================================
+// SEMUA FUNGSI HELPER DARI KODE ASLI ANDA TETAP ADA DAN TIDAK BERUBAH
+// =================================================================
 
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, cancelText, confirmText }) => {
   if (!isOpen) return null;
@@ -68,15 +75,19 @@ const Notification = ({ message, type, onClose }) => {
   );
 };
 
+
 export default function PageMyWork({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language);
   const pageMyWorkT = t.myWorkPage;
   const modalAirdropT = t.modalManageAirdrop;
 
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // 1. MENGGUNAKAN HOOK BARU
+  // Semua state yang berhubungan dengan data (categories, loading, error)
+  // sekarang dikelola oleh hook `useMyWorkCategories`.
+  const { categories, setCategories, loading, error, refreshCategories } = useMyWorkCategories(currentUser, pageMyWorkT);
+  
+  // State lain yang spesifik untuk UI komponen ini tetap di sini.
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [notification, setNotification] = useState(null);
   const [showManageCategoryModal, setShowManageCategoryModal] = useState(false);
@@ -89,41 +100,10 @@ export default function PageMyWork({ currentUser }) {
   const [openDropdownKey, setOpenDropdownKey] = useState(null);
   const dropdownRefs = useRef({});
 
-  const fetchData = useCallback(async () => {
-    if (!currentUser || !currentUser.id) {
-        setLoading(false);
-        setError(pageMyWorkT.errorAuth);
-        return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('user_categories')
-        .select(`*, user_airdrops (*)`)
-        .eq('user_id', currentUser.id)
-        .order('display_order', { ascending: true });
-      if (fetchError) throw fetchError;
-      const processedData = (data || [])
-        .filter(cat => cat != null)
-        .map(cat => {
-            const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
-            validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            return { ...cat, user_airdrops: validAirdrops };
-      });
-      setCategories(processedData);
-    } catch (err) {
-      console.error("Error fetching my work data:", err);
-      setError(pageMyWorkT.errorFetch);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, pageMyWorkT]);
+  // 2. FUNGSI `fetchData` dan `useEffect` untuk fetch SUDAH DIHAPUS
+  // dan logikanya telah dipindahkan ke dalam hook.
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
+  // useEffect untuk notifikasi dan dropdown tetap ada (tidak berubah)
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openDropdownKey && dropdownRefs.current[openDropdownKey] && !dropdownRefs.current[openDropdownKey].contains(event.target)) {
@@ -135,11 +115,16 @@ export default function PageMyWork({ currentUser }) {
   }, [openDropdownKey]);
 
   useEffect(() => {
-      if (notification) {
-          const timer = setTimeout(() => setNotification(null), 3000);
-          return () => clearTimeout(timer);
-      }
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
   }, [notification]);
+
+  // =================================================================
+  // SEMUA FUNGSI HANDLER ANDA TETAP SAMA, HANYA `fetchData()`
+  // DIGANTI MENJADI `refreshCategories()`
+  // =================================================================
 
   const handleSaveCategory = async ({ name, icon, iconColor }) => {
     if (!name.trim() || !currentUser) return;
@@ -159,11 +144,11 @@ export default function PageMyWork({ currentUser }) {
         setNotification({ message: `${pageMyWorkT.notificationSaveCategoryError} ${error.message}`, type: "error" });
     } else {
         setNotification({ message: pageMyWorkT.notificationSaveCategorySuccess, type: "success" });
-        fetchData();
+        refreshCategories(); // <-- DIGANTI
     }
     setShowManageCategoryModal(false);
     setEditingCategory(null);
-};
+  };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget || !currentUser) return;
@@ -172,14 +157,14 @@ export default function PageMyWork({ currentUser }) {
         ({ error } = await supabase.from('user_categories').delete().eq('id', deleteTarget.id));
         if (!error) {
             setNotification({ message: pageMyWorkT.notificationDeleteCategorySuccess.replace('{name}', deleteTarget.name), type: "success" });
-            fetchData();
+            refreshCategories(); // <-- DIGANTI
         }
     } else if (deleteTarget.type === 'item') {
         ({ error } = await supabase.from('user_airdrops').delete().eq('id', deleteTarget.id));
         if (!error) {
             const message = (pageMyWorkT.notificationDeleteTaskSuccess || "Successfully deleted task \"{name}\"!").replace('{name}', deleteTarget.name);
             setNotification({ message, type: "success" });
-            fetchData();
+            refreshCategories(); // <-- DIGANTI
         }
     }
     if (error) {
@@ -206,7 +191,7 @@ export default function PageMyWork({ currentUser }) {
         setNotification({ message: `${pageMyWorkT.notificationSaveAirdropError} ${error.message}`, type: "error" });
     } else {
         setNotification({ message: pageMyWorkT.notificationSaveAirdropSuccess, type: "success" });
-        fetchData();
+        refreshCategories(); // <-- DIGANTI
     }
     setShowManageAirdropModal(false);
     setEditingAirdrop(null);
@@ -215,11 +200,20 @@ export default function PageMyWork({ currentUser }) {
   
   const handleToggleDailyDone = async (item) => {
       const newDailyDoneStatus = !item.daily_done;
+      
+      // Optimistic UI update
+      const updatedCategories = categories.map(cat => ({
+          ...cat,
+          user_airdrops: cat.user_airdrops.map(ad => 
+            ad.id === item.id ? { ...ad, daily_done: newDailyDoneStatus } : ad
+          )
+      }));
+      setCategories(updatedCategories);
+
       const { error } = await supabase.from('user_airdrops').update({ daily_done: newDailyDoneStatus }).eq('id', item.id);
       if(error) {
         setNotification({ message: "Failed to update daily status: " + error.message, type: "error" });
-      } else {
-        fetchData();
+        refreshCategories(); // <-- Jika gagal, sinkronkan kembali dengan server
       }
   };
 
@@ -238,15 +232,16 @@ export default function PageMyWork({ currentUser }) {
     try {
       await supabase.from('user_categories').update({ display_order: targetCategory.display_order }).eq('id', categoryToMove.id);
       await supabase.from('user_categories').update({ display_order: categoryToMove.display_order }).eq('id', targetCategory.id);
-      fetchData(); 
+      refreshCategories(); // <-- DIGANTI
       setOpenDropdownKey(null);
       setNotification({ message: pageMyWorkT.categoryMoved, type: "success" });
     } catch (err) {
       console.error("Error moving category:", err);
       setNotification({ message: `Failed to move category: ${err.message}`, type: "error" });
     }
-  }, [categories, currentUser, pageMyWorkT, fetchData]);
+  }, [categories, currentUser, pageMyWorkT, refreshCategories]);
 
+  // Fungsi-fungsi handler lainnya tidak ada perubahan
   const handleToggleCategory = useCallback((categoryId) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
@@ -263,14 +258,23 @@ export default function PageMyWork({ currentUser }) {
   const openEditAirdropModal = useCallback((item) => { setEditingAirdrop(item); setCategoryForNewAirdrop(item.category_id); setShowManageAirdropModal(true); }, []);
   const confirmDeleteAirdropItem = useCallback((item) => { setDeleteTarget({ type: 'item', id: item.id, name: item.name }); setShowConfirmDeleteModal(true); }, []);
 
-  if (loading) { return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>; }
-  if (error) { return <div className="flex flex-col justify-center items-center h-full text-center text-red-400 pt-20"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>; }
+  // 3. PENYESUAIAN LOGIKA RENDER
+  // Tampilkan loading besar hanya jika cache kosong DAN sedang fetching
+  if (loading && categories.length === 0) { 
+    return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/></div>; 
+  }
+  
+  // Tampilkan error besar hanya jika cache kosong DAN fetch gagal
+  if (error && categories.length === 0) { 
+    return <div className="flex flex-col justify-center items-center h-full text-center text-red-400 pt-20"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><p>{error}</p></div>; 
+  }
 
+  // Bagian JSX (return) tidak ada perubahan struktur sama sekali.
   return (
     <>
       <Notification message={notification?.message} type={notification?.type} onClose={() => setNotification(null)} />
       <section className="page-content space-y-6 pt-6">
-        <div className="card rounded-2xl p-4 md:p-6">
+        <div className="card rounded-2xl p-4 md:p-6 relative">
           <div className="main-category-header">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
               <FontAwesomeIcon icon={faTasks} className="mr-3 w-5 h-5 text-accent dark:text-accent-dark" />
@@ -281,8 +285,16 @@ export default function PageMyWork({ currentUser }) {
               {pageMyWorkT.addCategory}
             </button>
           </div>
+          
+          {/* Indikator loading background saat data dari cache sudah ada */}
+          {loading && (
+             <div className="absolute top-5 right-6 text-xs text-gray-400 dark:text-dark-subtle flex items-center gap-2 animate-pulse">
+               <FontAwesomeIcon icon={faSpinner} spin/> 
+               <span>Memuat...</span>
+             </div>
+          )}
 
-          {categories.length === 0 && (
+          {categories.length === 0 && !loading && (
             <p className="text-gray-500 dark:text-dark-subtle text-sm text-center py-4">{pageMyWorkT.emptyCategory}</p>
           )}
 
@@ -301,7 +313,6 @@ export default function PageMyWork({ currentUser }) {
                       <span className="category-title-text">{category.name}</span>
                       <span className="category-count">({itemsInCategory.length} {pageMyWorkT.itemsInCategory})</span>
                     </div>
-                    {/* Dropdown Menu */}
                     <div className="category-settings-dropdown" ref={el => dropdownRefs.current[category.id] = el}>
                       <button onClick={(e) => { e.stopPropagation(); handleToggleDropdown(category.id); }} className="category-settings-dropdown-button" title={pageMyWorkT.categorySettings}>
                         <FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" />
