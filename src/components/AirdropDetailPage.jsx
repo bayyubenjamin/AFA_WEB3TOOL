@@ -1,3 +1,5 @@
+// src/components/AirdropDetailPage.jsx
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -14,16 +16,20 @@ import ReactPlayer from 'react-player/youtube';
 
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from '../supabaseClient';
+import { useAirdropDetail } from '../hooks/useAirdropDetail'; // <-- 1. IMPORT HOOK BARU
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
-const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
+
+// =================================================================
+// SEMUA KOMPONEN HELPER (`UpdatesModal`, `UpdatesSidebar`, `AirdropUpdateItem`)
+// TIDAK DIUBAH SAMA SEKALI
+// =================================================================
 
 const UpdatesModal = ({ updates, isOpen, onClose, onUpdateClick }) => {
   if (!isOpen) return null;
-
   return (
     <div 
       className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 transition-opacity duration-300"
@@ -68,8 +74,6 @@ const UpdatesSidebar = ({ updates, onUpdateClick }) => {
   if (!updates || updates.length === 0) {
     return null;
   }
-
-  // PERUBAHAN: Sidebar diposisikan absolut di sebelah kiri konten utama
   return (
     <div className="absolute top-0 right-full h-full hidden xl:block mr-8">
       <div className="sticky top-24 w-72 space-y-1 card p-4">
@@ -103,7 +107,6 @@ const UpdatesSidebar = ({ updates, onUpdateClick }) => {
     </div>
   );
 };
-
 
 const AirdropUpdateItem = React.forwardRef(({ update, isAdmin, airdropSlug, onDelete }, ref) => {
   const navigate = useNavigate();
@@ -156,46 +159,24 @@ export default function AirdropDetailPage({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).pageAirdrops;
 
-  const [airdrop, setAirdrop] = useState(null);
-  const [updates, setUpdates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [hasNewUpdates, setHasNewUpdates] = useState(false);
+  // 2. MENGGUNAKAN HOOK BARU UNTUK MENGELOLA SEMUA DATA
+  const { airdrop, updates, loading, error, hasNewUpdates, refreshAirdropDetail } = useAirdropDetail(airdropSlug);
+  
+  // State untuk UI (modal) tetap ada di sini
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Semua refs tetap ada dan tidak berubah
   const updateRefs = useRef({});
-  updates.forEach(update => {
+  (updates || []).forEach(update => {
     updateRefs.current[update.id] = updateRefs.current[update.id] || React.createRef();
   });
 
   const updatesSectionRef = useRef(null);
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
 
-  const fetchAirdropAndUpdates = useCallback(async () => {
-    if (!airdropSlug) { setLoading(false); setError("Airdrop slug tidak ditemukan di URL."); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: airdropData, error: airdropError } = await supabase.from('airdrops').select('*').eq('slug', airdropSlug).single();
-      if (airdropError) throw airdropError;
-      setAirdrop(airdropData);
-
-      const { data: updatesData, error: updatesError } = await supabase.from('AirdropUpdates').select('*, profiles(username, avatar_url)').eq('airdrop_id', airdropData.id).order('created_at', { ascending: true });
-      if (updatesError) throw updatesError;
-      setUpdates(updatesData || []);
-
-      const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
-      const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null;
-      if (lastVisitDate && updatesData && updatesData.length > 0) {
-        const hasUnseenUpdate = updatesData.some(update => new Date(update.created_at) > lastVisitDate);
-        setHasNewUpdates(hasUnseenUpdate);
-      }
-
-    } catch (err) { setError(err.message || "Terjadi kesalahan saat mengambil data."); } finally { setLoading(false); }
-  }, [airdropSlug]);
-
-  useEffect(() => { fetchAirdropAndUpdates(); }, [fetchAirdropAndUpdates]);
+  // 3. LOGIKA FETCH DATA YANG LAMA SUDAH DIHAPUS dan dipindahkan ke hook.
   
+  // Fungsi-fungsi handler untuk UI tetap ada
   const handleScrollToUpdate = (updateId) => {
     updateRefs.current[updateId]?.current?.scrollIntoView({
       behavior: 'smooth',
@@ -218,33 +199,44 @@ export default function AirdropDetailPage({ currentUser }) {
     }, 100);
   };
 
+  // Handler delete diubah untuk memanggil fungsi refresh dari hook
   const handleDeleteUpdate = async (updateId) => {
     if (window.confirm("Anda yakin ingin menghapus update ini? Tindakan ini tidak dapat diurungkan.")) {
       const { error } = await supabase.from('AirdropUpdates').delete().eq('id', updateId);
-      if (error) { alert("Gagal menghapus update: " + error.message); }
-      else { alert("Update berhasil dihapus."); fetchAirdropAndUpdates(); }
+      if (error) { 
+        alert("Gagal menghapus update: " + error.message); 
+      } else { 
+        alert("Update berhasil dihapus.");
+        refreshAirdropDetail(); // <-- DIGANTI
+      }
     }
   };
+  
+  // 4. PENYESUAIAN LOGIKA RENDER UNTUK CACHING
+  if (loading && !airdrop) { 
+    return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary" /></div>;
+  }
+  if (error && !airdrop) {
+    return <div className="text-center text-red-400 pt-20"><p>{error || "Airdrop tidak ditemukan"}</p></div>;
+  }
+  
+  // Jika airdrop belum ada (misal cache kosong dan error), tampilkan pesan
+  if (!airdrop) {
+      return <div className="text-center text-light-subtle pt-20">Memuat data airdrop...</div>;
+  }
 
-  if (loading) { return <div className="flex justify-center items-center h-full pt-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary" /></div>; }
-  if (error || !airdrop) { return <div className="text-center text-red-400 pt-20"><p>{error || "Airdrop tidak ditemukan"}</p></div>; }
-
+  // Kalkulasi info dari data (tetap sama)
   const statusInfo = { active: { text: t.cardStatusActive, color: 'border-green-500/50 bg-green-500/10 text-green-300' }, upcoming: { text: t.cardStatusUpcoming, color: 'border-blue-500/50 bg-blue-500/10 text-blue-300' }, ended: { text: t.cardStatusEnded, color: 'border-red-500/50 bg-red-500/10 text-red-300' }, }[airdrop.status] || { text: 'Unknown', color: 'border-gray-500/50 bg-gray-500/10 text-gray-400' };
   const categoryColor = { 'Retroactive': 'bg-purple-500/20 text-purple-300', 'Testnet': 'bg-sky-500/20 text-sky-300', 'Mainnet': 'bg-emerald-500/20 text-emerald-300', 'NFT Drop': 'bg-orange-500/20 text-orange-300' }[airdrop.category] || 'bg-gray-500/20 text-gray-300';
- 
-  const confirmationStyles = {
-    'Potential': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300',
-    'Confirmed': 'border-green-500/50 bg-green-500/10 text-green-300'
-  };
+  const confirmationStyles = { 'Potential': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300', 'Confirmed': 'border-green-500/50 bg-green-500/10 text-green-300' };
   const confirmationStyle = confirmationStyles[airdrop.confirmation_status] || 'border-gray-500/50 bg-gray-500/10 text-gray-400';
 
+  // Return JSX tidak ada perubahan struktur sama sekali.
   return (
     <>
-      {/* PERUBAHAN: max-w-full lg:max-w-5xl, relative */}
       <div className="relative max-w-full lg:max-w-5xl mx-auto py-6 md:py-8">
         <UpdatesSidebar updates={updates} onUpdateClick={handleScrollToUpdate} />
 
-        {/* PERUBAHAN: Menghilangkan mx-auto dan px-4 dari sini agar lebar penuh di mobile */}
         <div className="w-full">
           <Link to="/airdrops" className="text-sm text-primary hover:underline mb-6 inline-flex items-center px-4">
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
@@ -253,7 +245,6 @@ export default function AirdropDetailPage({ currentUser }) {
           <div className="card rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl overflow-hidden">
             <div className="relative w-full h-48 md:h-64 overflow-hidden">
                 <img src={airdrop.image_url} alt={airdrop.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/600x400/0a0a1a/7f5af0?text=AFA"; }} />
-                {/* PERUBAHAN: gradasi pada gambar telah dihapus */}
             </div>
             <div className="p-4 sm:p-6 md:p-8">
               <div className={`inline-block text-xs font-bold py-1 px-3 mb-4 rounded-full ${categoryColor}`}>{airdrop.category}</div>
@@ -294,7 +285,7 @@ export default function AirdropDetailPage({ currentUser }) {
                 <div className={`flex items-center px-3 py-1.5 rounded-full font-semibold text-xs ${statusInfo.color}`}><FontAwesomeIcon icon={faInfoCircle} className="mr-2" />{t.modalStatus || 'Status'}: {statusInfo.text}</div>
                 {airdrop.date && (<div className="flex items-center px-3 py-1.5 rounded-full font-semibold text-xs border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/5 text-light-subtle dark:text-gray-300"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />{t.modalEstimated || 'Estimasi'}: {airdrop.date}</div>)}
               </div>
-             
+              
               <div className="my-8">
                 <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2">{t.modalTutorial || 'Tutorial'}</h3>
                 <div className="prose prose-base max-w-none dark:prose-invert prose-h3:text-primary prose-a:text-primary prose-li:marker:text-primary prose-a:no-underline hover:prose-a:underline">
@@ -307,7 +298,7 @@ export default function AirdropDetailPage({ currentUser }) {
               </div>
 
               {airdrop.link && (<div className="my-8 text-center"><a href={airdrop.link} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center px-8 py-3 rounded-lg text-base">{t.modalLink || 'Kunjungi Halaman Airdrop'}<FontAwesomeIcon icon={faAngleDoubleRight} className="ml-2" /></a></div>)}
-             
+              
               {airdrop.video_url && (
                 <div className="my-8">
                   <h3 className="text-2xl font-bold text-light-text dark:text-white mb-4 border-b border-black/10 dark:border-white/10 pb-2 flex items-center">
