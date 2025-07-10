@@ -7,52 +7,37 @@ import { supabase } from '../supabaseClient';
  * Hook kustom untuk mengambil dan menyimpan kategori pekerjaan pengguna dari Supabase
  * dengan caching di localStorage.
  *
- * @param {object} currentUser - Objek pengguna yang sedang login, harus memiliki properti `id`.
- * @returns {object} - Mengembalikan { categories, loading, error, refreshCategories }.
+ * @param {object} currentUser - Objek pengguna yang sedang login dari Supabase.
+ * @param {object} translations - Objek terjemahan (misal: pageMyWorkT).
+ * @returns {object} - Mengembalikan { categories, setCategories, loading, error, refreshCategories }.
  */
-export const useMyWorkCategories = (currentUser) => {
+export const useMyWorkCategories = (currentUser, translations) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const userId = currentUser?.id;
 
-  // Kunci unik untuk localStorage berdasarkan ID pengguna
+  // Fungsi untuk mendapatkan kunci cache yang unik berdasarkan ID pengguna
   const getCacheKey = useCallback(() => {
     return userId ? `mywork-categories-${userId}` : null;
   }, [userId]);
 
-  // Fungsi untuk mengambil data terbaru dari Supabase
+  // Mengganti nama `fetchData` menjadi `refreshCategories`
   const refreshCategories = useCallback(async () => {
     if (!userId) {
-      setError("Pengguna tidak ditemukan.");
+      setError(translations.errorAuth);
       setLoading(false);
       return;
     }
 
-    // Tetap set loading ke true di awal refresh untuk background fetch
     setLoading(true);
     setError(null);
 
     try {
       const { data, error: fetchError } = await supabase
         .from('user_categories')
-        .select(`
-          id,
-          name,
-          icon,
-          iconColor,
-          display_order,
-          user_airdrops (
-            id,
-            name,
-            link,
-            description,
-            status,
-            category_id,
-            daily_done
-          )
-        `)
+        .select(`*, user_airdrops (*)`) // Menggunakan query select yang sama persis
         .eq('user_id', userId)
         .order('display_order', { ascending: true });
 
@@ -63,12 +48,12 @@ export const useMyWorkCategories = (currentUser) => {
       const processedData = (data || [])
         .filter(cat => cat != null)
         .map(cat => {
-          const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
-          validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-          return { ...cat, user_airdrops: validAirdrops };
-        });
+            const validAirdrops = (cat.user_airdrops || []).filter(item => item != null);
+            validAirdrops.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            return { ...cat, user_airdrops: validAirdrops };
+      });
       
-      // Jika berhasil, perbarui state dan localStorage
+      // Jika fetch berhasil, perbarui state dan simpan ke localStorage
       setCategories(processedData);
       const cacheKey = getCacheKey();
       if (cacheKey) {
@@ -77,40 +62,45 @@ export const useMyWorkCategories = (currentUser) => {
 
     } catch (err) {
       console.error("Error fetching my work data:", err);
-      setError("Gagal memuat data pekerjaan. Silakan coba lagi.");
+      setError(translations.errorFetch); // Menggunakan pesan error dari terjemahan
     } finally {
-      // Selesaikan loading setelah fetch selesai
       setLoading(false);
     }
-  }, [userId, getCacheKey]);
+  }, [userId, getCacheKey, translations]);
 
   // Efek untuk memuat data saat komponen pertama kali dimuat
   useEffect(() => {
     if (!userId) {
       setLoading(false);
-      setError("Anda harus login untuk melihat data garapan.");
+      setError(translations.errorAuth);
       return;
     }
 
     const cacheKey = getCacheKey();
+    let isMounted = true;
     
-    // 1. Coba muat dari cache terlebih dahulu
+    // Langkah 1: Coba muat dari cache untuk tampilan instan
     try {
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
-        setCategories(JSON.parse(cachedData));
-        setLoading(false); // Tampilkan data cache, loading selesai untuk sementara
+        if (isMounted) {
+            setCategories(JSON.parse(cachedData));
+            setLoading(false); // Tampilkan data cache, UI tidak perlu menunggu fetch
+        }
       }
     } catch (e) {
       console.error("Gagal memuat cache:", e);
-      // Jika cache gagal, biarkan loading tetap true sampai fetch selesai
-      setLoading(true);
+      if (isMounted) setLoading(true); // Jika cache gagal, kembali ke state loading awal
     }
 
-    // 2. Lakukan fetch data terbaru dari Supabase di background
+    // Langkah 2: Lakukan fetch data terbaru dari Supabase di background
     refreshCategories();
 
-  }, [userId, refreshCategories, getCacheKey]);
+    return () => {
+        isMounted = false;
+    }
 
-  return { categories, loading, error, refreshCategories };
+  }, [userId, refreshCategories, getCacheKey, translations]);
+
+  return { categories, setCategories, loading, error, refreshCategories };
 };
