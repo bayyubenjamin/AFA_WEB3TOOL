@@ -30,7 +30,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 
-// Konstanta tidak berubah
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
 const defaultGuestUserForApp = {
@@ -39,10 +38,6 @@ const defaultGuestUserForApp = {
   address: null, stats: { points: 0, airdropsClaimed: 0, nftsOwned: 0 },
   user_metadata: {}
 };
-
-// =================================================================
-// AWAL DARI PERUBAHAN UTAMA
-// =================================================================
 
 const mapSupabaseDataToAppUser = (authUser, profileData) => {
     if (!authUser) return defaultGuestUserForApp;
@@ -63,7 +58,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
 
-  // State lain yang tidak berhubungan dengan auth tetap di sini
+  // State lain tidak berubah
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(0);
@@ -71,13 +66,11 @@ export default function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Semua refs tetap ada
+  // Refs dan Hooks lain tidak berubah
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
   const scrollUpStartPosRef = useRef(null);
-
-  // Semua hooks lain tetap ada
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,43 +78,16 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-
-  // --- 1. FUNGSI BARU UNTUK AUTENTIKASI TELEGRAM ---
-  const authenticateTelegramUser = useCallback(async () => {
-    // Cek apakah kita berada di dalam Telegram Mini App
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-      try {
-        const { initData } = window.Telegram.WebApp;
-
-        // Panggil Edge Function 'telegram-auth' yang sudah kita buat
-        const { data, error } = await supabase.functions.invoke('telegram-auth', {
-          body: { initData },
-        });
-
-        if (error) throw error;
-        if (data.error) throw new Error(data.error);
-
-        // Jika berhasil, Supabase akan mendapatkan session dari token yang dikembalikan
-        const { access_token, refresh_token } = data;
-        await supabase.auth.setSession({ access_token, refresh_token });
-        
-        // Listener onAuthStateChange di bawah akan menangani sisanya.
-        return true; // Autentikasi berhasil
-      } catch (err) {
-        console.error("Gagal autentikasi via Telegram:", err);
-        return false; // Autentikasi gagal
-      }
-    }
-    return false; // Bukan di lingkungan Telegram
-  }, []);
-
-
-  // --- 2. useEffect UTAMA UNTUK MENGELOLA SESI ---
+  // =================================================================
+  // PERUBAHAN UTAMA ADA DI SINI
+  // =================================================================
   useEffect(() => {
+    console.log("App.jsx: Mulai proses autentikasi...");
     setLoadingInitialSession(true);
 
     const handleSession = async (session) => {
         if (session?.user) {
+            console.log("handleSession: Sesi ditemukan, mengambil profil untuk user:", session.user.id);
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('*')
@@ -130,65 +96,112 @@ export default function App() {
             
             if (profile) {
                 const appUser = mapSupabaseDataToAppUser(session.user, profile);
+                console.log("handleSession: Profil ditemukan, user di-set:", appUser.username);
                 setCurrentUser(appUser);
             } else {
-                // Skenario darurat jika profil tidak ada, jarang terjadi
-                console.warn("Profil tidak ditemukan untuk user:", session.user.id);
+                console.warn("handleSession: Profil tidak ditemukan untuk user:", session.user.id);
                 setCurrentUser(mapSupabaseDataToAppUser(session.user, null));
             }
         } else {
+            console.log("handleSession: Tidak ada sesi, user di-set ke null.");
             setCurrentUser(null);
         }
         setLoadingInitialSession(false);
+        console.log("App.jsx: Proses autentikasi selesai.");
     };
 
-    // Listener ini adalah satu-satunya sumber kebenaran untuk state user
+    // Listener ini akan menjadi satu-satunya yang mengubah state currentUser
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log("onAuthStateChange: Event terdeteksi, event:", _event);
         handleSession(session);
     });
-    
-    // Coba autentikasi Telegram dulu, JIKA GAGAL, baru cek sesi yang ada
-    authenticateTelegramUser().then(isTelegramAuth => {
-        if (!isTelegramAuth) {
-            // Jika bukan dari Telegram, jalankan alur normal
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                handleSession(session);
-            });
+
+    const runAuthFlow = async () => {
+        // Cek apakah ini lingkungan Telegram
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+            console.log("runAuthFlow: Lingkungan Telegram terdeteksi.");
+            try {
+                const { initData } = window.Telegram.WebApp;
+                console.log("runAuthFlow: Mengirim initData ke Supabase Function...");
+
+                const { data, error } = await supabase.functions.invoke('telegram-auth', {
+                    body: { initData },
+                });
+
+                if (error) throw error;
+                if (data.error) throw new Error(data.error);
+
+                console.log("runAuthFlow: Sukses! Mengatur sesi dari token yang diterima.");
+                const { access_token, refresh_token } = data;
+                // setSession akan memicu onAuthStateChange secara otomatis
+                await supabase.auth.setSession({ access_token, refresh_token });
+
+            } catch (err) {
+                console.error("runAuthFlow: Gagal autentikasi via Telegram:", err);
+                // Jika gagal, biarkan loading selesai dengan state user null
+                setLoadingInitialSession(false);
+            }
+        } else {
+            // Jika bukan di Telegram, jalankan alur login browser biasa
+            console.log("runAuthFlow: Lingkungan non-Telegram, cek sesi yang ada.");
+            const { data: { session } } = await supabase.auth.getSession();
+            handleSession(session);
         }
-    });
+    };
+
+    // SOLUSI UTAMA: Tunggu event 'ready' dari Telegram sebelum menjalankan apapun
+    if (window.Telegram && window.Telegram.WebApp) {
+        console.log("Menunggu Telegram.WebApp.ready()...");
+        window.Telegram.WebApp.ready(); // Pastikan UI Telegram sudah siap
+        runAuthFlow(); // Jalankan alur setelahnya
+    } else {
+        // Jika objek Telegram belum ada, tunggu sebentar lalu coba lagi
+        // Ini untuk mengatasi race condition saat load awal
+        setTimeout(() => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                console.log("Objek Telegram ditemukan setelah delay. Menunggu ready()...");
+                window.Telegram.WebApp.ready();
+                runAuthFlow();
+            } else {
+                console.log("Objek Telegram tidak ditemukan. Menjalankan alur non-Telegram.");
+                runAuthFlow();
+            }
+        }, 500); // delay 500ms
+    }
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [authenticateTelegramUser]);
+  }, []); // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat
 
-  // Semua fungsi dan useEffect lain tetap sama persis
-  const handleScroll = (event) => { /* ... (Tidak ada perubahan) ... */  const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
-  const scrollToTop = () => { /* ... (Tidak ada perubahan) ... */ if (pageContentRef.current) { pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' }); } setShowBackToTop(false); if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } };
-  const checkAirdropNotifications = useCallback(async () => { /* ... (Tidak ada perubahan) ... */ try { const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY); const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null; if (!lastVisitDate) { setHasNewAirdropNotification(true); return; } const { data, error } = await supabase.from('airdrops').select('created_at, AirdropUpdates(created_at)'); if (error) throw error; if (!data) return; for (const airdrop of data) { let lastActivityAt = new Date(airdrop.created_at); if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) { const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at)))); if (mostRecentUpdateDate > lastActivityAt) lastActivityAt = mostRecentUpdateDate; } if (lastActivityAt > lastVisitDate) { setHasNewAirdropNotification(true); return; } } setHasNewAirdropNotification(false); } catch (err) { console.error("Gagal mengecek notifikasi airdrop:", err); setHasNewAirdropNotification(false); } }, []);
-  const handleMarkAirdropsAsSeen = () => { /* ... (Tidak ada perubahan) ... */ localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
+  // =================================================================
+  // AKHIR DARI PERUBAHAN UTAMA
+  // =================================================================
+
+  // Semua fungsi dan useEffect lain di bawah ini TIDAK ADA PERUBAHAN
+  const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
+  const scrollToTop = () => { if (pageContentRef.current) { pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' }); } setShowBackToTop(false); if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } };
+  const checkAirdropNotifications = useCallback(async () => { try { const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY); const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null; if (!lastVisitDate) { setHasNewAirdropNotification(true); return; } const { data, error } = await supabase.from('airdrops').select('created_at, AirdropUpdates(created_at)'); if (error) throw error; if (!data) return; for (const airdrop of data) { let lastActivityAt = new Date(airdrop.created_at); if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) { const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at)))); if (mostRecentUpdateDate > lastActivityAt) lastActivityAt = mostRecentUpdateDate; } if (lastActivityAt > lastVisitDate) { setHasNewAirdropNotification(true); return; } } setHasNewAirdropNotification(false); } catch (err) { console.error("Gagal mengecek notifikasi airdrop:", err); setHasNewAirdropNotification(false); } }, []);
+  const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
-  useEffect(() => { /* ... (Tidak ada perubahan) ... */ const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { /* ... (Tidak ada perubahan) ... */ const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
-  useEffect(() => { /* ... (Tidak ada perubahan) ... */ if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
+  useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
+  useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
-  const handleLogout = async () => { /* ... (Tidak ada perubahan) ... */ await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
-  const handleUpdateUserInApp = (updatedUserData) => { /* ... (Tidak ada perubahan) ... */ setCurrentUser(updatedUserData); };
+  const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
+  const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
   
-  // Variabel `userForHeader` sekarang lebih sederhana
   const userForHeader = currentUser || defaultGuestUserForApp;
   const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
   const handleOpenWalletModal = () => openWalletModal();
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
-  // Return JSX tidak ada perubahan, hanya props yang di-pass
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
 
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
         <Routes>
-          {/* Semua Routes tetap sama, hanya `currentUser` yang di-pass adalah yang sudah final */}
           <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
           <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={handleMarkAirdropsAsSeen} />} />
@@ -215,7 +228,6 @@ export default function App() {
 
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
       
-      {/* Loading overlay tidak berubah */}
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
