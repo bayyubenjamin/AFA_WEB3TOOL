@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "https://deno.land/std@0.177.0/http/server.ts": "https://deno.land/std@0.177.0/http/server.ts",
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2",
+    "https://esm.sh/@ambire/signature-validator": "https://esm.sh/@ambire/signature-validator",
+    "https://deno.land/x/djwt@v2.2/mod.ts": "https://deno.land/x/djwt@v2.2/mod.ts",
+    "https://esm.sh/ethers@6.7.0": "https://esm.sh/ethers@6.7.0"
+  }
+}

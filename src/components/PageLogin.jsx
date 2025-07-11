@@ -10,7 +10,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
-const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
 
 export default function PageLogin({ currentUser, onOpenWalletModal }) { 
   const navigate = useNavigate();
@@ -22,11 +21,11 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
-  const [isTelegramLoading, setIsTelegramLoading] = useState(false);
+  // State untuk Telegram dihapus
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
 
@@ -58,60 +57,52 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
   };
   
   const handleWalletLogin = async () => {
-    if (!address) return;
+    if (!address || !chainId) {
+        setError("Wallet tidak terhubung atau chainId tidak ditemukan.");
+        return;
+    }
     clearMessages();
     setIsWalletActionLoading(true);
+
     try {
-      const signature = await signMessageAsync({ message: SIGN_MESSAGE });
-      const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { body: { address, signature } });
-      if (functionError) throw new Error(functionError.message);
-      if (session.error) throw new Error(session.error);
-      const { error: sessionError } = await supabase.auth.setSession(session);
-      if (sessionError) throw sessionError;
+        const messageToSign = `Logging in with wallet: ${address}`;
+        const signature = await signMessageAsync({ message: messageToSign });
+        
+        const { data: functionData, error: functionError } = await supabase.functions.invoke(
+            'login-with-wallet',
+            {
+                body: {
+                    address,
+                    signature,
+                    chainId: `0x${chainId.toString(16)}`
+                }
+            }
+        );
 
-      sessionStorage.removeItem('explicitlyLoggedOut');
+        if (functionError) throw new Error(functionError.message);
+        if (functionData.error) throw new Error(functionData.error);
 
-      setSuccessMessage("Berhasil login dengan wallet!");
-      navigate('/');
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: functionData.access_token,
+          refresh_token: functionData.refresh_token
+        });
+        
+        if (sessionError) throw sessionError;
+
+        sessionStorage.removeItem('explicitlyLoggedOut');
+        setSuccessMessage("Berhasil login dengan wallet!");
+        navigate('/');
+
     } catch (err) {
-      console.error("Wallet login error:", err);
-      setError(err.message || "Gagal login dengan wallet.");
-      disconnect();
+        console.error("Wallet login error:", err);
+        setError(err.message || "Gagal login dengan wallet.");
+        disconnect();
     } finally {
-      setIsWalletActionLoading(false);
+        setIsWalletActionLoading(false);
     }
   };
 
-  const handleTelegramAuth = async (telegramUser) => {
-    clearMessages();
-    setIsTelegramLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('login-with-telegram', {
-        body: telegramUser
-      });
-
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-
-      if (sessionError) throw sessionError;
-      
-      sessionStorage.removeItem('explicitlyLoggedOut');
-
-      setSuccessMessage("Berhasil login dengan Telegram!");
-      navigate('/');
-
-    } catch (err) {
-      console.error("Telegram login error:", err);
-      setError(err.message || "Gagal login dengan Telegram.");
-    } finally {
-      setIsTelegramLoading(false);
-    }
-  };
+  // Fungsi handleTelegramAuth dihapus
 
   useEffect(() => {
       if (isConnected && address && !isWalletActionLoading) {
@@ -143,8 +134,7 @@ export default function PageLogin({ currentUser, onOpenWalletModal }) {
           setLoginPassword={setLoginPassword}
           showPassword={showPassword}
           setShowPassword={setShowPassword}
-          onTelegramAuth={handleTelegramAuth}
-          isTelegramLoading={isTelegramLoading}
+          // Prop untuk Telegram dihapus dari AuthForm
         />
          <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
            {t.noAccountYet}{" "}

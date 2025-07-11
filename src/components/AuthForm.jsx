@@ -4,7 +4,7 @@ import {
   faIdBadge, faUserPlus, faEnvelope, faLock, faUser,
   faEye, faEyeSlash, faSpinner, faSignInAlt, faKey, faWallet
 } from '@fortawesome/free-solid-svg-icons';
-import TelegramLoginWidget from './TelegramLoginWidget'; // Widget untuk web
+// Import TelegramLoginWidget dihapus
 
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, children, parentLoading }) => (
     <div className="mb-4">
@@ -38,9 +38,7 @@ export default function AuthForm({
   handleBackToDetails,
   showPassword, setShowPassword,
   showConfirmPassword, setShowConfirmPassword,
-  // Prop untuk widget Telegram
-  onTelegramAuth,
-  isTelegramLoading,
+  // Prop untuk widget Telegram sudah dihapus dari sini
 }) {
   return (
     <div className="card rounded-xl p-6 md:p-8 shadow-2xl">
@@ -51,7 +49,7 @@ export default function AuthForm({
       </div>
       
       {isLoginForm ? (
-         <form onSubmit={onFormSubmit} className="space-y-4">
+          <form onSubmit={onFormSubmit} className="space-y-4">
             <InputField id="loginEmail" type="email" label={t.formLabelEmail} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} icon={faEnvelope} placeholder={t.formPlaceholderEmail} parentLoading={loading} />
             <div className="relative">
                 <InputField id="loginPassword" type={showPassword ? "text" : "password"} label={t.formLabelPassword} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} icon={faLock} placeholder={t.formPlaceholderPasswordLogin} parentLoading={loading} />
@@ -60,7 +58,7 @@ export default function AuthForm({
             <button type="submit" disabled={loading} className="btn-primary text-white font-semibold py-3 px-8 rounded-lg text-lg w-full flex items-center justify-center disabled:opacity-70">
                 {loading ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />} {t.loginBtn}
             </button>
-         </form>
+          </form>
       ) : (
         <>
           {signupStage === 'collectingDetails' ? (
@@ -102,9 +100,7 @@ export default function AuthForm({
         {t.loginWithWallet || "Login with Wallet"}
       </button>
 
-      <div className="mt-4 flex justify-center">
-        <TelegramLoginWidget onTelegramAuth={onTelegramAuth} loading={isTelegramLoading} />
-      </div>
+      {/* Bagian untuk menampilkan widget Telegram sudah dihapus dari sini */}
     </div>
   );
 }
