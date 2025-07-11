@@ -83,10 +83,11 @@ export default function Header({ title, currentUser, onLogout, navigateTo, onlin
       <header className={`h-[var(--header-height)] px-4 flex items-center justify-between glassmorphism rounded-full shadow-lg`}>
         <div className="flex items-center flex-1 min-w-0">
           <img
-            src="https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg"
-            alt="Logo AFA"
-            className="h-10 w-10 rounded-full object-cover border-2 border-accent/50 flex-shrink-0 header-interactive-item"
-          />
+  src="/assets/logo.png"
+  alt="Logo AFA"
+  className="h-10 w-10 rounded-full object-cover border-2 border-accent/50 flex-shrink-0 header-interactive-item"
+/>
+
           <Link
             to="/forum"
             className="p-2 w-10 h-10 hidden logo-bp:flex items-center justify-center header-interactive-item ml-2"
