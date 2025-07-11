@@ -464,9 +464,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     <ProfileSection title="Join Our Community" icon={faUsers}>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Stay connected, get real-time alpha, and join the conversation on your favorite platforms.</p>
                         <div className="flex justify-center items-center space-x-4">
-                            <SocialLink icon={faTelegram} name="Telegram" href="#" colorClass="bg-sky-100 dark:bg-sky-500/10 text-sky-500 dark:text-sky-400 hover:bg-sky-200" />
-                            <SocialLink icon={faDiscord} name="Discord" href="#" colorClass="bg-indigo-100 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 hover:bg-indigo-200" />
-                            <SocialLink icon={faXTwitter} name="X.com" href="#" colorClass="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300" />
+                            <SocialLink icon={faTelegram} name="Telegram" href="https://t.me/Airdrop4ll" colorClass="bg-sky-100 dark:bg-sky-500/10 text-sky-500 dark:text-sky-400 hover:bg-sky-200" />
+                            <SocialLink icon={faDiscord} name="Discord" href="https://discord.gg/7ptA7jy8" colorClass="bg-indigo-100 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 hover:bg-indigo-200" />
+                            <SocialLink icon={faXTwitter} name="X.com" href="https://x.com/bayybayss" colorClass="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300" />
                         </div>
                     </ProfileSection>
                 </div>

@@ -215,9 +215,9 @@ export default function PageHome({ currentUser, navigate }) {
         <h2 className="text-3xl md:text-4xl font-bold text-slate-500 dark:text-slate-400">{tHome.communityTitle}</h2>
         <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">{tHome.communitySubtitle}</p>
         <div className="flex justify-center items-center space-x-10 md:space-x-16 pt-4">
-          <SocialLink icon={faTelegram} name="Telegram" href="https://t.me/yourchannel" />
-          <SocialLink icon={faDiscord} name="Discord" href="https://discord.gg/yourserver" />
-          <SocialLink icon={faXTwitter} name="X.com" href="https://x.com/yourprofile" />
+          <SocialLink icon={faTelegram} name="Telegram" href="https://t.me/Airdrop4ll" />
+          <SocialLink icon={faDiscord} name="Discord" href="https://discord.gg/7ptA7jy8" />
+          <SocialLink icon={faXTwitter} name="X.com" href="https://x.com/bayybayss" />
         </div>
       </div>
 
