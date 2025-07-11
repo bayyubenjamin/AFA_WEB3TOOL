@@ -3,7 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 
-// Komponen-komponen Anda
+// Komponen-komponen
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BackToTopButton from './components/BackToTopButton';
@@ -25,15 +25,16 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
 
+// Utilitas & Konteks
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
-import { Toaster } from 'sonner'; // Pastikan sonner ada di package.json
+import { Toaster } from 'sonner';
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
-// User default jika tidak login
+// Objek user default
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
@@ -41,9 +42,9 @@ const defaultGuestUserForApp = {
   user_metadata: {}
 };
 
-// Fungsi untuk memetakan data user Supabase ke format user aplikasi
+// Fungsi pemetaan data user
 const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
-  if (!authUser) return null; // [PERBAIKAN KECIL] Kembalikan null jika tidak ada authUser
+  if (!authUser) return null;
   return {
     id: authUser.id, email: authUser.email,
     username: profileData?.username || authUser.user_metadata?.username || authUser.email?.split('@')[0] || "User",
@@ -53,7 +54,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     address: profileData?.web3_address || null,
     telegram_user_id: profileData?.telegram_user_id || null,
     user_metadata: authUser.user_metadata || {},
-    role: profileData?.role || 'user', // Menambahkan role
+    role: profileData?.role || 'user',
   };
 };
 
@@ -62,7 +63,7 @@ export default function App() {
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [isTelegram, setIsTelegram] = useState(false);
 
-  // State lainnya tetap sama (tidak diubah)
+  // State lainnya tidak diubah
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(0);
@@ -70,13 +71,13 @@ export default function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Refs tetap sama (tidak diubah)
+  // Refs tidak diubah
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
   const scrollUpStartPosRef = useRef(null);
 
-  // Hooks lainnya tetap sama (tidak diubah)
+  // Hooks tidak diubah
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // Cek apakah di dalam Telegram saat pertama kali render
+  // Cek lingkungan Telegram sekali saja
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       setIsTelegram(true);
@@ -93,88 +94,81 @@ export default function App() {
     }
   }, []);
 
-  // --- [PERBAIKAN UTAMA] BLOK AUTENTIKASI YANG TELAH DISEMPURNAKAN UNTUK MINI APP ---
+  // --- [PERBAIKAN UTAMA] BLOK AUTENTIKASI DENGAN PENANGANAN ERROR YANG LEBIH BAIK ---
   useEffect(() => {
-    setLoadingInitialSession(true);
-    console.log("[Auth] Memulai pengecekan sesi...");
-
-    const handleSessionUpdate = async (session) => {
+    // 1. Fungsi ini sekarang hanya bertanggung jawab untuk memproses sesi yang ada
+    const processSession = async (session) => {
       if (session?.user) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-          if (error && error.code !== 'PGRST116') throw error;
-
+        if (error && error.code !== 'PGRST116') {
+          console.error("[Auth] Gagal mengambil profil:", error);
+          setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null)); // Tetap set user meski profil gagal
+        } else {
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
-          console.log("[Auth] Profil dimuat, user di-set:", appUser.username);
-        } catch (error) {
-          console.error("[Auth] Gagal mengambil profil:", error);
-          setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null));
+          console.log("[Auth] Sesi diproses, user di-set:", appUser?.username);
         }
       } else {
-        console.log("[Auth] Tidak ada sesi aktif.");
         setCurrentUser(null);
-      }
-      setLoadingInitialSession(false);
-    };
-
-    const authInTelegram = async () => {
-      console.log("[Auth] Lingkungan Telegram terdeteksi, menjalankan alur auth khusus.");
-      try {
-        const initData = window.Telegram.WebApp.initData;
-        if (!initData) {
-          console.warn("[Auth] initData kosong. Sesi akan ditangani oleh onAuthStateChange.");
-          const { data: { session } } = await supabase.auth.getSession();
-          await handleSessionUpdate(session);
-          return;
-        }
-
-        console.log("[Auth] Mengirim initData ke function 'telegram-auth'...");
-        const { data, error } = await supabase.functions.invoke('telegram-auth', {
-          body: { initData },
-        });
-
-        if (error) throw error;
-        if (data.error) throw new Error(data.error);
-
-        console.log("[Auth] Sukses! Mengatur sesi dari function.");
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-
-        if (sessionError) throw sessionError;
-        // onAuthStateChange akan terpanggil setelah ini dan menangani update UI.
-
-      } catch (err) {
-        console.error("[Auth] Gagal autentikasi via Telegram initData:", err);
-        const { data: { session } } = await supabase.auth.getSession();
-        await handleSessionUpdate(session); // Fallback
+        console.log("[Auth] Sesi tidak ada, user di-set ke null.");
       }
     };
+    
+    // 2. Buat fungsi utama untuk memulai seluruh proses autentikasi
+    const initializeAuth = async () => {
+        try {
+            console.log("[Auth] Memulai pengecekan sesi...");
+            if (isTelegram && window.Telegram?.WebApp?.initData) {
+                console.log("[Auth] Lingkungan Telegram, mencoba auth via initData...");
+                const { data, error } = await supabase.functions.invoke('telegram-auth', {
+                    body: { initData: window.Telegram.WebApp.initData },
+                });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log(`[Auth] Event terdeteksi: ${_event}`);
-      if (_event === 'INITIAL_SESSION') {
-        if (isTelegram) {
-          await authInTelegram();
-        } else {
-          await handleSessionUpdate(session);
+                if (error) throw error;
+                if (data.error) throw new Error(data.error);
+
+                await supabase.auth.setSession({
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                });
+                console.log("[Auth] Sesi Telegram berhasil diatur.");
+                // Biarkan onAuthStateChange yang menangani pembaruan UI setelah ini
+            }
+            
+            // Untuk non-telegram atau jika initData tidak ada, getSession() akan
+            // memulihkan dari localStorage jika ada.
+            const { data: { session } } = await supabase.auth.getSession();
+            await processSession(session);
+
+        } catch (error) {
+            console.error("[Auth] Error pada saat inisialisasi:", error);
+            // Jika ada error, pastikan user di-set ke null
+            setCurrentUser(null);
+        } finally {
+            // 3. INI BAGIAN TERPENTING: Pastikan loading selalu selesai
+            console.log("[Auth] Proses inisialisasi selesai, menghilangkan layar loading.");
+            setLoadingInitialSession(false);
         }
-      } else if (['SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED'].includes(_event)) {
-        await handleSessionUpdate(session);
-      }
+    };
+    
+    initializeAuth();
+
+    // 4. onAuthStateChange sekarang hanya bertindak sebagai listener untuk perubahan di masa depan (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (_event === 'INITIAL_SESSION') return; // Diabaikan karena sudah ditangani di `initializeAuth`
+        console.log(`[Auth] Event terdeteksi: ${_event}, sesi akan diproses ulang.`);
+        processSession(session);
     });
 
     return () => {
-      subscription?.unsubscribe();
+        subscription?.unsubscribe();
     };
-  }, [isTelegram]); // Dependensi pada `isTelegram` untuk memastikan logika yang benar dijalankan
+  }, [isTelegram]); // Hanya bergantung pada `isTelegram`
 
   // --- SEMUA FUNGSI DAN useEffect LAIN DI BAWAH INI TIDAK DIUBAH ---
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
@@ -189,7 +183,6 @@ export default function App() {
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); sessionStorage.clear(); navigate('/login'); };
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(prev => ({ ...prev, ...updatedUserData })); };
   
-  // Jika loading, jangan arahkan kemana-mana dulu
   if (loadingInitialSession) {
     return (
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg`}>
@@ -249,11 +242,6 @@ export default function App() {
 
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-      
-      {/* Layar Loading Global */}
-      <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-300 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Konten loading sudah dipindahkan ke kondisi render di atas */}
-      </div>
     </div>
   );
 }
