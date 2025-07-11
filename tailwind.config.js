@@ -15,7 +15,7 @@ module.exports = {
       },
       colors: {
         'primary': {
-          DEFAULT: '#1B4DC1',
+          DEFAULT: '#0260ed',
           'dark': '#5887ff'
         },
         'accent': {
@@ -31,6 +31,8 @@ module.exports = {
         'dark-card': '#192A44',
         'theme-dark-text': '#E0E8F4', // NAMA BARU
         'dark-subtle': '#8899B3',
+          // 🎯 Tambahan warna custom
+        'afadark': '#2d3a5f',
       },
       fontFamily: {
         sans: ["Fredoka", "Baloo 2", "Quicksand", "system-ui", "sans-serif"],

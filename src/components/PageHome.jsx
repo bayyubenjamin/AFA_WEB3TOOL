@@ -25,7 +25,7 @@ const FeatureCard = ({ icon, title, description, actionText, actionTarget, color
     <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-radial from-primary/10 to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 animate-spin-slow"></div>
     <div className="relative z-10 flex flex-col h-full">
       <div className={`mb-5 text-4xl ${color}`}><FontAwesomeIcon icon={icon} /></div>
-      <h3 className="text-xl font-bold text-slate-500 dark:text-slate-400 mb-3">{title}</h3>
+      <h3 className="text-xl font-bold text-afadark dark:text-slate-300 mb-3">{title}</h3>
       <p className="text-slate-600 dark:text-slate-400 text-base mb-6 flex-grow leading-relaxed">{description}</p>
       <Link to={actionTarget} className="mt-auto font-semibold text-primary hover:text-primary/80 dark:hover:text-white transition-colors duration-200 flex items-center group/link">
         {actionText}
@@ -41,7 +41,7 @@ const HowItWorksStep = ({ icon, title, description }) => (
             <FontAwesomeIcon icon={icon} className="text-3xl" />
         </div>
         {/* --- MODIFIED: HowItWorksStep Title Color --- */}
-        <h3 className="text-xl font-bold text-slate-500 dark:text-slate-400 mb-3">{title}</h3>
+        <h3 className="text-xl font-bold text-afadark dark:text-slate-300 mb-3">{title}</h3>
         <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed">{description}</p>
     </div>
 );
@@ -109,7 +109,7 @@ export default function PageHome({ currentUser, navigate }) {
         <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white text-stroke-primary leading-tight">
           {tHome.heroTitle}
         </h1>
-        <p className="mt-6 text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
+         <p className="mt-6 text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
           {tHome.heroSubtitle}
         </p>
         <div className="mt-10">
@@ -123,7 +123,7 @@ export default function PageHome({ currentUser, navigate }) {
       {/* How It Works Section */}
       <div className="px-4 py-20 bg-slate-50 dark:bg-slate-900/70 rounded-3xl">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-500 dark:text-slate-400 mb-3">{tHome.howItWorksTitle}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-afadark dark:text-slate-300 mb-3">{tHome.howItWorksTitle}</h2>
           <div className="w-24 h-1 bg-primary mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">{tHome.howItWorksSubtitle}</p>
         </div>
@@ -140,9 +140,10 @@ export default function PageHome({ currentUser, navigate }) {
       {/* Features Section */}
       <div className="space-y-16 px-4">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-center">
-            <FontAwesomeIcon icon={faCubesStacked} className="mr-3 text-primary" /> {tHome.featuresTitle}
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-afadark dark:text-slate-300 mb-3 flex items-center justify-center">
+  <FontAwesomeIcon icon={faCubesStacked} className="mr-3 text-primary" /> 
+  {tHome.featuresTitle}
+</h2>
           <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
             {tHome.featuresSubtitle}
           </p>
@@ -168,10 +169,13 @@ export default function PageHome({ currentUser, navigate }) {
       <div className="px-4">
         <div className="py-20 px-4 bg-slate-100 dark:bg-slate-900/70 rounded-3xl">
             <div className="text-center max-w-3xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-center">
-                    <FontAwesomeIcon icon={faHandshake} className="mr-3 text-primary" /> {tHome.sponsorAttractionTitle}
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-12">{tHome.sponsorAttractionSubtitle}</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-afadark dark:text-slate-300 mb-3 flex items-center justify-center">
+  <FontAwesomeIcon icon={faHandshake} className="mr-3 text-primary" /> 
+  {tHome.sponsorAttractionTitle}
+</h2>
+                <p className="text-afadark dark:text-slate-300 text-lg leading-relaxed mb-12">
+  {tHome.sponsorAttractionSubtitle}
+</p>
             </div>
             <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 <StatCard icon={faUsers} value="10K+" label={tHome.stat1Label} />
