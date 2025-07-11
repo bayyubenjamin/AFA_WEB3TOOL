@@ -188,7 +188,7 @@ export default function PageHome({ currentUser, navigate }) {
                           </li>
                       ))}
                   </ul>
-                  <a href="mailto:partnership@afa.com" className="btn-secondary font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center">
+                  <a href="https://t.me/bayybays" className="btn-secondary font-semibold py-3 px-8 rounded-lg text-lg transform hover:scale-105 transition-transform duration-300 inline-flex items-center">
                       {tHome.sponsorAttractionCta}
                   </a>
             </div>
