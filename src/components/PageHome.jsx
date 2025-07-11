@@ -121,7 +121,7 @@ export default function PageHome({ currentUser, navigate }) {
       </div>
       
       {/* How It Works Section */}
-      <div className="px-4 py-20 bg-slate-50 dark:bg-slate-900/70 rounded-3xl">
+      <div className="px-4 py-20 bg-slate-50 dark:bg-slate-900/0 rounded-3xl">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-afadark dark:text-slate-300 mb-3">{tHome.howItWorksTitle}</h2>
           <div className="w-24 h-1 bg-primary mx-auto mb-4"></div>
@@ -167,7 +167,7 @@ export default function PageHome({ currentUser, navigate }) {
 
       {/* Sponsor Attraction Card */}
       <div className="px-4">
-        <div className="py-20 px-4 bg-slate-100 dark:bg-slate-900/70 rounded-3xl">
+        <div className="py-20 px-4 bg-slate-100 dark:bg-slate-900/0 rounded-3xl">
             <div className="text-center max-w-3xl mx-auto">
                 <h2 className="text-3xl md:text-4xl font-bold text-afadark dark:text-slate-300 mb-3 flex items-center justify-center">
   <FontAwesomeIcon icon={faHandshake} className="mr-3 text-primary" /> 
