@@ -1,3 +1,4 @@
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -40,6 +41,7 @@ module.exports = {
         'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
         'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
       },
+      // Keyframes untuk animasi lain tetap ada, hanya yang berhubungan dengan bintang dihapus
       keyframes: {
         gradientShine: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
@@ -49,27 +51,16 @@ module.exports = {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
-        // Keyframe untuk menggerakkan posisi background
-        'move-bg': {
-          from: { backgroundPosition: '0 0' },
-          to: { backgroundPosition: '1000px 1000px' },
-        },
       },
       animation: {
         "gradient-shine": "gradientShine 5s linear infinite",
         "spin-slow": "spinSlow 10s linear infinite",
-        // Animasi bintang dengan durasi berbeda untuk efek parallax
-        'stars-small-anim': 'move-bg 200s linear infinite',
-        'stars-medium-anim': 'move-bg 150s linear infinite',
-        'stars-large-anim': 'move-bg 100s linear infinite',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #FFF8F0 100%)',
         'dark-sky-gradient': 'radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%)',
-        'stars-small': 'radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 70px 10px, #ddd, rgba(0,0,0,0))',
-        'stars-medium': 'radial-gradient(3px 3px at 50px 100px, #eee, rgba(0,0,0,0)), radial-gradient(3px 3px at 80px 10px, #fff, rgba(0,0,0,0)), radial-gradient(3px 3px at 10px 60px, #ddd, rgba(0,0,0,0))',
-        'stars-large': 'radial-gradient(4px 4px at 10px 50px, #eee, rgba(0,0,0,0)), radial-gradient(4px 4px at 90px 40px, #fff, rgba(0,0,0,0)), radial-gradient(4px 4px at 60px 80px, #ddd, rgba(0,0,0,0))',
+        // Semua definisi 'starfield' dan 'stars-*' telah dihapus.
       }
     },
   },
@@ -77,3 +68,4 @@ module.exports = {
     require('@tailwindcss/typography'),
   ],
 };
+
