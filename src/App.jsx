@@ -24,6 +24,7 @@ import PageRegister from "./components/PageRegister";
 import PageAfaIdentity from './components/PageAfaIdentity';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
+import StarsBackground from "./components/StarsBackground"; // <-- IMPOR SUDAH BENAR
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -206,6 +207,8 @@ export default function App() {
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
+      <StarsBackground /> {/* <-- KOMPONEN DITEMPATKAN DI SINI */}
+      
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
 
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>

@@ -40,7 +40,6 @@ module.exports = {
         'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
         'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
       },
-      // === Tambahkan keyframes berikut ===
       keyframes: {
         gradientShine: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
@@ -50,20 +49,20 @@ module.exports = {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
-        'move-twinkle-back': { // Keyframe untuk pergerakan bintang
+        // Keyframe untuk menggerakkan posisi background
+        'move-bg': {
           from: { backgroundPosition: '0 0' },
-          to: { backgroundPosition: '-100000px -100000px' },
+          to: { backgroundPosition: '1000px 1000px' },
         },
       },
-      // === Tambahkan animasi berikut ===
       animation: {
         "gradient-shine": "gradientShine 5s linear infinite",
         "spin-slow": "spinSlow 10s linear infinite",
-        'stars-small-anim': 'move-twinkle-back 200s linear infinite', // Animasi bintang lambat
-        'stars-medium-anim': 'move-twinkle-back 100s linear infinite', // Animasi bintang sedang
-        'stars-large-anim': 'move-twinkle-back 50s linear infinite', // Animasi bintang cepat
+        // Animasi bintang dengan durasi berbeda untuk efek parallax
+        'stars-small-anim': 'move-bg 200s linear infinite',
+        'stars-medium-anim': 'move-bg 150s linear infinite',
+        'stars-large-anim': 'move-bg 100s linear infinite',
       },
-      // === Tambahkan backgroundImage berikut ===
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #FFF8F0 100%)',

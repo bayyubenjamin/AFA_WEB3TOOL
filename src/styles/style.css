@@ -1,5 +1,3 @@
-/* src/styles/style.css - Kode Lengkap */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -40,26 +38,18 @@
   .app-container {
     @apply bg-sky-gradient dark:bg-dark-sky-gradient;
     
-    /* === Tambahkan blok ini untuk animasi bintang saat mode gelap === */
     .dark & {
-      /* Menggabungkan tiga lapisan bintang dan gradien dasar */
       background-image: 
         theme('backgroundImage.stars-small'), 
         theme('backgroundImage.stars-medium'), 
         theme('backgroundImage.stars-large'), 
         theme('backgroundImage.dark-sky-gradient');
-      /* Ukuran untuk setiap lapisan bintang dan gradien dasar */
       background-size: 2000px 2000px, 1000px 1000px, 500px 500px, cover;
-      /* Pastikan bintang berulang */
       background-repeat: repeat;
-      /* Menerapkan animasi untuk setiap lapisan bintang */
       animation: 
-        theme('animation.stars-small-anim'), 
-        theme('animation.stars-medium-anim'), 
-        theme('animation.stars-large-anim');
-      /* Pastikan animasi bergerak secara linear dan berulang */
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
+        stars-small-anim 200s linear infinite,
+        stars-medium-anim 150s linear infinite,
+        stars-large-anim 100s linear infinite;
     }
   }
   
@@ -130,7 +120,6 @@
   .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-gray-700 dark:text-theme-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
   .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600; }
   .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-light-soft dark:bg-dark-bg text-primary dark:text-accent-dark; }
-  .category-settings-dropdown-content button svg { @apply mr-2.5 w-4 h-4; }
   .category-settings-dropdown-content .delete-action:not(:disabled):hover { @apply !text-red-500 !bg-red-500/10; }
 
   .airdrop-list-container { @apply max-h-0 overflow-hidden transition-all duration-500 ease-in-out; }
@@ -186,7 +175,7 @@
       scrollbar-color: #94A3B8 transparent;
   }
 
-  /* === [PENAMBAHAN BARU] BACK TO TOP BUTTON === */
+  /* === BACK TO TOP BUTTON === */
   .back-to-top-btn {
     @apply fixed bottom-20 md:bottom-6 right-6 z-50;
     @apply bg-primary text-white rounded-full p-3 shadow-lg;
@@ -201,5 +190,4 @@
   .back-to-top-btn:hover {
     @apply bg-accent scale-110;
   }
-  /* === AKHIR PENAMBAHAN BARU === */
 }
