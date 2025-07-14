@@ -1,4 +1,4 @@
-/* src/styles/style.css - Kode Lengkap dengan Efek Stroke, Scrollbar, & Back to Top Button */
+/* src/styles/style.css - Kode Lengkap */
 
 @tailwind base;
 @tailwind components;
@@ -39,6 +39,28 @@
   /* Main App Container background */
   .app-container {
     @apply bg-sky-gradient dark:bg-dark-sky-gradient;
+    
+    /* === Tambahkan blok ini untuk animasi bintang saat mode gelap === */
+    .dark & {
+      /* Menggabungkan tiga lapisan bintang dan gradien dasar */
+      background-image: 
+        theme('backgroundImage.stars-small'), 
+        theme('backgroundImage.stars-medium'), 
+        theme('backgroundImage.stars-large'), 
+        theme('backgroundImage.dark-sky-gradient');
+      /* Ukuran untuk setiap lapisan bintang dan gradien dasar */
+      background-size: 2000px 2000px, 1000px 1000px, 500px 500px, cover;
+      /* Pastikan bintang berulang */
+      background-repeat: repeat;
+      /* Menerapkan animasi untuk setiap lapisan bintang */
+      animation: 
+        theme('animation.stars-small-anim'), 
+        theme('animation.stars-medium-anim'), 
+        theme('animation.stars-large-anim');
+      /* Pastikan animasi bergerak secara linear dan berulang */
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
   }
   
   /* Buttons */
