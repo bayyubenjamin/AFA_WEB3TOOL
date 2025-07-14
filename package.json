@@ -27,6 +27,9 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@supabase/supabase-js": "^2.49.10",
     "@tanstack/react-query": "^5.81.5",
+    "@tsparticles/preset-stars": "^3.2.0",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.8.1",
     "@vlayer/react": "^1.2.3-nightly-20250702-92238a4b517821d3fc21b9b5fcb488539c62ddf0",
     "@vlayer/sdk": "^1.2.3-nightly-20250702-92238a4b517821d3fc21b9b5fcb488539c62ddf0",
     "@web3modal/wagmi": "^5.1.11",
@@ -50,6 +53,8 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "sonner": "^2.0.6",
+    "tsparticles": "^3.8.1",
+    "tsparticles-engine": "^2.12.0",
     "unified": "^11.0.5",
     "viem": "^2.31.7",
     "wagmi": "^2.15.6"
