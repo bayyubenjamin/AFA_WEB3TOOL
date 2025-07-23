@@ -27,6 +27,20 @@ const baseSepolia = {
   testnet: true,
 };
 
+// --- PENAMBAHAN JARINGAN PHAROS TESTNET ---
+const pharosTestnet = {
+  id: 688688,
+  name: 'Pharos Testnet',
+  nativeCurrency: { name: 'Pharos', symbol: 'PHAROS', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://testnet.dplabs-internal.com'] },
+  },
+  blockExplorers: {
+    default: { name: 'Pharosscan', url: 'https://testnet.pharosscan.xyz' },
+  },
+  testnet: true,
+};
+
 export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
 
 const metadata = {
@@ -37,7 +51,8 @@ const metadata = {
 };
 
 export const config = createConfig({
-  chains: [optimismSepolia, baseSepolia],
+  // Tambahkan pharosTestnet ke dalam array chains
+  chains: [optimismSepolia, baseSepolia, pharosTestnet],
 
   connectors: [
     walletConnect({
@@ -53,8 +68,10 @@ export const config = createConfig({
   ],
   storage: createStorage({ storage: window.localStorage }),
 
+  // Tambahkan transport untuk pharosTestnet
   transports: {
     [optimismSepolia.id]: http(),
     [baseSepolia.id]: http(),
+    [pharosTestnet.id]: http(),
   },
 });

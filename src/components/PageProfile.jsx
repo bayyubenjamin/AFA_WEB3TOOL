@@ -16,7 +16,7 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
-// --- LOGIKA YANG SUDAH ADA (TIDAK DIUBAH) ---
+// --- PENAMBAHAN KONTRAK PHAROS TESTNET ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
 const contractConfig = {
@@ -26,6 +26,10 @@ const contractConfig = {
     },
     84532: { // Base Sepolia
         address: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf',
+        abi: AfaIdentityABI
+    },
+    688688: { // Pharos Testnet
+        address: '0x68703AD7183007fB56f749A2BF46a15f0286d11b',
         abi: AfaIdentityABI
     }
 };
@@ -412,10 +416,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 </ProfileSection>
 
                 <ProfileSection title="Coming Soon" icon={faGear}>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FutureFeatureCard icon={faTrophy} title="Achievements" description="Unlock badges for your on-chain activities." />
-                        <FutureFeatureCard icon={faChartSimple} title="Reputation Score" description="Build your Web3 reputation with every action." />
-                    </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FutureFeatureCard icon={faTrophy} title="Achievements" description="Unlock badges for your on-chain activities." />
+                            <FutureFeatureCard icon={faChartSimple} title="Reputation Score" description="Build your Web3 reputation with every action." />
+                        </div>
                 </ProfileSection>
             </div>
 

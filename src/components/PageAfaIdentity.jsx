@@ -17,15 +17,17 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// --- PERBAIKAN 1: Tambahkan konfigurasi untuk Base Sepolia ---
+// --- PENAMBAHAN KONFIGURASI PHAROS TESTNET ---
 const contractConfig = {
     11155420: { address: '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1', abi: AfaIdentityABI },
-    84532: { address: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf', abi: AfaIdentityABI }
+    84532: { address: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf', abi: AfaIdentityABI },
+    688688: { address: '0x68703AD7183007fB56f749A2BF46a15f0286d11b', abi: AfaIdentityABI } // Pharos Testnet
 };
 const NFT_IMAGE_URL = 'https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif';
 const chainInfo = {
     11155420: { name: "OP Sepolia", color: "bg-red-500", explorer: "https://sepolia-optimism.etherscan.io" },
-    84532: { name: "Base Sepolia", color: "bg-blue-500", explorer: "https://sepolia.basescan.org" }
+    84532: { name: "Base Sepolia", color: "bg-blue-500", explorer: "https://sepolia.basescan.org" },
+    688688: { name: "Pharos Testnet", color: "bg-green-500", explorer: "https://testnet.pharosscan.xyz" } // Pharos Testnet
 };
 
 // =================================================================================
@@ -325,8 +327,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         if (isNetworkMismatched) {
              return (
                  <button onClick={handleSwitchNetwork} disabled={isSwitching} className="btn-warning w-full py-3 text-lg rounded-xl flex items-center justify-center gap-2">
-                    {isSwitching ? (<><FontAwesomeIcon icon={faSpinner} spin /><span>Switching...</span></>) : (`Switch to ${chainInfo[selectedChainId].name}`)}
-                </button>
+                     {isSwitching ? (<><FontAwesomeIcon icon={faSpinner} spin /><span>Switching...</span></>) : (`Switch to ${chainInfo[selectedChainId].name}`)}
+                 </button>
              );
         }
         
@@ -424,17 +426,17 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                         
                         <div className="mt-6 space-y-2">
                              {feedback.message && (
-                                <div className={`text-sm text-center p-3 rounded-lg flex items-center justify-center gap-2 ${feedback.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                                    <FontAwesomeIcon icon={feedback.type === 'error' ? faTimesCircle : faCheckCircle} />
-                                    <span className="break-all">{feedback.message}</span>
-                                </div>
+                                 <div className={`text-sm text-center p-3 rounded-lg flex items-center justify-center gap-2 ${feedback.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                                     <FontAwesomeIcon icon={feedback.type === 'error' ? faTimesCircle : faCheckCircle} />
+                                     <span className="break-all">{feedback.message}</span>
+                                 </div>
                             )}
                             {feedback.hash && currentNetwork?.explorer && (
-                                <div className="text-xs text-center text-gray-400">
-                                    <a href={`${currentNetwork.explorer}/tx/${feedback.hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
-                                        View Transaction on Explorer
-                                    </a>
-                                </div>
+                                 <div className="text-xs text-center text-gray-400">
+                                     <a href={`${currentNetwork.explorer}/tx/${feedback.hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+                                         View Transaction on Explorer
+                                     </a>
+                                 </div>
                             )}
                         </div>
                     </div>
