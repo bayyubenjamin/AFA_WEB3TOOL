@@ -124,7 +124,9 @@ export default function PageWarungKripto({ currentUser }) {
     const [inputAmount, setInputAmount] = useState('');
     const [outputAmount, setOutputAmount] = useState(0);
     const [walletAddress, setWalletAddress] = useState('');
-    const [userPaymentInfo, setUserPaymentInfo] = useState('');
+    const [userPaymentInfo, setUserPaymentInfo] = useState({ fullName: '', method: '', details: '' });
+    const [adminPaymentMethods, setAdminPaymentMethods] = useState([]);
+    
     const [showInstructionPage, setShowInstructionPage] = useState(false);
     const [proof, setProof] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,9 +138,7 @@ export default function PageWarungKripto({ currentUser }) {
         if (ratesData && ratesData.length > 0) {
             const groups = ratesData.reduce((acc, coin) => {
                 const network = coin.network;
-                if (!acc[network]) {
-                    acc[network] = [];
-                }
+                if (!acc[network]) { acc[network] = []; }
                 acc[network].push(coin);
                 return acc;
             }, {});
@@ -158,21 +158,17 @@ export default function PageWarungKripto({ currentUser }) {
     };
 
     const fetchData = useCallback(async (isInitialLoad = false) => {
-        if (!currentUser || !currentUser.id) {
-            setIsLoading(false);
-            return;
-        }
+        if (!currentUser || !currentUser.id) { setIsLoading(false); return; }
 
         const cacheKey = `warungData_${currentUser.id}`;
-
         if (isInitialLoad) {
             try {
                 const cachedData = JSON.parse(localStorage.getItem(cacheKey));
                 const now = new Date().getTime();
-                
                 if (cachedData && (now - cachedData.timestamp < CACHE_DURATION_MINUTES * 60 * 1000)) {
                     setRatesAndGroupData(cachedData.rates);
                     setUserTransactions(cachedData.transactions);
+                    setAdminPaymentMethods(cachedData.adminPaymentMethods || []);
                     setIsLoading(false);
                 } else {
                     setIsLoading(true);
@@ -184,20 +180,24 @@ export default function PageWarungKripto({ currentUser }) {
         
         setError('');
         try {
-            const [ratesRes, txRes] = await Promise.all([
+            const [ratesRes, txRes, adminPayRes] = await Promise.all([
                 supabase.from('crypto_rates').select('*').eq('is_active', true),
-                supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20)
+                supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20),
+                supabase.from('admin_payment_methods').select('*').order('method_name')
             ]);
             
             if (ratesRes.error) throw ratesRes.error;
             if (txRes.error) throw txRes.error;
+            if (adminPayRes.error) throw adminPayRes.error;
 
             setRatesAndGroupData(ratesRes.data);
             setUserTransactions(txRes.data);
+            setAdminPaymentMethods(adminPayRes.data || []);
 
             const dataToCache = {
                 rates: ratesRes.data,
                 transactions: txRes.data,
+                adminPaymentMethods: adminPayRes.data || [],
                 timestamp: new Date().getTime()
             };
             localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
@@ -205,21 +205,17 @@ export default function PageWarungKripto({ currentUser }) {
         } catch (dbError) {
             setError(dbError.message);
         } finally {
-            if (!isInitialLoad || isLoading) {
-                setIsLoading(false);
-            }
+            if (!isInitialLoad || isLoading) { setIsLoading(false); }
         }
-    }, [currentUser, isLoading, selectedNetwork]);
+    }, [currentUser]);
 
-    useEffect(() => {
-        fetchData(true);
-    }, [fetchData]);
+    useEffect(() => { fetchData(true); }, [fetchData]);
 
     useEffect(() => {
         setInputAmount('');
         setOutputAmount(0);
         setWalletAddress('');
-        setUserPaymentInfo('');
+        setUserPaymentInfo({ fullName: '', method: '', details: '' });
         setProof(null);
     }, [activeTab, selectedCoin]);
     
@@ -250,6 +246,8 @@ export default function PageWarungKripto({ currentUser }) {
         setIsSubmitting(true);
         setError('');
         try {
+            const paymentInfoString = `${userPaymentInfo.method} - ${userPaymentInfo.details} (a/n ${userPaymentInfo.fullName})`;
+            
             const transactionData = {
                 user_id: currentUser.id,
                 order_type: activeTab,
@@ -259,16 +257,14 @@ export default function PageWarungKripto({ currentUser }) {
                 amount_crypto: activeTab === 'buy' ? outputAmount : parseFloat(inputAmount),
                 status: 'WAITING_CONFIRMATION',
                 user_wallet_address: walletAddress,
-                user_payment_info: userPaymentInfo,
+                user_payment_info: activeTab === 'sell' ? paymentInfoString : null,
             };
 
             if (activeTab === 'buy') {
                 if (!proof) throw new Error("Bukti transfer belum diunggah.");
                 const fileExt = proof.name.split('.').pop();
                 const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('buktitransfer')
-                    .upload(fileName, proof);
+                const { error: uploadError } = await supabase.storage.from('buktitransfer').upload(fileName, proof);
                 if (uploadError) throw new Error(`Gagal unggah bukti: ${uploadError.message}`);
                 transactionData.proof_screenshot_url = fileName;
             }
@@ -276,7 +272,7 @@ export default function PageWarungKripto({ currentUser }) {
             const { error: insertError } = await supabase.from('warung_transactions').insert([transactionData]);
             if (insertError) throw new Error(`Gagal menyimpan transaksi: ${insertError.message}`);
             
-            alert('Permintaan transaksi berhasil dikirim! Mohon tunggu konfirmasi dari admin.');
+            alert('Permintaan transaksi berhasil dikirim!');
             setShowInstructionPage(false);
             fetchData();
         } catch (err) {
@@ -288,7 +284,7 @@ export default function PageWarungKripto({ currentUser }) {
     
     const isButtonDisabled = activeTab === 'buy'
         ? (!selectedCoin || !inputAmount || !walletAddress || (selectedCoin.stock && outputAmount > selectedCoin.stock))
-        : (!selectedCoin || !inputAmount || !userPaymentInfo || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
+        : (!selectedCoin || !inputAmount || !userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
 
     if (currentUser && currentUser.role === 'admin' && view === 'admin') {
         return <PageAdminWarung onSwitchView={() => setView('user')} />;
@@ -302,13 +298,16 @@ export default function PageWarungKripto({ currentUser }) {
                     <h2 className="text-2xl font-bold text-light-text dark:text-dark-text">Konfirmasi Transaksi</h2>
                     {activeTab === 'buy' ? (
                         <>
-                            <p className="text-light-subtle dark:text-dark-subtle">Silakan transfer sejumlah <strong className="text-light-text dark:text-dark-text font-bold text-lg">Rp {Number(inputAmount).toLocaleString('id-ID')}</strong> ke salah satu rekening admin.</p>
-                            <div className="text-left bg-light-bg dark:bg-dark-bg p-4 rounded-lg text-light-subtle dark:text-dark-subtle">
-                                <p><strong>DANA/OVO/GOPAY:</strong> 0812-XXXX-XXXX</p>
-                                <p><strong>BCA:</strong> 1234567890 a/n Admin</p>
+                            <p className="text-light-subtle dark:text-dark-subtle">Silakan transfer sejumlah <strong className="text-light-text dark:text-dark-text font-bold text-lg">Rp {Number(inputAmount).toLocaleString('id-ID')}</strong> ke rekening admin.</p>
+                            <div className="text-left bg-light-bg dark:bg-dark-bg p-4 rounded-lg text-light-subtle dark:text-dark-subtle space-y-2">
+                                {adminPaymentMethods.map(method => (
+                                    <p key={method.id}>
+                                        <strong className="text-light-text dark:text-dark-text">{method.method_name}:</strong> {method.account_number} <span className="text-xs">(a/n {method.full_name})</span>
+                                    </p>
+                                ))}
                             </div>
                             <p className="text-light-subtle dark:text-dark-subtle">Kemudian unggah bukti transfer Anda.</p>
-                            <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files[0])} className="w-full text-sm text-light-subtle dark:text-dark-subtle file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30" />
+                            <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files[0])} className="input-file" />
                         </>
                     ) : (
                         <p className="text-light-subtle dark:text-dark-subtle">Admin akan segera mengirimkan pembayaran ke info yang Anda berikan. Pastikan Anda sudah mengirim aset kripto.</p>
@@ -344,7 +343,6 @@ export default function PageWarungKripto({ currentUser }) {
                 <div className="card max-w-lg mx-auto text-center p-8 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><h3 className="font-bold">Gagal Memuat Data</h3><p className="text-sm mt-1">{error}</p></div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {/* --- PERBAIKAN UTAMA: Perbaiki typo di sini --- */}
                     <div className="lg:col-span-3">
                         <div className="card p-6 md:p-8 space-y-6">
                             <div className="flex border-b border-light-border dark:border-dark-border">
@@ -371,51 +369,19 @@ export default function PageWarungKripto({ currentUser }) {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="relative">
                                         {selectedNetwork && groupedByNetwork[selectedNetwork] && (
-                                            <img 
-                                                src={groupedByNetwork[selectedNetwork][0].icon} 
-                                                alt={selectedNetwork} 
-                                                className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"
-                                            />
+                                            <img src={groupedByNetwork[selectedNetwork][0].icon} alt={selectedNetwork} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/>
                                         )}
-                                        <select
-                                            value={selectedNetwork || ''}
-                                            onChange={(e) => {
-                                                const newNetwork = e.target.value;
-                                                setSelectedNetwork(newNetwork);
-                                                setSelectedCoin(groupedByNetwork[newNetwork][0]);
-                                            }}
-                                            className="input-field w-full appearance-none pl-10"
-                                        >
+                                        <select value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); setSelectedCoin(groupedByNetwork[newNetwork][0]); }} className="input-field w-full appearance-none pl-10">
                                             <option value="" disabled>Pilih Jaringan</option>
-                                            {Object.keys(groupedByNetwork).map(network => (
-                                                <option key={network} value={network}>{network}</option>
-                                            ))}
+                                            {Object.keys(groupedByNetwork).map(network => (<option key={network} value={network}>{network}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
-                                    
                                     <div className="relative">
-                                        {selectedCoin && (
-                                            <img 
-                                                src={selectedCoin.icon} 
-                                                alt={selectedCoin.token_symbol} 
-                                                className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"
-                                            />
-                                        )}
-                                        <select
-                                            value={selectedCoin?.id || ''}
-                                            onChange={(e) => {
-                                                const coinId = parseInt(e.target.value);
-                                                const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId);
-                                                setSelectedCoin(coin);
-                                            }}
-                                            disabled={!selectedNetwork}
-                                            className="input-field w-full appearance-none pl-10"
-                                        >
+                                        {selectedCoin && ( <img src={selectedCoin.icon} alt={selectedCoin.token_symbol} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/> )}
+                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className="input-field w-full appearance-none pl-10">
                                             <option value="" disabled>Pilih Koin</option>
-                                            {selectedNetwork && groupedByNetwork[selectedNetwork].map(coin => (
-                                                <option key={coin.id} value={coin.id}>{coin.token_symbol}</option>
-                                            ))}
+                                            {selectedNetwork && groupedByNetwork[selectedNetwork].map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
@@ -424,8 +390,21 @@ export default function PageWarungKripto({ currentUser }) {
                             </div>
 
                             <div>
-                                <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">{activeTab === 'buy' ? 'Alamat Wallet Penerima Anda' : 'Info Pembayaran Anda'}</label>
-                                <input type="text" placeholder={activeTab === 'buy' ? `Paste alamat ${selectedCoin?.network} Anda di sini` : 'cth: DANA 0812... / BCA 1234...'} value={activeTab === 'buy' ? walletAddress : userPaymentInfo} onChange={e => activeTab === 'buy' ? setWalletAddress(e.target.value) : setUserPaymentInfo(e.target.value)} className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-3 px-4 rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"/>
+                                {activeTab === 'buy' ? (
+                                    <>
+                                        <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Alamat Wallet Penerima Anda</label>
+                                        <input type="text" placeholder={`Paste alamat ${selectedCoin?.network} Anda di sini`} value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className="input-field w-full"/>
+                                    </>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-semibold text-light-text dark:text-dark-text block">Info Pembayaran Anda (Untuk Menerima Dana)</label>
+                                        <input type="text" placeholder="Nama Lengkap Sesuai Rekening" value={userPaymentInfo.fullName} onChange={e => setUserPaymentInfo({...userPaymentInfo, fullName: e.target.value})} className="input-field w-full"/>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <input type="text" placeholder="Metode (cth: DANA, BCA)" value={userPaymentInfo.method} onChange={e => setUserPaymentInfo({...userPaymentInfo, method: e.target.value})} className="input-field w-full"/>
+                                            <input type="text" placeholder="Nomor Rekening / Telepon" value={userPaymentInfo.details} onChange={e => setUserPaymentInfo({...userPaymentInfo, details: e.target.value})} className="input-field w-full"/>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             
                             <div className="pt-2">
