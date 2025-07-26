@@ -1,4 +1,3 @@
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -21,16 +20,19 @@ module.exports = {
           DEFAULT: '#F97D3C',
           'dark': '#ff8d54'
         },
-        'light-bg': '#FFF8F0',
-        'light-card': '#FFFFFF',
-        'light-header': '#84D1F2',
-        'light-soft': '#FCECD8',
-        'theme-light-text': '#333333',
-        'dark-bg': '#000000',
-        'dark-card': '#1B2735',
-        'theme-dark-text': '#E0E8F4',
-        'dark-subtle': '#8899B3',
-        'afadark': '#2d3a5f',
+        
+        // --- Palet Warna Adaptif ---
+        'light-bg': '#f3f6fa',      // Latar belakang utama mode terang
+        'light-card': '#ffffff',    // Latar kartu mode terang
+        'light-text': '#1a202c',     // Teks utama mode terang
+        'light-subtle': '#718096',  // Teks sekunder mode terang
+        'light-border': '#e2e8f0',  // Border mode terang
+
+        'dark-bg': '#0f172a',       // Latar belakang utama mode gelap
+        'dark-card': '#1e293b',     // Latar kartu mode gelap
+        'dark-text': '#e2e8f0',      // Teks utama mode gelap
+        'dark-subtle': '#94a3b8',    // Teks sekunder mode gelap
+        'dark-border': '#334155',   // Border mode gelap
       },
       fontFamily: {
         sans: ["Fredoka", "Baloo 2", "Quicksand", "system-ui", "sans-serif"],
@@ -41,7 +43,6 @@ module.exports = {
         'accent': '0 0 20px rgba(249, 125, 60, 0.5)',
         'primary': '0 0 20px rgba(27, 77, 193, 0.4)',
       },
-      // Keyframes untuk animasi lain tetap ada, hanya yang berhubungan dengan bintang dihapus
       keyframes: {
         gradientShine: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
@@ -58,9 +59,8 @@ module.exports = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #FFF8F0 100%)',
+        'sky-gradient': 'linear-gradient(180deg, #a0d8f5 0%, #f3f6fa 100%)',
         'dark-sky-gradient': 'radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%)',
-        // Semua definisi 'starfield' dan 'stars-*' telah dihapus.
       }
     },
   },

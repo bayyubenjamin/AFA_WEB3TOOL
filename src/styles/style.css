@@ -1,4 +1,4 @@
-/* src/styles/style.css - Kode Lengkap dengan Efek Stroke, Scrollbar, & Back to Top Button */
+/* src/styles/style.css - Kode Lengkap dengan perbaikan */
 
 @tailwind base;
 @tailwind components;
@@ -10,9 +10,14 @@
     --bottomnav-height: 60px;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: "Fredoka", "Baloo 2", "Quicksand", system-ui, sans-serif;
-    @apply bg-light-bg text-[#0a182b] dark:bg-dark-bg dark:text-theme-dark-text;
+    /* [FIX] Menggunakan 'light-text' dan 'dark-text' dari tailwind.config.js */
+    @apply bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -54,7 +59,10 @@
 
   /* Cards & Modals */
   .card {
-    @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl shadow-subtle dark:shadow-subtle-dark;
+    @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl shadow-subtle dark:shadow-subtle-dark;
+  }
+  .card-premium {
+    @apply bg-slate-800/30 dark:bg-slate-800/50 backdrop-blur-sm border border-white/10 rounded-2xl shadow-lg;
   }
 
   .modal { @apply fixed inset-0 bg-dark-bg/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] opacity-0 invisible transition-all duration-300 ease-out; }
@@ -66,10 +74,10 @@
   
   /* Forms */
   .form-group { @apply mb-4; }
-  .form-group label { @apply block text-sm font-medium text-gray-600 dark:text-dark-subtle mb-1.5; }
+  .form-group label { @apply block text-sm font-medium text-light-subtle dark:text-dark-subtle mb-1.5; }
   .form-group input,
   .form-group select,
-  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-gray-300 dark:border-dark-subtle/50 text-gray-800 dark:text-theme-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
+  .form-group textarea { @apply w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-accent dark:focus:border-accent-dark focus:ring-2 focus:ring-accent/50 dark:focus:ring-accent-dark/50 transition-all; }
   .form-group textarea { @apply min-h-[80px]; }
 
   /* Header & Navigation */
@@ -79,46 +87,46 @@
   .header-title-premium { @apply font-bold text-primary dark:text-white; }
 
   .options-menu {
-    @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-xl min-w-[180px] z-50 p-2;
+    @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-2xl shadow-xl min-w-[180px] z-50 p-2;
     @apply opacity-0 invisible pointer-events-none transform translate-y-2;
     transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
   }
   .options-menu.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
   .options-menu ul { @apply list-none p-0 m-0; }
-  .options-menu li { @apply flex items-center px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-dark-subtle cursor-pointer hover:bg-light-soft dark:hover:bg-dark-bg rounded-lg transition-colors duration-150; }
+  .options-menu li { @apply flex items-center px-3 py-2.5 text-sm font-semibold text-light-subtle dark:text-dark-subtle cursor-pointer hover:bg-light-bg dark:hover:bg-dark-bg rounded-lg transition-colors duration-150; }
   .options-menu li svg { @apply mr-3 w-4 h-4 text-primary dark:text-accent-dark; }
 
   /* PageMyWork Specific - Dropdown Menu Styles */
-  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-dark-subtle/30; }
+  .main-category-header { @apply flex justify-between items-center mb-4 pb-3 border-b border-light-border dark:border-dark-border; }
   .category-wrapper { @apply bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-2xl p-4 mb-4 transition-all; }
-  .category-wrapper:hover { @apply border-gray-300 dark:border-dark-subtle/40; }
+  .category-wrapper:hover { @apply border-light-border dark:border-dark-border; }
   .category-header { @apply flex justify-between items-center cursor-pointer; }
   .category-title-container { @apply flex items-center flex-grow min-w-0; }
-  .category-title-text { @apply text-xl font-bold text-primary dark:text-white; }
-  .category-count { @apply text-xs text-gray-500 dark:text-dark-subtle ml-3; }
+  .category-title-text { @apply text-xl font-bold text-light-text dark:text-dark-text; }
+  .category-count { @apply text-xs text-light-subtle dark:text-dark-subtle ml-3; }
 
   .category-settings-dropdown { @apply relative; }
-  .category-settings-dropdown-button { @apply bg-transparent border-none text-gray-500 dark:text-dark-subtle cursor-pointer p-2 rounded-full hover:bg-gray-200/50 dark:hover:bg-dark-bg/60 transition-colors; }
+  .category-settings-dropdown-button { @apply bg-transparent border-none text-light-subtle dark:text-dark-subtle cursor-pointer p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors; }
   .category-settings-dropdown-content { 
-    @apply absolute top-full right-0 bg-light-card dark:bg-[#1f3a5f] border border-black/10 dark:border-white/10 rounded-xl shadow-lg min-w-[180px] z-50 p-1.5;
+    @apply absolute top-full right-0 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-lg min-w-[180px] z-50 p-1.5;
     @apply opacity-0 invisible pointer-events-none transform translate-y-2;
     transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
   }
   .category-settings-dropdown-content.active { @apply opacity-100 visible pointer-events-auto translate-y-0; }
-  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-gray-700 dark:text-theme-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
+  .category-settings-dropdown-content button { @apply flex items-center w-full px-3 py-2 text-left bg-transparent border-none text-sm text-light-text dark:text-dark-text font-medium cursor-pointer rounded-md transition-colors duration-150 ease-in-out; }
   .category-settings-dropdown-content button:disabled { @apply opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600; }
-  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-light-soft dark:bg-dark-bg text-primary dark:text-accent-dark; }
+  .category-settings-dropdown-content button:not(:disabled):hover { @apply bg-light-bg dark:bg-dark-bg text-primary dark:text-accent-dark; }
   .category-settings-dropdown-content button svg { @apply mr-2.5 w-4 h-4; }
   .category-settings-dropdown-content .delete-action:not(:disabled):hover { @apply !text-red-500 !bg-red-500/10; }
 
   .airdrop-list-container { @apply max-h-0 overflow-hidden transition-all duration-500 ease-in-out; }
   .airdrop-list-container.expanded { @apply max-h-[2000px] mt-2; }
-  .airdrop-list-item { @apply flex justify-between items-center py-3.5 px-2 border-t border-gray-200/60 dark:border-dark-subtle/20 transition-colors duration-150; }
-  .airdrop-list-item:hover { @apply bg-light-soft/50 dark:bg-dark-bg/40 rounded-lg; }
+  .airdrop-list-item { @apply flex justify-between items-center py-3.5 px-2 border-t border-light-border/60 dark:border-dark-border/60 transition-colors duration-150; }
+  .airdrop-list-item:hover { @apply bg-black/5 dark:bg-white/5 rounded-lg; }
   .airdrop-item-main { @apply flex items-center flex-grow min-w-0; }
   .airdrop-link { @apply flex-grow min-w-0 no-underline text-current flex items-center; }
-  .airdrop-list-item .name { @apply font-bold text-gray-800 dark:text-theme-dark-text block; }
-  .airdrop-list-item .task-desc { @apply text-sm text-gray-500 dark:text-dark-subtle; }
+  .airdrop-list-item .name { @apply font-bold text-light-text dark:text-dark-text block; }
+  .airdrop-list-item .task-desc { @apply text-sm text-light-subtle dark:text-dark-subtle; }
    .status-badge { @apply text-xs py-0.5 px-2.5 rounded-full ml-2 whitespace-nowrap flex-shrink-0; }
   .status-inprogress { @apply bg-yellow-400/20 text-yellow-300; }
   .status-completed { @apply bg-green-500/20 text-green-400; }
@@ -133,6 +141,10 @@
   }
   .content-enter { @apply opacity-0 translate-y-5; }
 
+  .futuristic-text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
   /* Scrollbar Kustom */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
@@ -142,29 +154,29 @@
     margin-block: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #34495e;
+    background: #bdc3c7; /* Warna scrollbar light mode */
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #2c3e50;
+    background: #95a5a6;
   }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #94A3B8;
+    background: #4a5568; /* Warna scrollbar dark mode */
   }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #E0E8F4;
+    background: #718096;
   }
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #34495e transparent;
+    scrollbar-color: #bdc3c7 transparent;
   }
   .dark .custom-scrollbar {
-      scrollbar-color: #94A3B8 transparent;
+      scrollbar-color: #4a5568 transparent;
   }
 
-  /* === [PENAMBAHAN BARU] BACK TO TOP BUTTON === */
+  /* Back to Top Button */
   .back-to-top-btn {
     @apply fixed bottom-20 md:bottom-6 right-6 z-50;
     @apply bg-primary text-white rounded-full p-3 shadow-lg;
@@ -179,5 +191,5 @@
   .back-to-top-btn:hover {
     @apply bg-accent scale-110;
   }
-  /* === AKHIR PENAMBAHAN BARU === */
 }
+
