@@ -44,8 +44,8 @@ const TransactionHistoryItem = ({ tx }) => {
         setIsLoadingProof(true);
         try {
             const { data, error } = await supabase.storage.from('adminbuktibayar').createSignedUrl(tx.admin_proof_url, 300);
-            if (error) throw error;
-            setAdminProofUrl(data.signedUrl);
+            if (error) console.error("Gagal membuat signed URL", error);
+            else setImageUrl(data.signedUrl);
         } catch (error) {
             console.error("Gagal mengambil bukti dari admin:", error);
         } finally {
@@ -101,7 +101,7 @@ const TransactionHistoryItem = ({ tx }) => {
                                 <p><strong>Bukti dari Admin:</strong> 
                                     {isLoadingProof ? <span className="ml-2">Memuat...</span> : 
                                         adminProofUrl ? <a href={adminProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">Lihat Bukti Transfer <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> 
-                                        : <span className="ml-2">{tx.admin_proof_url ? 'Gagal memuat' : 'Tidak ada'}</span>}
+                                        : <span className="ml-2">{tx.admin_proof_url ? 'Tidak ada' : 'Tidak ada'}</span>}
                                 </p>
                             )}
                         </>
@@ -138,50 +138,75 @@ export default function PageWarungKripto({ currentUser }) {
         if (ratesData && ratesData.length > 0) {
             const groups = ratesData.reduce((acc, coin) => {
                 const network = coin.network;
-                if (!acc[network]) { acc[network] = []; }
-                acc[network].push(coin);
+                // Pastikan acc[network] adalah objek dengan properti 'coins' dan 'network_icon'
+                if (!acc[network]) { 
+                    acc[network] = { 
+                        coins: [], 
+                        network_icon: coin.network_icon || null // Ambil network_icon dari koin
+                    }; 
+                }
+                acc[network].coins.push(coin);
                 return acc;
             }, {});
             setGroupedByNetwork(groups);
 
-            if (!selectedNetwork || !groups[selectedNetwork]) {
+            // MODIFIKASI: Inisialisasi selectedNetwork dan selectedCoin dengan lebih aman
+            if (Object.keys(groups).length > 0) {
                 const firstNetwork = Object.keys(groups)[0];
-                if(firstNetwork) {
-                    const firstCoinOfFirstNetwork = groups[firstNetwork][0];
+                const coinsInFirstNetwork = groups[firstNetwork].coins;
+
+                if (coinsInFirstNetwork && coinsInFirstNetwork.length > 0) {
                     setSelectedNetwork(firstNetwork);
-                    setSelectedCoin(firstCoinOfFirstNetwork);
+                    setSelectedCoin(coinsInFirstNetwork[0]);
+                } else {
+                    // Jika jaringan pertama tidak memiliki koin aktif
+                    setSelectedNetwork('');
+                    setSelectedCoin(null);
+                    setError("Tidak ada koin aktif yang tersedia di jaringan ini.");
                 }
+            } else {
+                // Jika tidak ada jaringan sama sekali (misal: ratesData kosong)
+                setSelectedNetwork('');
+                setSelectedCoin(null);
+                setError("Warung sedang tutup atau belum ada koin yang tersedia.");
             }
         } else {
+            // Jika ratesData itu sendiri kosong atau null
+            setGroupedByNetwork({});
+            setSelectedNetwork('');
+            setSelectedCoin(null);
             setError("Warung sedang tutup atau belum ada koin yang tersedia.");
         }
     };
 
-    const fetchData = useCallback(async (isInitialLoad = false) => {
+    const fetchData = useCallback(async (bypassCache = false) => {
         if (!currentUser || !currentUser.id) { setIsLoading(false); return; }
 
         const cacheKey = `warungData_${currentUser.id}`;
-        if (isInitialLoad) {
+        let cachedData = null;
+
+        if (!bypassCache) {
             try {
-                const cachedData = JSON.parse(localStorage.getItem(cacheKey));
+                cachedData = JSON.parse(localStorage.getItem(cacheKey));
                 const now = new Date().getTime();
                 if (cachedData && (now - cachedData.timestamp < CACHE_DURATION_MINUTES * 60 * 1000)) {
                     setRatesAndGroupData(cachedData.rates);
                     setUserTransactions(cachedData.transactions);
                     setAdminPaymentMethods(cachedData.adminPaymentMethods || []);
                     setIsLoading(false);
-                } else {
-                    setIsLoading(true);
+                    return; // Exit if using valid cache
                 }
             } catch (e) {
-                setIsLoading(true);
+                console.error("Error reading cache:", e);
+                // Continue to fetch from network if cache read fails
             }
         }
         
+        setIsLoading(true); // Always show loading when fetching from network
         setError('');
         try {
             const [ratesRes, txRes, adminPayRes] = await Promise.all([
-                supabase.from('crypto_rates').select('*').eq('is_active', true),
+                supabase.from('crypto_rates').select('*, network_icon').eq('is_active', true),
                 supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20),
                 supabase.from('admin_payment_methods').select('*').order('method_name')
             ]);
@@ -205,11 +230,11 @@ export default function PageWarungKripto({ currentUser }) {
         } catch (dbError) {
             setError(dbError.message);
         } finally {
-            if (!isInitialLoad || isLoading) { setIsLoading(false); }
+            setIsLoading(false); // Hide loading after fetch completes
         }
-    }, [currentUser]);
+    }, [currentUser]); // MODIFICATION: Removed 'selectedNetwork' from dependencies of fetchData
 
-    useEffect(() => { fetchData(true); }, [fetchData]);
+    useEffect(() => { fetchData(true); }, [fetchData]); // Initial load should always bypass cache for fresh data
 
     useEffect(() => {
         setInputAmount('');
@@ -274,7 +299,7 @@ export default function PageWarungKripto({ currentUser }) {
             
             alert('Permintaan transaksi berhasil dikirim!');
             setShowInstructionPage(false);
-            fetchData();
+            fetchData(true); // Force refetch after a successful transaction
         } catch (err) {
             setError(err.message);
         } finally {
@@ -286,14 +311,28 @@ export default function PageWarungKripto({ currentUser }) {
         ? (!selectedCoin || !inputAmount || !walletAddress || (selectedCoin.stock && outputAmount > selectedCoin.stock))
         : (!selectedCoin || !inputAmount || !userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
 
-    // --- PERBAIKAN DI SINI ---
     // Definisikan class styling untuk input field secara eksplisit
-    const inputStyle = "w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all";
+    const inputStyle = "w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none";
     const selectStyle = `${inputStyle} appearance-none`;
+
+    // Function to handle switching TO admin view
+    const handleGoToAdminView = () => {
+        setView('admin'); // Set view to 'admin'
+        localStorage.removeItem(`warungData_${currentUser.id}`); // Invalidate cache for user view data
+        fetchData(true); // Force refetch for admin data potentially
+    };
+
+    // Function to handle switching back TO user view
+    const handleGoToUserView = () => {
+        setView('user'); // Set view back to 'user'
+        localStorage.removeItem(`warungData_${currentUser.id}`); // Invalidate cache (same cache key, but ensures fresh data for user view too)
+        fetchData(true); // Force refetch for user view data
+    };
 
 
     if (currentUser && currentUser.role === 'admin' && view === 'admin') {
-        return <PageAdminWarung onSwitchView={() => setView('user')} />;
+        // Pass the function to switch back to user view
+        return <PageAdminWarung onSwitchView={handleGoToUserView} />;
     }
 
     if (showInstructionPage && selectedCoin) {
@@ -333,7 +372,7 @@ export default function PageWarungKripto({ currentUser }) {
     return (
         <section className="page-content space-y-8 max-w-7xl mx-auto py-8 px-4">
             {currentUser && currentUser.role === 'admin' && (
-                <button onClick={() => setView('admin')} className="w-full btn-secondary py-3 mb-6 flex items-center justify-center gap-2">
+                <button onClick={handleGoToAdminView} className="w-full btn-secondary py-3 mb-6 flex items-center justify-center gap-2">
                     <FontAwesomeIcon icon={faCogs} /> Kelola Warung (Admin)
                 </button>
             )}
@@ -374,20 +413,32 @@ export default function PageWarungKripto({ currentUser }) {
                                 <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Pilih Aset</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="relative">
-                                        {selectedNetwork && groupedByNetwork[selectedNetwork] && (
-                                            <img src={groupedByNetwork[selectedNetwork][0].icon} alt={selectedNetwork} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/>
+                                        {/* MODIFIKASI: Gunakan network_icon yang disimpan di groupedByNetwork */}
+                                        {selectedNetwork && groupedByNetwork[selectedNetwork]?.network_icon && (
+                                            <img src={groupedByNetwork[selectedNetwork].network_icon} alt={selectedNetwork} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/>
                                         )}
-                                        <select value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); setSelectedCoin(groupedByNetwork[newNetwork][0]); }} className={`${selectStyle} pl-10`}>
+                                        <select value={selectedNetwork || ''} onChange={(e) => { 
+                                            const newNetwork = e.target.value; 
+                                            setSelectedNetwork(newNetwork); 
+                                            // MODIFIKASI: Tambahkan pemeriksaan jika tidak ada koin aktif di jaringan yang baru dipilih
+                                            if (groupedByNetwork[newNetwork] && groupedByNetwork[newNetwork].coins.length > 0) {
+                                                setSelectedCoin(groupedByNetwork[newNetwork].coins[0]); 
+                                            } else {
+                                                setSelectedCoin(null); // Clear selected coin if no coins for this network
+                                            }
+                                        }} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Jaringan</option>
-                                            {Object.keys(groupedByNetwork).map(network => (<option key={network} value={network}>{network}</option>))}
+                                            {/* MODIFIKASI: Pastikan Object.keys(groupedByNetwork) tidak kosong */}
+                                            {Object.keys(groupedByNetwork).length > 0 && Object.keys(groupedByNetwork).map(network => (<option key={network} value={network}>{network}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
                                     <div className="relative">
                                         {selectedCoin && ( <img src={selectedCoin.icon} alt={selectedCoin.token_symbol} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/> )}
-                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${selectStyle} pl-10`}>
+                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork]?.coins.find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Koin</option>
-                                            {selectedNetwork && groupedByNetwork[selectedNetwork].map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}
+                                            {/* MODIFIKASI: Pastikan selectedNetwork ada dan ada koin di dalamnya */}
+                                            {selectedNetwork && groupedByNetwork[selectedNetwork]?.coins.map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
@@ -399,7 +450,7 @@ export default function PageWarungKripto({ currentUser }) {
                                 {activeTab === 'buy' ? (
                                     <>
                                         <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Alamat Wallet Penerima Anda</label>
-                                        <input type="text" placeholder={`Paste alamat ${selectedCoin?.network} Anda di sini`} value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className={inputStyle}/>
+                                        <input type="text" placeholder={`Paste alamat ${selectedCoin?.network || 'wallet'} Anda di sini`} value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className={inputStyle}/>
                                     </>
                                 ) : (
                                     <div className="space-y-3">
@@ -429,7 +480,7 @@ export default function PageWarungKripto({ currentUser }) {
                                 {userTransactions.length > 0 ? (
                                     userTransactions.map(tx => <TransactionHistoryItem key={tx.id} tx={tx} />)
                                 ) : (
-                                    <p className="text-sm text-center py-10 text-light-subtle dark:text-dark-subtle">Anda belum memiliki riwayat transaksi.</p>
+                                    <p className="text-center text-sm text-gray-400 py-8">Tidak ada transaksi di tab ini.</p>
                                 )}
                             </div>
                         </div>

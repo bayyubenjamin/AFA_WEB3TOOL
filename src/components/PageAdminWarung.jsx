@@ -11,6 +11,26 @@ import { Link } from 'react-router-dom';
 //  KOMPONEN-KOMPONEN KECIL (HELPER)
 // ========================================================================
 
+const COMMON_NETWORKS = [
+    "Solana", "Ethereum", "Binance Smart Chain (BSC)", "Polygon", 
+    "Arbitrum", "Optimism", "Base", "Avalanche", "Tron", "Cosmos"
+];
+
+// MODIFIKASI: Tambahkan daftar ikon jaringan yang umum
+const COMMON_NETWORK_ICONS = {
+    "Solana": "https://cryptologos.cc/logos/solana-sol-logo.png",
+    "Ethereum": "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+    "Binance Smart Chain (BSC)": "https://cryptologos.cc/logos/binance-coin-bnb-logo.png",
+    "Polygon": "https://cryptologos.cc/logos/polygon-matic-logo.png",
+    "Arbitrum": "https://cryptologos.cc/logos/arbitrum-arb-logo.png",
+    "Optimism": "https://cryptologos.cc/logos/optimism-op-logo.png",
+    "Base": "https://cryptologos.cc/logos/base-badge.png", // Contoh logo Base
+    "Avalanche": "https://cryptologos.cc/logos/avalanche-avax-logo.png",
+    "Tron": "https://cryptologos.cc/logos/tron-trx-logo.png",
+    "Cosmos": "https://cryptologos.cc/logos/cosmos-atom-logo.png"
+};
+
+
 const TransactionModal = ({ tx, onClose, onAction }) => {
     const [imageUrl, setImageUrl] = useState(null);
     const [adminProofFile, setAdminProofFile] = useState(null);
@@ -80,12 +100,18 @@ const TransactionModal = ({ tx, onClose, onAction }) => {
 };
 
 const AddCoinModal = ({ onClose, onSave }) => {
-    const [newCoin, setNewCoin] = useState({ token_symbol: '', token_name: '', network: '', icon: '', admin_wallet: '', is_active: true, base_rate: '', spread_percent: '1', stock: '', stock_rupiah: '' });
+    // MODIFIKASI: Tambahkan network_icon ke state newCoin
+    const [newCoin, setNewCoin] = useState({ token_symbol: '', token_name: '', network: COMMON_NETWORKS[0], network_icon: COMMON_NETWORK_ICONS[COMMON_NETWORKS[0]] || '', icon: '', admin_wallet: '', is_active: true, base_rate: '', spread_percent: '1', stock: '', stock_rupiah: '' });
     const [isSaving, setIsSaving] = useState(false);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setNewCoin(prev => ({ ...prev, [name]: value }));
+        // MODIFIKASI: Jika jaringan berubah, update juga network_icon
+        if (name === 'network') {
+            setNewCoin(prev => ({ ...prev, [name]: value, network_icon: COMMON_NETWORK_ICONS[value] || '' }));
+        } else {
+            setNewCoin(prev => ({ ...prev, [name]: value }));
+        }
     };
     
     const handleSaveClick = async () => {
@@ -106,8 +132,26 @@ const AddCoinModal = ({ onClose, onSave }) => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                     <InputField label="Simbol" name="token_symbol" value={newCoin.token_symbol} onChange={handleInputChange} type="text" placeholder="USDT" />
                     <InputField label="Nama Koin" name="token_name" value={newCoin.token_name} onChange={handleInputChange} type="text" placeholder="Tether" />
-                    <InputField label="Jaringan" name="network" value={newCoin.network} onChange={handleInputChange} type="text" placeholder="BEP20" />
-                    <InputField label="URL Ikon" name="icon" value={newCoin.icon} onChange={handleInputChange} type="text" placeholder="https://..." />
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jaringan</label>
+                        <div className="relative">
+                            <select 
+                                name="network" 
+                                value={newCoin.network} 
+                                onChange={handleInputChange} 
+                                className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none"
+                            >
+                                {COMMON_NETWORKS.map(network => (
+                                    <option key={network} value={network}>{network}</option>
+                                ))}
+                            </select>
+                            <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                    </div>
+                    {/* MODIFIKASI: Tambahkan input untuk Network Icon URL */}
+                    <InputField label="URL Ikon Jaringan" name="network_icon" value={newCoin.network_icon} onChange={handleInputChange} type="text" placeholder="https://logo-jaringan.png" />
+                    {/* END MODIFIKASI */}
+                    <InputField label="URL Ikon Koin" name="icon" value={newCoin.icon} onChange={handleInputChange} type="text" placeholder="https://logo-koin.png" />
                     <div className="col-span-2"><InputField label="Wallet Admin" name="admin_wallet" value={newCoin.admin_wallet} onChange={handleInputChange} type="text" placeholder="0x..." /></div>
                     <InputField label="Harga Dasar (IDR)" name="base_rate" value={newCoin.base_rate} onChange={handleInputChange} placeholder="16000" />
                     <InputField label="Spread (%)" name="spread_percent" value={newCoin.spread_percent} onChange={handleInputChange} placeholder="1" />
@@ -148,7 +192,13 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
     useEffect(() => { setRate(initialRate); }, [initialRate]);
 
     const handleInputChange = (e) => {
-        setRate(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        // MODIFIKASI: Jika jaringan berubah, update juga network_icon
+        if (name === 'network') {
+            setRate(prev => ({ ...prev, [name]: value, network_icon: COMMON_NETWORK_ICONS[value] || '' }));
+        } else {
+            setRate(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const applySimpleRate = () => {
@@ -174,14 +224,14 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         setIsSaving(false);
     };
 
-    // --- PERBAIKAN DI SINI ---
     const inputKalkulatorStyle = "w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-md px-3 py-1.5 text-sm transition-all focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary/80";
 
     return (
         <div className={`p-4 bg-light-card dark:bg-dark-card/50 border rounded-lg space-y-4 ${error ? 'border-red-500/50' : 'border-light-border dark:border-dark-border'}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <img src={rate.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-white"/>
+                    {/* MODIFIKASI: Tampilkan ikon jaringan jika ada, atau ikon koin jika tidak ada ikon jaringan */}
+                    <img src={rate.network_icon || rate.icon || 'https://via.placeholder.com/32'} alt={rate.network} className="w-8 h-8 rounded-full bg-white"/>
                     <div>
                         <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{rate.token_name} <span className="text-sm font-normal text-gray-400">({rate.token_symbol})</span></h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{rate.network}</p>
@@ -205,8 +255,26 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <InputField label="Simbol Koin" name="token_symbol" value={rate.token_symbol} onChange={handleInputChange} type="text" placeholder="USDT" />
                 <InputField label="Nama Koin" name="token_name" value={rate.token_name} onChange={handleInputChange} type="text" placeholder="Tether" />
-                <InputField label="Jaringan" name="network" value={rate.network} onChange={handleInputChange} type="text" placeholder="BEP20" />
-                <InputField label="URL Ikon" name="icon" value={rate.icon} onChange={handleInputChange} type="text" placeholder="https://..." />
+                <div>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jaringan</label>
+                    <div className="relative">
+                        <select 
+                            name="network" 
+                            value={rate.network} 
+                            onChange={handleInputChange} 
+                            className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none"
+                        >
+                            {COMMON_NETWORKS.map(network => (
+                                <option key={network} value={network}>{network}</option>
+                            ))}
+                        </select>
+                        <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
+                {/* MODIFIKASI: Tambahkan input untuk Network Icon URL */}
+                <InputField label="URL Ikon Jaringan" name="network_icon" value={rate.network_icon} onChange={handleInputChange} type="text" placeholder="https://logo-jaringan.png" />
+                {/* END MODIFIKASI */}
+                <InputField label="URL Ikon Koin" name="icon" value={rate.icon} onChange={handleInputChange} type="text" placeholder="https://logo-koin.png" />
                 
                 <InputField label="Harga Jual (IDR)" name="rate_sell" value={rate.rate_sell} onChange={handleInputChange} />
                 <InputField label="Harga Beli (IDR)" name="rate_buy" value={rate.rate_buy} onChange={handleInputChange} />
@@ -234,19 +302,23 @@ export default function PageAdminWarung({ onSwitchView }) {
     const [selectedTx, setSelectedTx] = useState(null);
     
     const [editingMethod, setEditingMethod] = useState(null); 
-    const [newMethod, setNewMethod] = useState({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
+    const [newMethod, setNewPaymentMethod] = useState({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const { data: adminData, error: adminError } = await supabase.functions.invoke('get-admin-data');
-            if (adminError) throw adminError;
+            // MODIFIKASI: Ambil juga network_icon
+            const { data: ratesData, error: ratesError } = await supabase.from('crypto_rates').select('*, network_icon').eq('is_active', true);
+            if (ratesError) throw ratesError;
+
+            const { data: txData, error: txError } = await supabase.from('warung_transactions').select('*').order('created_at', { ascending: false }).limit(20);
+            if (txError) throw txError;
             
             const { data: payData, error: payError } = await supabase.from('admin_payment_methods').select('*').order('method_name');
             if (payError) throw payError;
 
-            setRates(adminData.rates || []);
-            setTransactions(adminData.transactions || []);
+            setRates(ratesData || []);
+            setTransactions(txData || []);
             setPaymentMethods(payData || []);
         } catch (error) {
             setNotification("Gagal mengambil data: " + error.message);
@@ -264,7 +336,16 @@ export default function PageAdminWarung({ onSwitchView }) {
     };
 
     const handleTransactionAction = async (txId, newStatus, adminProofFile) => { /* ... (fungsi tidak berubah) ... */ };
-    const handleAddNewCoin = async (newCoinData) => { /* ... (fungsi tidak berubah) ... */ };
+    const handleAddNewCoin = async (newCoinData) => { 
+        try {
+            // Pastikan network_icon ada di newCoinData
+            const { error: insertError } = await supabase.from('crypto_rates').insert([newCoinData]);
+            if (insertError) throw insertError;
+            handleActionComplete(`Koin ${newCoinData.token_symbol} (${newCoinData.network}) berhasil ditambahkan!`);
+        } catch (error) {
+            alert("Gagal menambah koin: " + error.message);
+        }
+    };
 
     const handleSavePaymentMethod = async () => {
         if (!newMethod.method_name || !newMethod.full_name || !newMethod.account_number) {
@@ -287,7 +368,7 @@ export default function PageAdminWarung({ onSwitchView }) {
             else { setNotification("Metode pembayaran baru ditambahkan!"); }
         }
         
-        setNewMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
+        setNewPaymentMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
         setEditingMethod(null);
         fetchData();
     };
@@ -379,7 +460,7 @@ export default function PageAdminWarung({ onSwitchView }) {
                                             </div>
                                         </div>
                                         <div className="flex gap-3">
-                                            <button onClick={() => { setEditingMethod(method); setNewMethod(method); }} className="text-yellow-400 hover:text-yellow-300"><FontAwesomeIcon icon={faPen}/></button>
+                                            <button onClick={() => { setEditingMethod(method); setNewPaymentMethod(method); }} className="text-yellow-400 hover:text-yellow-300"><FontAwesomeIcon icon={faPen}/></button>
                                             <button onClick={() => handleDeletePaymentMethod(method.id)} className="text-red-500 hover:text-red-400"><FontAwesomeIcon icon={faTrash}/></button>
                                         </div>
                                     </div>
@@ -388,11 +469,10 @@ export default function PageAdminWarung({ onSwitchView }) {
                             <div className="pt-4 border-t border-light-border dark:border-dark-border space-y-3">
                                 <h3 className="font-bold text-light-text dark:text-dark-text">{editingMethod ? 'Edit Metode Pembayaran' : 'Tambah Metode Baru'}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <InputField label="Nama Lengkap" name="full_name" value={newMethod.full_name} onChange={(e) => setNewMethod({...newMethod, full_name: e.target.value})} type="text"/>
+                                    <InputField label="Nama Lengkap" name="full_name" value={newMethod.full_name} onChange={(e) => setNewPaymentMethod({...newMethod, full_name: e.target.value})} type="text"/>
                                     <div className="relative">
                                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jenis</label>
-                                        {/* --- PERBAIKAN DI SINI --- */}
-                                        <select value={newMethod.method_type} onChange={(e) => setNewMethod({...newMethod, method_type: e.target.value})} className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none">
+                                        <select value={newMethod.method_type} onChange={(e) => setNewPaymentMethod({...newMethod, method_type: e.target.value})} className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none">
                                             <option>E-Wallet</option>
                                             <option>Bank</option>
                                         </select>
@@ -400,12 +480,12 @@ export default function PageAdminWarung({ onSwitchView }) {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <InputField label="Nama Metode" name="method_name" value={newMethod.method_name} onChange={(e) => setNewMethod({...newMethod, method_name: e.target.value})} type="text" placeholder="cth: DANA, BCA"/>
-                                    <InputField label="Nomor Rekening/Telepon" name="account_number" value={newMethod.account_number} onChange={(e) => setNewMethod({...newMethod, account_number: e.target.value})} type="text" placeholder="cth: 0812..."/>
+                                    <InputField label="Nama Metode" name="method_name" value={newMethod.method_name} onChange={(e) => setNewPaymentMethod({...newMethod, method_name: e.target.value})} type="text" placeholder="cth: DANA, BCA"/>
+                                    <InputField label="Nomor Rekening/Telepon" name="account_number" value={newMethod.account_number} onChange={(e) => setNewPaymentMethod({...newMethod, account_number: e.target.value})} type="text" placeholder="cth: 0812..."/>
                                 </div>
-                                <InputField label="URL Ikon (Opsional)" name="icon_url" value={newMethod.icon_url} onChange={(e) => setNewMethod({...newMethod, icon_url: e.target.value})} type="text"/>
+                                <InputField label="URL Ikon (Opsional)" name="icon_url" value={newMethod.icon_url} onChange={(e) => setNewPaymentMethod({...newMethod, icon_url: e.target.value})} type="text"/>
                                 <div className="flex gap-3 justify-end">
-                                    {editingMethod && <button onClick={() => { setEditingMethod(null); setNewMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' }); }} className="btn-secondary">Batal Edit</button>}
+                                    {editingMethod && <button onClick={() => { setEditingMethod(null); setNewPaymentMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' }); }} className="btn-secondary">Batal Edit</button>}
                                     <button onClick={handleSavePaymentMethod} className="btn-primary">{editingMethod ? 'Update Metode' : 'Tambah Metode'}</button>
                                 </div>
                             </div>
