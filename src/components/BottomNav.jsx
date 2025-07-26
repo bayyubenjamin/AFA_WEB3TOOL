@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faTasks, faCalendarAlt, faUser, faParachuteBox } from '@fortawesome/free-solid-svg-icons';
+// --- PENAMBAHAN BARU ---
+import { faHome, faTasks, faCalendarAlt, faUser, faParachuteBox, faStore } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 
 // PENAMBAHAN PROP 'hasNewAirdropNotification'
@@ -11,7 +12,8 @@ export default function BottomNav({ currentUser, hasNewAirdropNotification }) {
 
   const allNavItems = [
     { to: '/', icon: faHome, label_id: 'Beranda', label_en: 'Home', isPrivate: false },
-    { to: '/events', icon: faCalendarAlt, label_id: 'Event', label_en: 'Events', isPrivate: false },
+    // --- PERUBAHAN --- (Event diganti dengan Warung Kripto)
+    { to: '/warung-kripto', icon: faStore, label_id: 'Warung', label_en: 'Market', isPrivate: false },
     // PENAMBAHAN: Menambahkan properti 'hasNotif'
     { to: '/airdrops', icon: faParachuteBox, label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
     { to: '/my-work', icon: faTasks, label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
@@ -43,16 +45,16 @@ export default function BottomNav({ currentUser, hasNewAirdropNotification }) {
                   <FontAwesomeIcon 
                     icon={item.icon} 
                     className={`relative z-10 text-lg transition-colors duration-200
-                               ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-text group-hover:text-primary'}`} 
+                                ${isActive ? 'text-white' : 'text-light-subtle dark:text-dark-text group-hover:text-primary'}`} 
                   />
-                   {/* PENAMBAHAN: Tampilkan titik notifikasi jika ada dan item tidak aktif */}
-                   {item.hasNotif && !isActive && (
-                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card"></span>
-                  )}
+                    {/* PENAMBAHAN: Tampilkan titik notifikasi jika ada dan item tidak aktif */}
+                    {item.hasNotif && !isActive && (
+                      <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-light-card dark:border-dark-card"></span>
+                    )}
                 </div>
                 <span 
                   className={`text-xs mt-1 font-semibold transition-colors duration-200
-                             ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-text'}`}
+                                ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-text'}`}
                 >
                   {getLabel(item)}
                 </span>

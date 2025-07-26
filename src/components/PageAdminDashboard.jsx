@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShieldHalved, faParachuteBox, faGift, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faShieldHalved, faParachuteBox, faGift, faArrowLeft, faStore } from '@fortawesome/free-solid-svg-icons';
 
 export default function PageAdminDashboard() {
   return (
@@ -28,8 +28,13 @@ export default function PageAdminDashboard() {
           <h2 className="text-2xl font-bold text-light-text dark:text-white">Kelola Events</h2>
           <p className="text-light-subtle dark:text-gray-400 mt-2">Buat, edit, dan kelola giveaway.</p>
         </Link>
+        {/* --- TOMBOL BARU DITAMBAHKAN DI SINI --- */}
+        <Link to="/admin-warung" className="card rounded-2xl p-8 text-center group transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:bg-primary/5 md:col-span-2">
+          <FontAwesomeIcon icon={faStore} className="text-5xl text-primary mb-4 transition-transform duration-300 group-hover:scale-110" />
+          <h2 className="text-2xl font-bold text-light-text dark:text-white">Kelola Warung Kripto</h2>
+          <p className="text-light-subtle dark:text-gray-400 mt-2">Atur kurs jual/beli dan konfirmasi transaksi pengguna.</p>
+        </Link>
       </div>
     </section>
   );
 }
-

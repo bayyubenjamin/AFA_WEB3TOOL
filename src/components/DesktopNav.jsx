@@ -9,14 +9,25 @@ export default function DesktopNav({ currentUser, hasNewAirdropNotification }) {
 
   const navItemsList = [
     { to: '/', label_id: 'Beranda', label_en: 'Home', isPrivate: false },
-    { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
+    // --- PENAMBAHAN BARU ---
+    { to: '/warung-kripto', label_id: 'Warung Kripto', label_en: 'Crypto Market', isPrivate: false },
     // PENAMBAHAN: Menambahkan properti 'hasNotif'
     { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
     { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
-    { to: '/profile', label_id: 'Profil', label_en: 'Profile', isPrivate: false },
+    // { to: '/profile', label_id: 'Profil', label_en: 'Profile', isPrivate: false }, // Dihilangkan karena sudah ada di menu profile dropdown
   ];
 
-  const navItems = navItemsList.filter(item => !item.isPrivate || isLoggedIn);
+  // Kode di bawah ini saya modifikasi sedikit agar item 'Events' tetap ada
+  const finalNavItemsList = [
+    { to: '/', label_id: 'Beranda', label_en: 'Home', isPrivate: false },
+    { to: '/warung-kripto', label_id: 'Warung Kripto', label_en: 'Crypto Market', isPrivate: false },
+    { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
+    { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
+    { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
+  ];
+
+
+  const navItems = finalNavItemsList.filter(item => !item.isPrivate || isLoggedIn);
   const getLabel = (item) => (language === 'id' ? item.label_id : item.label_en);
 
   return (
@@ -36,7 +47,7 @@ export default function DesktopNav({ currentUser, hasNewAirdropNotification }) {
           {getLabel(item)}
           {/* PENAMBAHAN: Tampilkan titik notifikasi jika ada */}
           {item.hasNotif && (
-             <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 border border-white dark:border-gray-800"></span>
+              <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 border border-white dark:border-gray-800"></span>
           )}
         </NavLink>
       ))}

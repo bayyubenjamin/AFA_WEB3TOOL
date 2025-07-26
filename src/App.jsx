@@ -22,8 +22,12 @@ import PageAdminDashboard from './components/PageAdminDashboard';
 import PageLogin from "./components/PageLogin";
 import PageRegister from "./components/PageRegister";
 import PageAfaIdentity from './components/PageAfaIdentity';
+import PageWarungKripto from './components/PageWarungKripto';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
+
+// --- TAMBAHKAN IMPORT INI ---
+import PageAdminWarung from './components/PageAdminWarung'; 
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -193,7 +197,7 @@ export default function App() {
   const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
@@ -226,9 +230,15 @@ export default function App() {
             <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
             <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
             <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
+            
+            {/* --- ROUTE ADMIN --- */}
             <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
             <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+            {/* --- TAMBAHKAN ROUTE INI --- */}
+            <Route path="/admin-warung" element={<PageAdminWarung currentUser={userForHeader} />} />
+
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
             <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
             <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           </Routes>
@@ -248,4 +258,3 @@ export default function App() {
     </div>
   );
 }
-
