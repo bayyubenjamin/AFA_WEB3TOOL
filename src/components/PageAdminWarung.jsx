@@ -99,7 +99,6 @@ const TransactionModal = ({ tx, onClose, onAction }) => {
 };
 
 const AddCoinModal = ({ onClose, onSave }) => {
-    // MODIFIKASI: State baru untuk melacak opsi jaringan yang dipilih dari dropdown
     const [selectedNetworkOption, setSelectedNetworkOption] = useState(COMMON_NETWORKS[0]); 
     const [newCoin, setNewCoin] = useState({ 
         token_symbol: '', token_name: '', network: COMMON_NETWORKS[0], 
@@ -113,38 +112,35 @@ const AddCoinModal = ({ onClose, onSave }) => {
     });
     const [isSaving, setIsSaving] = useState(false);
     
-    // showCustomNetworkInput sekarang tergantung pada selectedNetworkOption
     const showCustomNetworkInput = selectedNetworkOption === "Lainnya / Kustom";
 
     useEffect(() => {
         if (selectedNetworkOption !== "Lainnya / Kustom") {
             setNewCoin(prev => ({ 
                 ...prev, 
-                network: selectedNetworkOption, // Set network dari opsi yang dipilih
-                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' // Set ikon otomatis
+                network: selectedNetworkOption, 
+                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' 
             }));
         } else {
-            // Ketika "Lainnya / Kustom" dipilih, kosongkan network untuk diisi manual
             setNewCoin(prev => ({ ...prev, network: "" })); 
         }
     }, [selectedNetworkOption]);
 
 
-    const handleNetworkSelectChange = (e) => { // Handler baru untuk SELECT jaringan
+    const handleNetworkSelectChange = (e) => { 
         setSelectedNetworkOption(e.target.value);
     };
 
-    const handleCustomNetworkNameChange = (e) => { // Handler untuk input teks Jaringan Kustom
+    const handleCustomNetworkNameChange = (e) => { 
         setNewCoin(prev => ({ ...prev, network: e.target.value }));
     };
 
-    const handleOtherInputChange = (e) => { // Handler umum untuk input lainnya
+    const handleOtherInputChange = (e) => { 
         const { name, value } = e.target;
         setNewCoin(prev => ({ ...prev, [name]: value }));
     };
     
     const handleSaveClick = async () => {
-        // MODIFIKASI: Validasi yang lebih lengkap
         if (!newCoin.token_symbol || !newCoin.token_name) {
             alert('Simbol dan Nama Koin wajib diisi.');
             return;
@@ -156,7 +152,7 @@ const AddCoinModal = ({ onClose, onSave }) => {
                 return;
             }
         } else {
-            if (newCoin.network.trim() === "") { // Jaringan umum tidak boleh kosong
+            if (newCoin.network.trim() === "") { 
                 alert('Jaringan wajib dipilih.');
                 return;
             }
@@ -178,7 +174,6 @@ const AddCoinModal = ({ onClose, onSave }) => {
 
         setIsSaving(true);
 
-        // MODIFIKASI: Hitung rate_sell dan rate_buy sebelum menyimpan
         const currentBaseRate = parseFloat(newCoin.base_rate);
         const currentSpreadPercent = parseFloat(newCoin.spread_percent);
         const calculatedSellRate = currentBaseRate;
@@ -207,12 +202,11 @@ const AddCoinModal = ({ onClose, onSave }) => {
                     <InputField label="Simbol" name="token_symbol" value={newCoin.token_symbol} onChange={handleOtherInputChange} type="text" placeholder="USDT" />
                     <InputField label="Nama Koin" name="token_name" value={newCoin.token_name} onChange={handleOtherInputChange} type="text" placeholder="Tether" />
                     
-                    {/* MODIFIKASI: Dropdown Jaringan dengan opsi kustom */}
                     <div>
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jaringan</label>
                         <div className="relative">
                             <select 
-                                name="network-select" // Nama berbeda agar tidak bentrok dengan newCoin.network
+                                name="network-select" 
                                 value={selectedNetworkOption} 
                                 onChange={handleNetworkSelectChange} 
                                 className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none"
@@ -224,15 +218,10 @@ const AddCoinModal = ({ onClose, onSave }) => {
                             <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         </div>
                     </div>
-                    {/* MODIFIKASI: Input teks untuk Jaringan Kustom, TERGANTUNG showCustomNetworkInput */}
                     {showCustomNetworkInput && (
                         <InputField label="Nama Jaringan Kustom" name="network" value={newCoin.network} onChange={handleCustomNetworkNameChange} type="text" placeholder="Masukkan nama jaringan baru (cth: Core Dao)" />
                     )}
-                    {/* END MODIFIKASI */}
-
-                    {/* MODIFIKASI: Input untuk Network Icon URL, selalu ada */}
                     <InputField label="URL Ikon Jaringan" name="network_icon" value={newCoin.network_icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-jaringan.png" />
-                    {/* END MODIFIKASI */}
                     
                     <InputField label="URL Ikon Koin" name="icon" value={newCoin.icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-koin.png" />
                     <div className="col-span-2"><InputField label="Wallet Admin" name="admin_wallet" value={newCoin.admin_wallet} onChange={handleOtherInputChange} type="text" placeholder="0x..." /></div>
@@ -267,7 +256,6 @@ const InputField = ({ label, name, value, onChange, type = "number", step = "0.0
 
 
 const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
-    // Tentukan opsi jaringan awal berdasarkan apakah initialRate.network adalah kustom atau umum
     const initialSelectedOption = COMMON_NETWORKS.includes(initialRate.network) ? initialRate.network : "Lainnya / Kustom";
     const [selectedNetworkOption, setSelectedNetworkOption] = useState(initialSelectedOption);
     const [rate, setRate] = useState(initialRate);
@@ -275,7 +263,6 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     
-    // showCustomNetworkInput sekarang tergantung pada selectedNetworkOption
     const showCustomNetworkInput = selectedNetworkOption === "Lainnya / Kustom";
 
     useEffect(() => { 
@@ -287,22 +274,21 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         if (selectedNetworkOption !== "Lainnya / Kustom") {
             setRate(prev => ({ 
                 ...prev, 
-                network: selectedNetworkOption, // Set network dari opsi yang dipilih
-                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' // Set ikon otomatis
+                network: selectedNetworkOption, 
+                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' 
             }));
         } 
-        // Jika "Lainnya / Kustom" dipilih, tidak perlu mengosongkan network. Biarkan user mengetik.
     }, [selectedNetworkOption]);
 
-    const handleNetworkSelectChange = (e) => { // Handler baru untuk SELECT jaringan
+    const handleNetworkSelectChange = (e) => { 
         setSelectedNetworkOption(e.target.value);
     };
 
-    const handleCustomNetworkNameChange = (e) => { // Handler untuk input teks Jaringan Kustom
+    const handleCustomNetworkNameChange = (e) => { 
         setRate(prev => ({ ...prev, network: e.target.value }));
     };
 
-    const handleOtherInputChange = (e) => { // Handler umum untuk input lainnya
+    const handleOtherInputChange = (e) => { 
         const { name, value } = e.target;
         setRate(prev => ({ ...prev, [name]: value }));
     };
@@ -324,9 +310,23 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         }));
     };
 
+    const handleDeleteCoin = async () => {
+        if (!window.confirm(`Apakah Anda yakin ingin menghapus koin ${rate.token_symbol} (${rate.network})?`)) {
+            return;
+        }
+        setError('');
+        try {
+            const { error: deleteError } = await supabase.from('crypto_rates').delete().eq('id', rate.id);
+            if (deleteError) throw deleteError;
+            onActionComplete(`Koin ${rate.token_symbol} (${rate.network}) berhasil dihapus.`);
+        } catch (deleteError) {
+            setError("Gagal menghapus koin: " + deleteError.message);
+        }
+    };
+
+
     const handleSave = async () => {
         setError('');
-        // MODIFIKASI: Validasi yang lebih ketat
         if (!rate.token_symbol || !rate.token_name) {
             alert('Simbol dan Nama Koin wajib diisi.');
             return;
@@ -371,7 +371,6 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         const dataToSubmit = { ...rate };
         delete dataToSubmit.id;
         
-        // MODIFIKASI: Pastikan semua nilai numerik adalah float atau null secara eksplisit
         dataToSubmit.base_rate = parseFloat(dataToSubmit.base_rate) || 0;
         dataToSubmit.spread_percent = parseFloat(dataToSubmit.spread_percent) || 0;
         dataToSubmit.rate_sell = parseFloat(dataToSubmit.rate_sell) || 0; 
@@ -379,14 +378,11 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         dataToSubmit.stock = parseFloat(dataToSubmit.stock) || null;
         dataToSubmit.stock_rupiah = parseFloat(dataToSubmit.stock_rupiah) || null;
 
-        // Kosongkan string kosong menjadi null jika kolomnya boleh null, atau biarkan default (0) jika tidak boleh
         for (const key in dataToSubmit) {
             if (typeof dataToSubmit[key] === 'string' && dataToSubmit[key].trim() === '') {
-                // Hanya set ke null untuk field yang memang boleh null seperti stock, stock_rupiah, icon, admin_wallet
                 if (['icon', 'admin_wallet', 'stock', 'stock_rupiah', 'network_icon'].includes(key)) {
                     dataToSubmit[key] = null;
                 } else if (['rate_sell', 'rate_buy', 'base_rate', 'spread_percent'].includes(key)) {
-                    // Pastikan numeric fields yang non-nullable menjadi 0 jika kosong (walaupun sudah diparse di atas, ini sebagai fallback)
                     dataToSubmit[key] = 0;
                 }
             }
@@ -395,11 +391,10 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         const { error: updateError } = await supabase.from('crypto_rates').update(dataToSubmit).eq('id', rate.id);
         if (updateError) { 
             setError('Gagal menyimpan: ' + updateError.message); 
-            // Penanganan error duplicate key lebih spesifik
             if (updateError.code === '23505' && updateError.message.includes('crypto_rates_token_symbol_key')) {
-                setError('Gagal menyimpan: Simbol koin ini sudah ada. Silakan gunakan simbol lain.');
-            } else if (updateError.code === '23505' && updateError.message.includes('unique_token_symbol_network')) { // MODIFIKASI: Nama constraint baru
-                setError('Gagal menyimpan: Kombinasi simbol koin dan jaringan sudah ada. Silakan gunakan simbol atau jaringan lain.');
+                setError('Gagal menyimpan: Simbol koin ini sudah ada (di jaringan manapun). Silakan gunakan simbol lain atau ubah batasan database.');
+            } else if (updateError.code === '23505' && updateError.message.includes('unique_token_symbol_network')) { 
+                setError('Gagal menyimpan: Kombinasi simbol koin dan jaringan ini sudah ada. Silakan gunakan simbol atau jaringan lain.');
             }
         }
         else { onActionComplete(`Pengaturan ${rate.token_symbol} (${rate.network}) disimpan!`); }
@@ -412,16 +407,21 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         <div className={`p-4 bg-light-card dark:bg-dark-card/50 border rounded-lg space-y-4 ${error ? 'border-red-500/50' : 'border-light-border dark:border-dark-border'}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    {/* MODIFIKASI: Tampilkan ikon jaringan jika ada, atau ikon koin jika tidak ada ikon jaringan */}
                     <img src={rate.network_icon || rate.icon || 'https://via.placeholder.com/32'} alt={rate.network} className="w-8 h-8 rounded-full bg-white"/>
                     <div>
                         <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{rate.token_name} <span className="text-sm font-normal text-gray-400">({rate.token_symbol})</span></h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{rate.network}</p>
                     </div>
                 </div>
-                <button onClick={handleSave} disabled={isSaving} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-2">
-                    {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />} {isSaving ? 'Menyimpan' : 'Simpan'}
-                </button>
+                <div className="flex gap-2"> {/* Group buttons */}
+                    <button onClick={handleSave} disabled={isSaving} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-2">
+                        {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />} {isSaving ? 'Menyimpan' : 'Simpan'}
+                    </button>
+                    {/* MODIFIKASI: Tombol Hapus Koin */}
+                    <button onClick={handleDeleteCoin} className="btn-danger text-xs px-3 py-1.5 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faTrash} /> Hapus
+                    </button>
+                </div>
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}
             
@@ -438,13 +438,12 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
                 <InputField label="Simbol Koin" name="token_symbol" value={rate.token_symbol} onChange={handleOtherInputChange} type="text" placeholder="USDT" />
                 <InputField label="Nama Koin" name="token_name" value={rate.token_name} onChange={handleOtherInputChange} type="text" placeholder="Tether" />
                 
-                {/* MODIFIKASI: Dropdown Jaringan dengan opsi kustom untuk editing */}
                 <div>
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jaringan</label>
                     <div className="relative">
                         <select 
                             name="network-select" 
-                            value={selectedNetworkOption} // Menggunakan selectedNetworkOption
+                            value={selectedNetworkOption} 
                             onChange={handleNetworkSelectChange} 
                             className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none"
                         >
@@ -455,15 +454,10 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
                 </div>
-                {/* MODIFIKASI: Input teks untuk Jaringan Kustom (jika dipilih) */}
                 {showCustomNetworkInput && (
                     <InputField label="Nama Jaringan Kustom" name="network" value={rate.network} onChange={handleCustomNetworkNameChange} type="text" placeholder="Masukkan nama jaringan baru" />
                 )}
-                {/* END MODIFIKASI */}
-
-                {/* MODIFIKASI: Input untuk Network Icon URL, selalu ada */}
                 <InputField label="URL Ikon Jaringan" name="network_icon" value={rate.network_icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-jaringan.png" />
-                {/* END MODIFIKASI */}
 
                 <InputField label="URL Ikon Koin" name="icon" value={rate.icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-koin.png" />
                 
@@ -471,6 +465,8 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
                 <InputField label="Harga Beli (IDR)" name="rate_buy" value={rate.rate_buy} onChange={handleOtherInputChange} />
                 <InputField label="Spread (%)" name="spread_percent" value={rate.spread_percent} onChange={handleOtherInputChange} />
                 <InputField label="Stok Koin" name="stock" value={rate.stock} onChange={handleOtherInputChange} step="any" />
+                {/* MODIFIKASI: Tambahkan input untuk Stok Rupiah */}
+                <InputField label="Stok Rupiah" name="stock_rupiah" value={rate.stock_rupiah} onChange={handleOtherInputChange} />
 
                 <div className="col-span-2 md:col-span-4">
                     <InputField label="Wallet Admin" name="admin_wallet" value={rate.admin_wallet} onChange={handleOtherInputChange} type="text" placeholder="Alamat wallet untuk koin ini"/>
@@ -498,11 +494,10 @@ export default function PageAdminWarung({ onSwitchView }) {
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // MODIFIKASI: Ambil juga network_icon
             const { data: ratesData, error: ratesError } = await supabase.from('crypto_rates').select('*, network_icon').eq('is_active', true);
             if (ratesError) throw ratesError;
 
-            const { data: txData, error: txError } = await supabase.from('warung_transactions').select('*').order('created_at', { ascending: false }).limit(20);
+            const { data: txData, error: txError } = await supabase.from('warung_transactions').select('*').eq('user_id', 'a80b8529-657c-48c0-9d0d-2e389d494dfa').order('created_at', { ascending: false }).limit(20); // TODO: Replace hardcoded user ID
             if (txError) throw txError;
             
             const { data: payData, error: payError } = await supabase.from('admin_payment_methods').select('*').order('method_name');
@@ -522,17 +517,15 @@ export default function PageAdminWarung({ onSwitchView }) {
 
     const handleActionComplete = (message) => {
         setNotification(message);
-        fetchData();
+        fetchData(); // Refetch data to update the list
         setTimeout(() => setNotification(''), 4000);
     };
 
     const handleTransactionAction = async (txId, newStatus, adminProofFile) => { /* ... (fungsi tidak berubah) ... */ };
     const handleAddNewCoin = async (newCoinData) => { 
         try {
-            // Pastikan network_icon ada di newCoinData
             const { error: insertError } = await supabase.from('crypto_rates').insert([newCoinData]);
             if (insertError) {
-                // MODIFIKASI: Penanganan error duplicate key lebih spesifik (kedua nama constraint)
                 if (insertError.code === '23505' && insertError.message.includes('crypto_rates_token_symbol_key')) {
                     alert('Gagal menambah koin: Simbol koin ini sudah ada (di jaringan manapun). Silakan gunakan simbol lain atau ubah batasan database.');
                 } else if (insertError.code === '23505' && insertError.message.includes('unique_token_symbol_network')) {
@@ -540,12 +533,11 @@ export default function PageAdminWarung({ onSwitchView }) {
                 } else {
                     alert("Gagal menambah koin: " + insertError.message);
                 }
-                throw insertError; // Throw untuk menghentikan proses selanjutnya
+                throw insertError; 
             }
             handleActionComplete(`Koin ${newCoinData.token_symbol} (${newCoinData.network}) berhasil ditambahkan!`);
         } catch (error) {
             console.error("Error adding new coin:", error);
-            // alert sudah ditampilkan di atas, jadi tidak perlu lagi di sini unless there's an unhandled error
         }
     };
 
@@ -570,7 +562,7 @@ export default function PageAdminWarung({ onSwitchView }) {
             else { setNotification("Metode pembayaran baru ditambahkan!"); }
         }
         
-        setNewMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
+        setNewPaymentMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
         setEditingMethod(null);
         fetchData();
     };
@@ -585,6 +577,17 @@ export default function PageAdminWarung({ onSwitchView }) {
     };
 
     const filteredTransactions = transactions.filter(tx => tx.status === activeTxTab);
+
+    // MODIFIKASI: Mengelompokkan koin berdasarkan jaringan
+    const groupedRates = rates.reduce((acc, rate) => {
+        const network = rate.network || 'Lainnya'; // Gunakan 'Lainnya' jika jaringan null/kosong
+        if (!acc[network]) {
+            acc[network] = [];
+        }
+        acc[network].push(rate);
+        return acc;
+    }, {});
+
 
     return (
         <section className="page-content space-y-6 max-w-6xl mx-auto py-8">
@@ -632,19 +635,35 @@ export default function PageAdminWarung({ onSwitchView }) {
                     
                     {activeTab === 'settings' && (
                         <div className="card-premium p-4 md:p-6 space-y-6 text-light-text dark:text-dark-text">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Atur Kurs & Stok</h2>
                                 <button onClick={() => setShowAddCoinModal(true)} className="btn-success text-sm px-4 py-2 flex items-center gap-2">
                                     <FontAwesomeIcon icon={faPlus} /> Tambah Koin
                                 </button>
                             </div>
-                            {rates.map(rate => (
-                                <CoinSettingsEditor 
-                                    key={rate.id} 
-                                    initialRate={rate} 
-                                    onActionComplete={handleActionComplete} 
-                                />
-                            ))}
+                            
+                            {/* MODIFIKASI: Render koin dikelompokkan berdasarkan jaringan */}
+                            {Object.keys(groupedRates).length > 0 ? (
+                                Object.keys(groupedRates).sort().map(networkName => (
+                                    <div key={networkName} className="space-y-4">
+                                        <h3 className="text-lg font-bold text-primary dark:text-primary-light border-b border-light-border dark:border-dark-border pb-2 mb-4">
+                                            Jaringan: {networkName}
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {groupedRates[networkName].map(rate => (
+                                                <CoinSettingsEditor 
+                                                    key={rate.id} 
+                                                    initialRate={rate} 
+                                                    onActionComplete={handleActionComplete} 
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-center text-gray-400">Belum ada koin yang ditambahkan.</p>
+                            )}
+                            {/* END MODIFIKASI */}
                         </div>
                     )}
 
