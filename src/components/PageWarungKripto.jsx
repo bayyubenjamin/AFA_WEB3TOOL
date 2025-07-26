@@ -26,7 +26,8 @@ const BenefitCard = ({ icon, title, children }) => (
 
 const TransactionHistoryItem = ({ tx }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [adminProofUrl, setAdminProofUrl] = useState(null);
+    const [adminProofUrl, setAdminProofUrl] = useState(null); // Ini untuk bukti admin
+    const [userProofUrl, setUserProofUrl] = useState(null); // Ini untuk bukti user
     const [isLoadingProof, setIsLoadingProof] = useState(false);
 
     const statusMap = {
@@ -39,25 +40,58 @@ const TransactionHistoryItem = ({ tx }) => {
     const status = statusMap[tx.status] || { text: tx.status, color: 'bg-gray-500/10 text-gray-400', icon: faQuestionCircle };
     const isBuy = tx.order_type === 'buy';
 
+    // MODIFIKASI: Fungsi untuk mendapatkan bukti transfer dari admin (untuk transaksi JUAL)
     const getAdminProof = async () => {
-        if (!tx.admin_proof_url) return;
+        if (!tx.admin_proof_url) return; 
         setIsLoadingProof(true);
         try {
+            // Mengambil signed URL dari bucket 'adminbuktibayar'
             const { data, error } = await supabase.storage.from('adminbuktibayar').createSignedUrl(tx.admin_proof_url, 300);
-            if (error) console.error("Gagal membuat signed URL", error);
-            else setImageUrl(data.signedUrl);
+            if (error) {
+                console.error("Gagal membuat signed URL bukti admin:", error);
+                setAdminProofUrl(null); // Pastikan URL direset jika gagal
+            } else {
+                setAdminProofUrl(data.signedUrl); // MODIFIKASI: Gunakan setAdminProofUrl
+            }
         } catch (error) {
-            console.error("Gagal mengambil bukti dari admin:", error);
+            console.error("Gagal mengambil bukti dari admin (kesalahan umum):", error);
+            setAdminProofUrl(null);
         } finally {
             setIsLoadingProof(false);
         }
     };
 
+    // MODIFIKASI: Fungsi untuk mendapatkan bukti transfer dari user (untuk transaksi BELI)
+    const getUserProof = async () => {
+        if (!tx.proof_screenshot_url) return;
+        setIsLoadingProof(true);
+        try {
+            // Mengambil signed URL dari bucket 'buktitransfer'
+            const { data, error } = await supabase.storage.from('buktitransfer').createSignedUrl(tx.proof_screenshot_url, 300);
+            if (error) {
+                console.error("Gagal membuat signed URL bukti user:", error);
+                setUserProofUrl(null);
+            } else {
+                setUserProofUrl(data.signedUrl);
+            }
+        } catch (error) {
+            console.error("Gagal mengambil bukti dari user (kesalahan umum):", error);
+            setUserProofUrl(null);
+        } finally {
+            setIsLoadingProof(false);
+        }
+    };
+
+
     const handleToggleExpand = () => {
         const newIsExpanded = !isExpanded;
         setIsExpanded(newIsExpanded);
-        if (newIsExpanded && !isBuy && tx.admin_proof_url) {
-            getAdminProof();
+        if (newIsExpanded) {
+            if (isBuy && tx.proof_screenshot_url) {
+                getUserProof(); // Untuk transaksi beli, ambil bukti user
+            } else if (!isBuy && tx.admin_proof_url) {
+                getAdminProof(); // Untuk transaksi jual, ambil bukti admin
+            }
         }
     };
 
@@ -93,15 +127,24 @@ const TransactionHistoryItem = ({ tx }) => {
                     <p><strong>ID Transaksi:</strong> <span className="font-mono">{tx.id}</span></p>
                     <p><strong>Jumlah Rupiah:</strong> <span className="font-mono">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span></p>
                     {isBuy ? (
-                        <p><strong>Dikirim ke Wallet:</strong> <span className="font-mono break-all">{tx.user_wallet_address}</span></p>
+                        <>
+                            <p><strong>Dikirim ke Wallet:</strong> <span className="font-mono break-all">{tx.user_wallet_address}</span></p>
+                            {tx.status === 'COMPLETED' && ( // Hanya tampilkan bukti user jika transaksi beli selesai
+                                <p><strong>Bukti User:</strong> 
+                                    {isLoadingProof ? <span className="ml-2">Memuat...</span> : 
+                                        userProofUrl ? <a href={userProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">Lihat Bukti Transfer <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> 
+                                        : <span className="ml-2">{tx.proof_screenshot_url ? 'Gagal memuat' : 'Tidak ada'}</span>}
+                                </p>
+                            )}
+                        </>
                     ) : (
                         <>
                             <p><strong>Info Pembayaran Anda:</strong> <span className="font-mono break-all">{tx.user_payment_info}</span></p>
-                            {tx.status === 'COMPLETED' && (
+                            {tx.status === 'COMPLETED' && ( // Hanya tampilkan bukti admin jika transaksi jual selesai
                                 <p><strong>Bukti dari Admin:</strong> 
                                     {isLoadingProof ? <span className="ml-2">Memuat...</span> : 
                                         adminProofUrl ? <a href={adminProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">Lihat Bukti Transfer <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> 
-                                        : <span className="ml-2">{tx.admin_proof_url ? 'Tidak ada' : 'Tidak ada'}</span>}
+                                        : <span className="ml-2">{tx.admin_proof_url ? 'Gagal memuat' : 'Tidak ada'}</span>} {/* MODIFIKASI: Gunakan adminProofUrl */}
                                 </p>
                             )}
                         </>
@@ -138,11 +181,10 @@ export default function PageWarungKripto({ currentUser }) {
         if (ratesData && ratesData.length > 0) {
             const groups = ratesData.reduce((acc, coin) => {
                 const network = coin.network;
-                // Pastikan acc[network] adalah objek dengan properti 'coins' dan 'network_icon'
                 if (!acc[network]) { 
                     acc[network] = { 
                         coins: [], 
-                        network_icon: coin.network_icon || null // Ambil network_icon dari koin
+                        network_icon: coin.network_icon || null 
                     }; 
                 }
                 acc[network].coins.push(coin);
@@ -150,7 +192,6 @@ export default function PageWarungKripto({ currentUser }) {
             }, {});
             setGroupedByNetwork(groups);
 
-            // MODIFIKASI: Inisialisasi selectedNetwork dan selectedCoin dengan lebih aman
             if (Object.keys(groups).length > 0) {
                 const firstNetwork = Object.keys(groups)[0];
                 const coinsInFirstNetwork = groups[firstNetwork].coins;
@@ -159,19 +200,16 @@ export default function PageWarungKripto({ currentUser }) {
                     setSelectedNetwork(firstNetwork);
                     setSelectedCoin(coinsInFirstNetwork[0]);
                 } else {
-                    // Jika jaringan pertama tidak memiliki koin aktif
                     setSelectedNetwork('');
                     setSelectedCoin(null);
                     setError("Tidak ada koin aktif yang tersedia di jaringan ini.");
                 }
             } else {
-                // Jika tidak ada jaringan sama sekali (misal: ratesData kosong)
                 setSelectedNetwork('');
                 setSelectedCoin(null);
                 setError("Warung sedang tutup atau belum ada koin yang tersedia.");
             }
         } else {
-            // Jika ratesData itu sendiri kosong atau null
             setGroupedByNetwork({});
             setSelectedNetwork('');
             setSelectedCoin(null);
@@ -194,15 +232,14 @@ export default function PageWarungKripto({ currentUser }) {
                     setUserTransactions(cachedData.transactions);
                     setAdminPaymentMethods(cachedData.adminPaymentMethods || []);
                     setIsLoading(false);
-                    return; // Exit if using valid cache
+                    return; 
                 }
             } catch (e) {
                 console.error("Error reading cache:", e);
-                // Continue to fetch from network if cache read fails
             }
         }
         
-        setIsLoading(true); // Always show loading when fetching from network
+        setIsLoading(true); 
         setError('');
         try {
             const [ratesRes, txRes, adminPayRes] = await Promise.all([
@@ -230,11 +267,11 @@ export default function PageWarungKripto({ currentUser }) {
         } catch (dbError) {
             setError(dbError.message);
         } finally {
-            setIsLoading(false); // Hide loading after fetch completes
+            setIsLoading(false); 
         }
-    }, [currentUser]); // MODIFICATION: Removed 'selectedNetwork' from dependencies of fetchData
+    }, [currentUser]); 
 
-    useEffect(() => { fetchData(true); }, [fetchData]); // Initial load should always bypass cache for fresh data
+    useEffect(() => { fetchData(true); }, [fetchData]); 
 
     useEffect(() => {
         setInputAmount('');
@@ -290,7 +327,7 @@ export default function PageWarungKripto({ currentUser }) {
                 const fileExt = proof.name.split('.').pop();
                 const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
                 const { error: uploadError } = await supabase.storage.from('buktitransfer').upload(fileName, proof);
-                if (uploadError) throw new Error(`Gagal unggah bukti: ${uploadError.message}`);
+                if (uploadError) throw new Error(`Gagal unggah bukti: ${uploadError.message}. Periksa kebijakan RLS di bucket 'buktitransfer' Anda.`);
                 transactionData.proof_screenshot_url = fileName;
             }
 
@@ -299,7 +336,7 @@ export default function PageWarungKripto({ currentUser }) {
             
             alert('Permintaan transaksi berhasil dikirim!');
             setShowInstructionPage(false);
-            fetchData(true); // Force refetch after a successful transaction
+            fetchData(true); 
         } catch (err) {
             setError(err.message);
         } finally {
@@ -311,27 +348,23 @@ export default function PageWarungKripto({ currentUser }) {
         ? (!selectedCoin || !inputAmount || !walletAddress || (selectedCoin.stock && outputAmount > selectedCoin.stock))
         : (!selectedCoin || !inputAmount || !userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
 
-    // Definisikan class styling untuk input field secara eksplisit
     const inputStyle = "w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none";
     const selectStyle = `${inputStyle} appearance-none`;
 
-    // Function to handle switching TO admin view
     const handleGoToAdminView = () => {
-        setView('admin'); // Set view to 'admin'
-        localStorage.removeItem(`warungData_${currentUser.id}`); // Invalidate cache for user view data
-        fetchData(true); // Force refetch for admin data potentially
+        setView('admin'); 
+        localStorage.removeItem(`warungData_${currentUser.id}`); 
+        fetchData(true); 
     };
 
-    // Function to handle switching back TO user view
     const handleGoToUserView = () => {
-        setView('user'); // Set view back to 'user'
-        localStorage.removeItem(`warungData_${currentUser.id}`); // Invalidate cache (same cache key, but ensures fresh data for user view too)
-        fetchData(true); // Force refetch for user view data
+        setView('user'); 
+        localStorage.removeItem(`warungData_${currentUser.id}`); 
+        fetchData(true); 
     };
 
 
     if (currentUser && currentUser.role === 'admin' && view === 'admin') {
-        // Pass the function to switch back to user view
         return <PageAdminWarung onSwitchView={handleGoToUserView} />;
     }
 
@@ -413,22 +446,19 @@ export default function PageWarungKripto({ currentUser }) {
                                 <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Pilih Aset</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="relative">
-                                        {/* MODIFIKASI: Gunakan network_icon yang disimpan di groupedByNetwork */}
                                         {selectedNetwork && groupedByNetwork[selectedNetwork]?.network_icon && (
                                             <img src={groupedByNetwork[selectedNetwork].network_icon} alt={selectedNetwork} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/>
                                         )}
                                         <select value={selectedNetwork || ''} onChange={(e) => { 
                                             const newNetwork = e.target.value; 
                                             setSelectedNetwork(newNetwork); 
-                                            // MODIFIKASI: Tambahkan pemeriksaan jika tidak ada koin aktif di jaringan yang baru dipilih
                                             if (groupedByNetwork[newNetwork] && groupedByNetwork[newNetwork].coins.length > 0) {
                                                 setSelectedCoin(groupedByNetwork[newNetwork].coins[0]); 
                                             } else {
-                                                setSelectedCoin(null); // Clear selected coin if no coins for this network
+                                                setSelectedCoin(null); 
                                             }
                                         }} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Jaringan</option>
-                                            {/* MODIFIKASI: Pastikan Object.keys(groupedByNetwork) tidak kosong */}
                                             {Object.keys(groupedByNetwork).length > 0 && Object.keys(groupedByNetwork).map(network => (<option key={network} value={network}>{network}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -437,13 +467,23 @@ export default function PageWarungKripto({ currentUser }) {
                                         {selectedCoin && ( <img src={selectedCoin.icon} alt={selectedCoin.token_symbol} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/> )}
                                         <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork]?.coins.find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Koin</option>
-                                            {/* MODIFIKASI: Pastikan selectedNetwork ada dan ada koin di dalamnya */}
                                             {selectedNetwork && groupedByNetwork[selectedNetwork]?.coins.map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}
                                         </select>
                                         <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
                                 </div>
                                 {selectedCoin && <p className="text-xs text-center text-light-subtle dark:text-dark-subtle mt-3">Kurs: 1 {selectedCoin.token_symbol} ≈ Rp {Number(activeTab === 'buy' ? selectedCoin.rate_sell : selectedCoin.rate_buy).toLocaleString('id-ID')}</p>}
+                                {/* MODIFIKASI: Tampilkan Stok Kripto dan Stok Rupiah */}
+                                {selectedCoin && (
+                                    <div className="text-xs text-center text-light-subtle dark:text-dark-subtle mt-1">
+                                        {selectedCoin.stock !== null && selectedCoin.stock !== '' && (
+                                            <p>Stok Kripto: {Number(selectedCoin.stock).toFixed(6)} {selectedCoin.token_symbol}</p>
+                                        )}
+                                        {selectedCoin.stock_rupiah !== null && selectedCoin.stock_rupiah !== '' && (
+                                            <p>Stok Rupiah: Rp {Number(selectedCoin.stock_rupiah).toLocaleString('id-ID')}</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div>
