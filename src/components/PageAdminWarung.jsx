@@ -126,9 +126,18 @@ const AddCoinModal = ({ onClose, onSave }) => {
 const InputField = ({ label, name, value, onChange, type = "number", step = "0.01", placeholder="" }) => (
     <div>
         <label className="text-xs font-bold text-gray-500 dark:text-gray-400">{label}</label>
-        <input type={type} name={name} step={step} value={value ?? ''} onChange={onChange} placeholder={placeholder} className="input-field w-full mt-1"/>
+        <input 
+            type={type} 
+            name={name} 
+            step={step} 
+            value={value ?? ''} 
+            onChange={onChange} 
+            placeholder={placeholder} 
+            className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all"
+        />
     </div>
 );
+
 
 const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
     const [rate, setRate] = useState(initialRate);
@@ -165,30 +174,46 @@ const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
         setIsSaving(false);
     };
 
+    // --- PERBAIKAN DI SINI ---
+    const inputKalkulatorStyle = "w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-md px-3 py-1.5 text-sm transition-all focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary/80";
+
     return (
-        <div className={`p-4 border rounded-lg space-y-4 ${error ? 'border-red-500/50' : 'border-light-border dark:border-dark-border'}`}>
+        <div className={`p-4 bg-light-card dark:bg-dark-card/50 border rounded-lg space-y-4 ${error ? 'border-red-500/50' : 'border-light-border dark:border-dark-border'}`}>
             <div className="flex justify-between items-center">
-                <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{rate.token_symbol} <span className="text-sm font-normal text-gray-400">({rate.network})</span></h3>
+                <div className="flex items-center gap-3">
+                    <img src={rate.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-white"/>
+                    <div>
+                        <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{rate.token_name} <span className="text-sm font-normal text-gray-400">({rate.token_symbol})</span></h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{rate.network}</p>
+                    </div>
+                </div>
                 <button onClick={handleSave} disabled={isSaving} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-2">
                     {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />} {isSaving ? 'Menyimpan' : 'Simpan'}
                 </button>
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}
             
-            <div className="bg-light-bg dark:bg-dark p-3 rounded-lg">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2"><FontAwesomeIcon icon={faCalculator}/> Kalkulator</label>
+            <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-lg">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2"><FontAwesomeIcon icon={faCalculator}/> Kalkulator Kurs</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 items-center">
-                    <input type="number" placeholder="Jumlah Rupiah" value={calcInput.idr} onChange={e => setCalcInput({...calcInput, idr: e.target.value})} className="input-field-small" />
-                    <input type="number" placeholder={`Jml ${rate.token_symbol}`} value={calcInput.crypto} onChange={e => setCalcInput({...calcInput, crypto: e.target.value})} className="input-field-small" />
+                    <input type="number" placeholder="Jumlah Rupiah" value={calcInput.idr} onChange={e => setCalcInput({...calcInput, idr: e.target.value})} className={inputKalkulatorStyle} />
+                    <input type="number" placeholder={`Jml ${rate.token_symbol}`} value={calcInput.crypto} onChange={e => setCalcInput({...calcInput, crypto: e.target.value})} className={inputKalkulatorStyle} />
                     <button onClick={applySimpleRate} className="btn-secondary text-xs py-2 px-3">Terapkan</button>
                 </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                <InputField label="Harga Jual" name="rate_sell" value={rate.rate_sell} onChange={handleInputChange} />
-                <InputField label="Harga Beli" name="rate_buy" value={rate.rate_buy} onChange={handleInputChange} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <InputField label="Simbol Koin" name="token_symbol" value={rate.token_symbol} onChange={handleInputChange} type="text" placeholder="USDT" />
+                <InputField label="Nama Koin" name="token_name" value={rate.token_name} onChange={handleInputChange} type="text" placeholder="Tether" />
+                <InputField label="Jaringan" name="network" value={rate.network} onChange={handleInputChange} type="text" placeholder="BEP20" />
+                <InputField label="URL Ikon" name="icon" value={rate.icon} onChange={handleInputChange} type="text" placeholder="https://..." />
+                
+                <InputField label="Harga Jual (IDR)" name="rate_sell" value={rate.rate_sell} onChange={handleInputChange} />
+                <InputField label="Harga Beli (IDR)" name="rate_buy" value={rate.rate_buy} onChange={handleInputChange} />
+                <InputField label="Spread (%)" name="spread_percent" value={rate.spread_percent} onChange={handleInputChange} />
                 <InputField label="Stok Koin" name="stock" value={rate.stock} onChange={handleInputChange} step="any" />
-                <div className="col-span-2 md:col-span-3">
+
+                <div className="col-span-2 md:col-span-4">
                     <InputField label="Wallet Admin" name="admin_wallet" value={rate.admin_wallet} onChange={handleInputChange} type="text" placeholder="Alamat wallet untuk koin ini"/>
                 </div>
             </div>
@@ -238,8 +263,8 @@ export default function PageAdminWarung({ onSwitchView }) {
         setTimeout(() => setNotification(''), 4000);
     };
 
-    const handleTransactionAction = async (txId, newStatus, adminProofFile) => { /* ... (Tidak Berubah) ... */ };
-    const handleAddNewCoin = async (newCoinData) => { /* ... (Tidak Berubah) ... */ };
+    const handleTransactionAction = async (txId, newStatus, adminProofFile) => { /* ... (fungsi tidak berubah) ... */ };
+    const handleAddNewCoin = async (newCoinData) => { /* ... (fungsi tidak berubah) ... */ };
 
     const handleSavePaymentMethod = async () => {
         if (!newMethod.method_name || !newMethod.full_name || !newMethod.account_number) {
@@ -296,10 +321,10 @@ export default function PageAdminWarung({ onSwitchView }) {
                 <button onClick={() => setActiveTab('payments')} className={`pb-3 px-5 font-semibold ${activeTab === 'payments' ? 'border-b-2 border-primary text-primary' : 'text-gray-400'}`}>Metode Bayar</button>
             </div>
 
-            {isLoading ? <div className="text-center py-10"><FontAwesomeIcon icon={faSpinner} spin size="2x"/></div> : (
+            {isLoading ? <div className="text-center py-10 text-light-text dark:text-dark-text"><FontAwesomeIcon icon={faSpinner} spin size="2x"/></div> : (
                 <>
                     {activeTab === 'transactions' && (
-                        <div className="card-premium p-4 md:p-6">
+                        <div className="card-premium p-4 md:p-6 text-light-text dark:text-dark-text">
                             <div className="flex border-b border-black/10 dark:border-white/10 mb-2">
                                 <button onClick={() => setActiveTxTab('WAITING_CONFIRMATION')} className={`pb-3 px-4 text-sm font-semibold ${activeTxTab === 'WAITING_CONFIRMATION' ? 'border-b-2 border-primary text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}>Menunggu</button>
                                 <button onClick={() => setActiveTxTab('COMPLETED')} className={`pb-3 px-4 text-sm font-semibold ${activeTxTab === 'COMPLETED' ? 'border-b-2 border-primary text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}>Selesai</button>
@@ -309,10 +334,10 @@ export default function PageAdminWarung({ onSwitchView }) {
                                 {filteredTransactions.length > 0 ? (
                                     filteredTransactions.map(tx => (
                                         <button key={tx.id} onClick={() => setSelectedTx(tx)} className="w-full text-left grid grid-cols-4 gap-2 items-center p-3 border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-dark/50 transition-colors rounded-md">
-                                            <span className="font-semibold text-sm font-mono">{tx.user_id.substring(0,8)}...</span>
+                                            <span className="font-semibold text-sm font-mono text-light-text dark:text-dark-text">{tx.user_id.substring(0,8)}...</span>
                                             <span className={`text-xs font-bold px-2 py-1 rounded-full text-center ${tx.order_type === 'buy' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{tx.order_type.toUpperCase()}</span>
-                                            <span className="text-sm">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span>
-                                            <span className="text-sm font-mono">{Number(tx.amount_crypto).toFixed(5)} {tx.token_symbol}</span>
+                                            <span className="text-sm text-light-text dark:text-dark-text">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span>
+                                            <span className="text-sm font-mono text-light-text dark:text-dark-text">{Number(tx.amount_crypto).toFixed(5)} {tx.token_symbol}</span>
                                         </button>
                                     ))
                                 ) : (
@@ -323,7 +348,7 @@ export default function PageAdminWarung({ onSwitchView }) {
                     )}
                     
                     {activeTab === 'settings' && (
-                        <div className="card-premium p-4 md:p-6 space-y-6">
+                        <div className="card-premium p-4 md:p-6 space-y-6 text-light-text dark:text-dark-text">
                             <div className="flex justify-between items-center">
                                 <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Atur Kurs & Stok</h2>
                                 <button onClick={() => setShowAddCoinModal(true)} className="btn-success text-sm px-4 py-2 flex items-center gap-2">
@@ -366,7 +391,8 @@ export default function PageAdminWarung({ onSwitchView }) {
                                     <InputField label="Nama Lengkap" name="full_name" value={newMethod.full_name} onChange={(e) => setNewMethod({...newMethod, full_name: e.target.value})} type="text"/>
                                     <div className="relative">
                                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jenis</label>
-                                        <select value={newMethod.method_type} onChange={(e) => setNewMethod({...newMethod, method_type: e.target.value})} className="input-field w-full appearance-none mt-1">
+                                        {/* --- PERBAIKAN DI SINI --- */}
+                                        <select value={newMethod.method_type} onChange={(e) => setNewMethod({...newMethod, method_type: e.target.value})} className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none">
                                             <option>E-Wallet</option>
                                             <option>Bank</option>
                                         </select>

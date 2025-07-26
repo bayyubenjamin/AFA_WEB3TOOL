@@ -286,6 +286,12 @@ export default function PageWarungKripto({ currentUser }) {
         ? (!selectedCoin || !inputAmount || !walletAddress || (selectedCoin.stock && outputAmount > selectedCoin.stock))
         : (!selectedCoin || !inputAmount || !userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
 
+    // --- PERBAIKAN DI SINI ---
+    // Definisikan class styling untuk input field secara eksplisit
+    const inputStyle = "w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all";
+    const selectStyle = `${inputStyle} appearance-none`;
+
+
     if (currentUser && currentUser.role === 'admin' && view === 'admin') {
         return <PageAdminWarung onSwitchView={() => setView('user')} />;
     }
@@ -307,7 +313,7 @@ export default function PageWarungKripto({ currentUser }) {
                                 ))}
                             </div>
                             <p className="text-light-subtle dark:text-dark-subtle">Kemudian unggah bukti transfer Anda.</p>
-                            <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files[0])} className="input-file" />
+                            <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files[0])} className="input-file w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 dark:text-dark-subtle" />
                         </>
                     ) : (
                         <p className="text-light-subtle dark:text-dark-subtle">Admin akan segera mengirimkan pembayaran ke info yang Anda berikan. Pastikan Anda sudah mengirim aset kripto.</p>
@@ -371,7 +377,7 @@ export default function PageWarungKripto({ currentUser }) {
                                         {selectedNetwork && groupedByNetwork[selectedNetwork] && (
                                             <img src={groupedByNetwork[selectedNetwork][0].icon} alt={selectedNetwork} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/>
                                         )}
-                                        <select value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); setSelectedCoin(groupedByNetwork[newNetwork][0]); }} className="input-field w-full appearance-none pl-10">
+                                        <select value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); setSelectedCoin(groupedByNetwork[newNetwork][0]); }} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Jaringan</option>
                                             {Object.keys(groupedByNetwork).map(network => (<option key={network} value={network}>{network}</option>))}
                                         </select>
@@ -379,7 +385,7 @@ export default function PageWarungKripto({ currentUser }) {
                                     </div>
                                     <div className="relative">
                                         {selectedCoin && ( <img src={selectedCoin.icon} alt={selectedCoin.token_symbol} className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"/> )}
-                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className="input-field w-full appearance-none pl-10">
+                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coinId = parseInt(e.target.value); const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId); setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${selectStyle} pl-10`}>
                                             <option value="" disabled>Pilih Koin</option>
                                             {selectedNetwork && groupedByNetwork[selectedNetwork].map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}
                                         </select>
@@ -393,15 +399,15 @@ export default function PageWarungKripto({ currentUser }) {
                                 {activeTab === 'buy' ? (
                                     <>
                                         <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Alamat Wallet Penerima Anda</label>
-                                        <input type="text" placeholder={`Paste alamat ${selectedCoin?.network} Anda di sini`} value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className="input-field w-full"/>
+                                        <input type="text" placeholder={`Paste alamat ${selectedCoin?.network} Anda di sini`} value={walletAddress} onChange={e => setWalletAddress(e.target.value)} className={inputStyle}/>
                                     </>
                                 ) : (
                                     <div className="space-y-3">
                                         <label className="text-sm font-semibold text-light-text dark:text-dark-text block">Info Pembayaran Anda (Untuk Menerima Dana)</label>
-                                        <input type="text" placeholder="Nama Lengkap Sesuai Rekening" value={userPaymentInfo.fullName} onChange={e => setUserPaymentInfo({...userPaymentInfo, fullName: e.target.value})} className="input-field w-full"/>
+                                        <input type="text" placeholder="Nama Lengkap Sesuai Rekening" value={userPaymentInfo.fullName} onChange={e => setUserPaymentInfo({...userPaymentInfo, fullName: e.target.value})} className={inputStyle}/>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <input type="text" placeholder="Metode (cth: DANA, BCA)" value={userPaymentInfo.method} onChange={e => setUserPaymentInfo({...userPaymentInfo, method: e.target.value})} className="input-field w-full"/>
-                                            <input type="text" placeholder="Nomor Rekening / Telepon" value={userPaymentInfo.details} onChange={e => setUserPaymentInfo({...userPaymentInfo, details: e.target.value})} className="input-field w-full"/>
+                                            <input type="text" placeholder="Metode (cth: DANA, BCA)" value={userPaymentInfo.method} onChange={e => setUserPaymentInfo({...userPaymentInfo, method: e.target.value})} className={inputStyle}/>
+                                            <input type="text" placeholder="Nomor Rekening / Telepon" value={userPaymentInfo.details} onChange={e => setUserPaymentInfo({...userPaymentInfo, details: e.target.value})} className={inputStyle}/>
                                         </div>
                                     </div>
                                 )}
