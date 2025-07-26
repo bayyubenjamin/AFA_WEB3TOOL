@@ -4,16 +4,16 @@ import {
     faStore, faCoins, faMoneyBillWave, faArrowRightArrowLeft, faCheckCircle,
     faShieldAlt, faWallet, faUpload, faGasPump, faBolt, faSpinner,
     faExclamationTriangle, faHistory, faCogs, faCopy, faReceipt, faQuestionCircle,
-    faAngleDown, faAngleUp
+    faAngleDown, faAngleUp, faExternalLinkAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import PageAdminWarung from './PageAdminWarung';
 
-// --- KONSTANTA & KOMPONEN HELPER ---
-
 const MIN_TRANSACTION_IDR = 10000;
+const CACHE_DURATION_MINUTES = 5;
 
-// Kartu Keuntungan
+// --- Komponen-komponen Kecil (Helper) ---
+
 const BenefitCard = ({ icon, title, children }) => (
     <div className="bg-light-card/80 dark:bg-dark-card/50 border border-light-border dark:border-dark-border p-4 rounded-xl flex items-start gap-4 backdrop-blur-sm">
         <FontAwesomeIcon icon={icon} className="text-primary text-xl mt-1" />
@@ -24,9 +24,10 @@ const BenefitCard = ({ icon, title, children }) => (
     </div>
 );
 
-// Item Riwayat Transaksi dengan Desain Baru
 const TransactionHistoryItem = ({ tx }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [adminProofUrl, setAdminProofUrl] = useState(null);
+    const [isLoadingProof, setIsLoadingProof] = useState(false);
 
     const statusMap = {
         PENDING: { text: 'Menunggu', color: 'bg-yellow-500/10 text-yellow-400', icon: faSpinner },
@@ -38,9 +39,31 @@ const TransactionHistoryItem = ({ tx }) => {
     const status = statusMap[tx.status] || { text: tx.status, color: 'bg-gray-500/10 text-gray-400', icon: faQuestionCircle };
     const isBuy = tx.order_type === 'buy';
 
+    const getAdminProof = async () => {
+        if (!tx.admin_proof_url) return;
+        setIsLoadingProof(true);
+        try {
+            const { data, error } = await supabase.storage.from('adminbuktibayar').createSignedUrl(tx.admin_proof_url, 300);
+            if (error) throw error;
+            setAdminProofUrl(data.signedUrl);
+        } catch (error) {
+            console.error("Gagal mengambil bukti dari admin:", error);
+        } finally {
+            setIsLoadingProof(false);
+        }
+    };
+
+    const handleToggleExpand = () => {
+        const newIsExpanded = !isExpanded;
+        setIsExpanded(newIsExpanded);
+        if (newIsExpanded && !isBuy && tx.admin_proof_url) {
+            getAdminProof();
+        }
+    };
+
     return (
         <div className="border-b border-light-border dark:border-dark-border last:border-b-0">
-            <button onClick={() => setIsExpanded(!isExpanded)} className="w-full text-left p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <button onClick={handleToggleExpand} className="w-full text-left p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                 <div className="grid grid-cols-3 gap-4 items-center">
                     <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBuy ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
@@ -52,7 +75,7 @@ const TransactionHistoryItem = ({ tx }) => {
                         </div>
                     </div>
                     <div className="text-center">
-                         <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center justify-center gap-2 ${status.color}`}>
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center justify-center gap-2 ${status.color}`}>
                             <FontAwesomeIcon icon={status.icon} className={status.text === 'Diproses' || status.text === 'Menunggu' ? 'animate-spin' : ''} />
                             {status.text}
                         </span>
@@ -72,7 +95,16 @@ const TransactionHistoryItem = ({ tx }) => {
                     {isBuy ? (
                         <p><strong>Dikirim ke Wallet:</strong> <span className="font-mono break-all">{tx.user_wallet_address}</span></p>
                     ) : (
-                        <p><strong>Info Pembayaran Anda:</strong> <span className="font-mono break-all">{tx.user_payment_info}</span></p>
+                        <>
+                            <p><strong>Info Pembayaran Anda:</strong> <span className="font-mono break-all">{tx.user_payment_info}</span></p>
+                            {tx.status === 'COMPLETED' && (
+                                <p><strong>Bukti dari Admin:</strong> 
+                                    {isLoadingProof ? <span className="ml-2">Memuat...</span> : 
+                                        adminProofUrl ? <a href={adminProofUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">Lihat Bukti Transfer <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> 
+                                        : <span className="ml-2">{tx.admin_proof_url ? 'Gagal memuat' : 'Tidak ada'}</span>}
+                                </p>
+                            )}
+                        </>
                     )}
                 </div>
             )}
@@ -84,8 +116,11 @@ const TransactionHistoryItem = ({ tx }) => {
 export default function PageWarungKripto({ currentUser }) {
     const [view, setView] = useState('user');
     const [activeTab, setActiveTab] = useState('buy');
+    
+    const [groupedByNetwork, setGroupedByNetwork] = useState({});
+    const [selectedNetwork, setSelectedNetwork] = useState('');
     const [selectedCoin, setSelectedCoin] = useState(null);
-    const [allCoins, setAllCoins] = useState([]);
+    
     const [inputAmount, setInputAmount] = useState('');
     const [outputAmount, setOutputAmount] = useState(0);
     const [walletAddress, setWalletAddress] = useState('');
@@ -97,12 +132,56 @@ export default function PageWarungKripto({ currentUser }) {
     const [error, setError] = useState('');
     const [userTransactions, setUserTransactions] = useState([]);
 
-    const fetchData = useCallback(async () => {
+    const setRatesAndGroupData = (ratesData) => {
+        if (ratesData && ratesData.length > 0) {
+            const groups = ratesData.reduce((acc, coin) => {
+                const network = coin.network;
+                if (!acc[network]) {
+                    acc[network] = [];
+                }
+                acc[network].push(coin);
+                return acc;
+            }, {});
+            setGroupedByNetwork(groups);
+
+            if (!selectedNetwork || !groups[selectedNetwork]) {
+                const firstNetwork = Object.keys(groups)[0];
+                if(firstNetwork) {
+                    const firstCoinOfFirstNetwork = groups[firstNetwork][0];
+                    setSelectedNetwork(firstNetwork);
+                    setSelectedCoin(firstCoinOfFirstNetwork);
+                }
+            }
+        } else {
+            setError("Warung sedang tutup atau belum ada koin yang tersedia.");
+        }
+    };
+
+    const fetchData = useCallback(async (isInitialLoad = false) => {
         if (!currentUser || !currentUser.id) {
             setIsLoading(false);
             return;
         }
-        setIsLoading(true);
+
+        const cacheKey = `warungData_${currentUser.id}`;
+
+        if (isInitialLoad) {
+            try {
+                const cachedData = JSON.parse(localStorage.getItem(cacheKey));
+                const now = new Date().getTime();
+                
+                if (cachedData && (now - cachedData.timestamp < CACHE_DURATION_MINUTES * 60 * 1000)) {
+                    setRatesAndGroupData(cachedData.rates);
+                    setUserTransactions(cachedData.transactions);
+                    setIsLoading(false);
+                } else {
+                    setIsLoading(true);
+                }
+            } catch (e) {
+                setIsLoading(true);
+            }
+        }
+        
         setError('');
         try {
             const [ratesRes, txRes] = await Promise.all([
@@ -110,33 +189,38 @@ export default function PageWarungKripto({ currentUser }) {
                 supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20)
             ]);
             
-            if (ratesRes.error) throw new Error(`Gagal mengambil data koin: ${ratesRes.error.message}`);
-            if (txRes.error) throw new Error(`Gagal mengambil riwayat transaksi: ${txRes.error.message}`);
+            if (ratesRes.error) throw ratesRes.error;
+            if (txRes.error) throw txRes.error;
 
-            if (ratesRes.data && ratesRes.data.length > 0) {
-                setAllCoins(ratesRes.data);
-                setSelectedCoin(ratesRes.data[0]);
-            } else {
-                setError("Warung sedang tutup. Belum ada koin yang tersedia.");
-            }
+            setRatesAndGroupData(ratesRes.data);
             setUserTransactions(txRes.data);
+
+            const dataToCache = {
+                rates: ratesRes.data,
+                transactions: txRes.data,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
+
         } catch (dbError) {
             setError(dbError.message);
         } finally {
-            setIsLoading(false);
+            if (!isInitialLoad || isLoading) {
+                setIsLoading(false);
+            }
         }
-    }, [currentUser]);
+    }, [currentUser, isLoading, selectedNetwork]);
 
     useEffect(() => {
-        fetchData();
+        fetchData(true);
     }, [fetchData]);
 
-    useEffect(() => { 
-        setInputAmount(''); 
-        setOutputAmount(0); 
-        setWalletAddress(''); 
-        setUserPaymentInfo(''); 
-        setProof(null); 
+    useEffect(() => {
+        setInputAmount('');
+        setOutputAmount(0);
+        setWalletAddress('');
+        setUserPaymentInfo('');
+        setProof(null);
     }, [activeTab, selectedCoin]);
     
     useEffect(() => {
@@ -148,8 +232,8 @@ export default function PageWarungKripto({ currentUser }) {
             } else {
                 setOutputAmount(0);
             }
-        } else { 
-            setOutputAmount(0); 
+        } else {
+            setOutputAmount(0);
         }
     }, [inputAmount, selectedCoin, activeTab]);
 
@@ -170,6 +254,7 @@ export default function PageWarungKripto({ currentUser }) {
                 user_id: currentUser.id,
                 order_type: activeTab,
                 token_symbol: selectedCoin.token_symbol,
+                network: selectedCoin.network,
                 amount_idr: activeTab === 'buy' ? parseFloat(inputAmount) : outputAmount,
                 amount_crypto: activeTab === 'buy' ? outputAmount : parseFloat(inputAmount),
                 status: 'WAITING_CONFIRMATION',
@@ -188,7 +273,7 @@ export default function PageWarungKripto({ currentUser }) {
                 transactionData.proof_screenshot_url = fileName;
             }
 
-            const { error: insertError } = await supabase.from('warung_transactions').insert(transactionData);
+            const { error: insertError } = await supabase.from('warung_transactions').insert([transactionData]);
             if (insertError) throw new Error(`Gagal menyimpan transaksi: ${insertError.message}`);
             
             alert('Permintaan transaksi berhasil dikirim! Mohon tunggu konfirmasi dari admin.');
@@ -200,7 +285,7 @@ export default function PageWarungKripto({ currentUser }) {
             setIsSubmitting(false);
         }
     };
-
+    
     const isButtonDisabled = activeTab === 'buy'
         ? (!selectedCoin || !inputAmount || !walletAddress || (selectedCoin.stock && outputAmount > selectedCoin.stock))
         : (!selectedCoin || !inputAmount || !userPaymentInfo || (selectedCoin.stock_rupiah && outputAmount > selectedCoin.stock_rupiah));
@@ -259,6 +344,7 @@ export default function PageWarungKripto({ currentUser }) {
                 <div className="card max-w-lg mx-auto text-center p-8 text-red-400"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><h3 className="font-bold">Gagal Memuat Data</h3><p className="text-sm mt-1">{error}</p></div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* --- PERBAIKAN UTAMA: Perbaiki typo di sini --- */}
                     <div className="lg:col-span-3">
                         <div className="card p-6 md:p-8 space-y-6">
                             <div className="flex border-b border-light-border dark:border-dark-border">
@@ -275,20 +361,64 @@ export default function PageWarungKripto({ currentUser }) {
                                     <FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-light-subtle dark:text-dark-subtle text-2xl" />
                                 </div>
                                 <div className="md:col-span-2 text-right md:text-left">
-                                     <label className="text-xs text-light-subtle dark:text-dark-subtle">Anda Dapat (Estimasi)</label>
-                                     <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2">{outputAmount > 0 ? (activeTab === 'buy' ? outputAmount.toFixed(6) : 'Rp ' + outputAmount.toLocaleString('id-ID')) : '0'}</p>
+                                    <label className="text-xs text-light-subtle dark:text-dark-subtle">Anda Dapat (Estimasi)</label>
+                                    <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2">{outputAmount > 0 ? (activeTab === 'buy' ? outputAmount.toFixed(6) : 'Rp ' + Math.floor(outputAmount).toLocaleString('id-ID')) : '0'}</p>
                                 </div>
                             </div>
                             
                             <div>
                                 <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Pilih Aset</label>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                                    {allCoins.map(coin => (
-                                        <button key={coin.token_symbol} onClick={() => setSelectedCoin(coin)} className={`p-3 rounded-lg border-2 transition-all ${selectedCoin?.token_symbol === coin.token_symbol ? 'border-primary bg-primary/10' : 'border-light-border dark:border-dark-border hover:border-primary/50 bg-light-bg dark:bg-dark-bg'}`}>
-                                            <img src={coin.icon} alt={coin.token_symbol} className="w-8 h-8 mx-auto mb-1"/>
-                                            <span className="text-xs font-bold text-light-text dark:text-dark-text">{coin.token_symbol}</span>
-                                        </button>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="relative">
+                                        {selectedNetwork && groupedByNetwork[selectedNetwork] && (
+                                            <img 
+                                                src={groupedByNetwork[selectedNetwork][0].icon} 
+                                                alt={selectedNetwork} 
+                                                className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"
+                                            />
+                                        )}
+                                        <select
+                                            value={selectedNetwork || ''}
+                                            onChange={(e) => {
+                                                const newNetwork = e.target.value;
+                                                setSelectedNetwork(newNetwork);
+                                                setSelectedCoin(groupedByNetwork[newNetwork][0]);
+                                            }}
+                                            className="input-field w-full appearance-none pl-10"
+                                        >
+                                            <option value="" disabled>Pilih Jaringan</option>
+                                            {Object.keys(groupedByNetwork).map(network => (
+                                                <option key={network} value={network}>{network}</option>
+                                            ))}
+                                        </select>
+                                        <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                    
+                                    <div className="relative">
+                                        {selectedCoin && (
+                                            <img 
+                                                src={selectedCoin.icon} 
+                                                alt={selectedCoin.token_symbol} 
+                                                className="w-5 h-5 rounded-full absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none"
+                                            />
+                                        )}
+                                        <select
+                                            value={selectedCoin?.id || ''}
+                                            onChange={(e) => {
+                                                const coinId = parseInt(e.target.value);
+                                                const coin = groupedByNetwork[selectedNetwork].find(c => c.id === coinId);
+                                                setSelectedCoin(coin);
+                                            }}
+                                            disabled={!selectedNetwork}
+                                            className="input-field w-full appearance-none pl-10"
+                                        >
+                                            <option value="" disabled>Pilih Koin</option>
+                                            {selectedNetwork && groupedByNetwork[selectedNetwork].map(coin => (
+                                                <option key={coin.id} value={coin.id}>{coin.token_symbol}</option>
+                                            ))}
+                                        </select>
+                                        <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
                                 {selectedCoin && <p className="text-xs text-center text-light-subtle dark:text-dark-subtle mt-3">Kurs: 1 {selectedCoin.token_symbol} ≈ Rp {Number(activeTab === 'buy' ? selectedCoin.rate_sell : selectedCoin.rate_buy).toLocaleString('id-ID')}</p>}
                             </div>
@@ -308,7 +438,7 @@ export default function PageWarungKripto({ currentUser }) {
                     </div>
                     
                     <div className="lg:col-span-2 space-y-6">
-                         <div className="card p-0">
+                        <div className="card p-0">
                             <h2 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2 p-4 border-b border-light-border dark:border-dark-border"><FontAwesomeIcon icon={faHistory}/> Riwayat Transaksi Terakhir</h2>
                             <div className="max-h-96 overflow-y-auto custom-scrollbar">
                                 {userTransactions.length > 0 ? (
@@ -328,4 +458,3 @@ export default function PageWarungKripto({ currentUser }) {
         </section>
     );
 }
-
