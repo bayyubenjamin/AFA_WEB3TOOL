@@ -13,20 +13,20 @@ import { Link } from 'react-router-dom';
 
 const COMMON_NETWORKS = [
     "Solana", "Ethereum", "Binance Smart Chain (BSC)", "Polygon", 
-    "Arbitrum", "Optimism", "Base", "Avalanche", "Tron", "Cosmos", "Lainnya / Kustom" 
+    "Arbitrum", "Optimism", "Base", "Avalanche", "Tron", "Ton", "Lainnya / Kustom" 
 ];
 
 const COMMON_NETWORK_ICONS = {
-    "Solana": "https://cryptologos.cc/logos/solana-sol-logo.png",
-    "Ethereum": "https://cryptologos.cc/logos/ethereum-eth-logo.png",
-    "Binance Smart Chain (BSC)": "https://cryptologos.cc/logos/binance-coin-bnb-logo.png",
-    "Polygon": "https://cryptologos.cc/logos/polygon-matic-logo.png",
-    "Arbitrum": "https://cryptologos.cc/logos/arbitrum-arb-logo.png",
-    "Optimism": "https://cryptologos.cc/logos/optimism-op-logo.png",
-    "Base": "https://cryptologos.cc/logos/base-badge.png", 
-    "Avalanche": "https://cryptologos.cc/logos/avalanche-avax-logo.png",
+    "Solana": "https://upload.wikimedia.org/wikipedia/en/b/b9/Solana_logo.png",
+    "Ethereum": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIa3GDAlj9jCzDOu-MBV7_NRhZ4VlzN-i8pg&s",
+    "Binance Smart Chain (BSC)": "https://cdn-icons-png.freepik.com/512/12114/12114208.png",
+    "Polygon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQk6leCuldaSsxH99h2ZPJXtT9aG3jRb0XTsQ&s",
+    "Arbitrum": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6mQ1pwxVT3lqCTZWhuUZzKTOqT0ZmYh2oeg&s",
+    "Optimism": "https://console.optimism.io/logos/new-op-mainnet-logo.svg",
+    "Base": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNZrouU_9cELxCRIFHcEgezwQIbcFw--3pig&s", 
+    "Avalanche": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4h7zSafilvGpowXKLHQnfO-XmaE7hoEFKug&s",
     "Tron": "https://cryptologos.cc/logos/tron-trx-logo.png",
-    "Cosmos": "https://cryptologos.cc/logos/cosmos-atom-logo.png"
+    "Ton": "https://ton.org/download/ton_symbol.png"
 };
 
 
