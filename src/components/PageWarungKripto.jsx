@@ -3,10 +3,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faStore, faMoneyBillWave, faArrowRightArrowLeft, faCheckCircle,
     faBolt, faSpinner, faExclamationTriangle, faHistory, faCogs,
-    faReceipt, faAngleDown, faAngleUp, faExternalLinkAlt, faGasPump, faSignature, faUniversity, faMobileAlt
+    faReceipt, faAngleDown, faAngleUp, faExternalLinkAlt, faGasPump, faSignature, faUniversity, faMobileAlt, faBoxOpen
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
+import { Link } from 'react-router-dom';
 
 const MIN_TRANSACTION_IDR = 10000;
 
@@ -68,8 +69,9 @@ const TransactionHistoryItem = ({ tx }) => {
     );
 };
 
+
 // --- KOMPONEN UTAMA ---
-export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin }) {
+export default function PageWarungKripto({ currentUser }) {
     const [activeTab, setActiveTab] = useState('beli');
     const [rates, setRates] = useState([]);
     const [selectedNetwork, setSelectedNetwork] = useState('');
@@ -86,6 +88,8 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [usdToIdrRate, setUsdToIdrRate] = useState(16500);
 
+    const isAdmin = useMemo(() => currentUser?.role === 'admin', [currentUser]);
+
     const { 
         groupedRates, 
         cryptoAmount, 
@@ -93,9 +97,12 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
         finalPrice, 
         adminProfit, 
         isApiNotSet,
-        baseFiatValue
+        baseFiatValue,
+        usdtValue,
+        marketPriceUsdt
     } = useMemo(() => {
         if (!rates || rates.length === 0) return { groupedRates: {} };
+        
         const groups = rates.reduce((acc, coin) => {
             const network = coin.network;
             if (!acc[network]) acc[network] = { coins: [], network_icon: coin.network_icon };
@@ -103,9 +110,10 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
             return acc;
         }, {});
 
-        let profit = 0, finalUserPrice = 0, cryptoOutput = 0, fiatOutput = 0, baseValue = 0;
+        let profit = 0, finalUserPrice = 0, cryptoOutput = 0, fiatOutput = 0, baseValue = 0, usdtAmount = 0;
         const apiNotSet = selectedCoin && !selectedCoin.coingecko_id;
-        const marketPriceIDR = (selectedCoin?.market_price_usd || 0) * usdToIdrRate;
+        const marketPriceUSD = selectedCoin?.market_price_usd || 0;
+        const marketPriceIDR = marketPriceUSD * usdToIdrRate;
         const inputNum = parseFloat(inputAmount) || 0;
 
         if (selectedCoin && Array.isArray(selectedCoin.margin_tiers) && inputNum > 0) {
@@ -120,15 +128,19 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
 
         if (marketPriceIDR > 0 && inputNum > 0) {
             if (activeTab === 'beli') {
+                // Input adalah IDR
                 baseValue = inputNum;
                 finalUserPrice = inputNum + profit;
                 cryptoOutput = inputNum / marketPriceIDR;
                 fiatOutput = inputNum;
+                usdtAmount = cryptoOutput * marketPriceUSD; // Konversi dari hasil crypto ke USD
             } else { // Jual
+                // Input adalah jumlah koin
                 baseValue = inputNum * marketPriceIDR;
                 finalUserPrice = baseValue - profit;
                 cryptoOutput = inputNum;
                 fiatOutput = finalUserPrice;
+                usdtAmount = inputNum * marketPriceUSD; // Nilai USD dari koin yang diinput
             }
         }
         
@@ -139,14 +151,16 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
             finalPrice: finalUserPrice, 
             adminProfit: profit, 
             isApiNotSet: apiNotSet,
-            baseFiatValue: baseValue
+            baseFiatValue: baseValue,
+            usdtValue: usdtAmount,
+            marketPriceUsdt: marketPriceUSD
         };
     }, [rates, inputAmount, selectedCoin, activeTab, usdToIdrRate]);
     
     const fetchData = useCallback(async () => {
         try {
             const ratesPromise = supabase.from('crypto_rates').select('*').eq('is_active', true).order('network');
-            const txPromise = currentUser ? supabase.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(10) : Promise.resolve({ data: [] });
+            const txPromise = currentUser ? supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(10) : Promise.resolve({ data: [] });
             const adminPayPromise = supabase.from('admin_payment_methods').select('*');
             
             const [ratesRes, txRes, adminPayRes] = await Promise.all([ratesPromise, txPromise, adminPayPromise]);
@@ -165,6 +179,8 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
                 if(firstNetworkName) setSelectedNetwork(firstNetworkName);
                 setSelectedCoin(ratesData[0]);
             }
+            const rate = await getUsdToIdrRate();
+            setUsdToIdrRate(rate);
         } catch (err) {
             console.error("Gagal memuat data warung:", err);
             setError(err.message);
@@ -178,17 +194,23 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
         fetchData();
         const channel = supabase.channel('public:crypto_rates_user').on('postgres_changes', { event: '*', schema: 'public', table: 'crypto_rates' }, () => fetchData()).subscribe();
         return () => supabase.removeChannel(channel);
-    }, []); // <-- Dependensi KOSONG agar tidak terjadi loop
+    }, []);
 
     const handleProceed = () => { /* ... (fungsi tidak berubah) ... */ };
     const handleFinalSubmit = async () => { /* ... (fungsi tidak berubah) ... */ };
     
-    const isButtonDisabled = !selectedCoin || !inputAmount || isApiNotSet || (activeTab === 'beli' && !walletAddress) || (activeTab === 'sell' && (!userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details));
+    const isButtonDisabled = !selectedCoin || !inputAmount || isApiNotSet || (activeTab === 'beli' && !walletAddress) || (activeTab === 'jual' && (!userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details));
     const inputStyle = "w-full bg-gray-800/50 border border-gray-700 text-white py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all";
 
     return (
         <section className="page-content space-y-8 max-w-7xl mx-auto py-8 px-4">
-            {isAdmin && (<button onClick={onSwitchToAdmin} className="w-full btn-secondary py-3 mb-6 flex items-center justify-center gap-2"><FontAwesomeIcon icon={faCogs} /> Kelola Warung</button>)}
+            {isAdmin && (
+              <div className="text-center mb-6">
+                <Link to="/admin-warung" className="btn-secondary py-2 px-6 inline-flex items-center justify-center gap-2">
+                    <FontAwesomeIcon icon={faCogs} /> Kelola Warung
+                </Link>
+              </div>
+            )}
             <div className="text-center">
                 <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Warung Kripto AFA</h1>
                 <p className="text-lg text-gray-400 max-w-2xl mx-auto">Jual beli aset kripto eceran dengan mudah, cepat, dan aman.</p>
@@ -202,31 +224,56 @@ export default function PageWarungKripto({ currentUser, isAdmin, onSwitchToAdmin
                         <div className="lg:col-span-3">
                             <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 p-6 md:p-8 space-y-6 rounded-2xl">
                                 <div className="flex border-b border-gray-700">
-                                    <button onClick={() => setActiveTab('beli')} className={`pb-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'beli' ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-white'}`}><FontAwesomeIcon icon={faBolt}/> Beli</button>
-                                    <button onClick={() => setActiveTab('jual')} className={`pb-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'jual' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}><FontAwesomeIcon icon={faMoneyBillWave}/> Jual</button>
+                                    <button onClick={() => { setActiveTab('beli'); setInputAmount(''); }} className={`pb-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'beli' ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-white'}`}><FontAwesomeIcon icon={faBolt}/> Beli</button>
+                                    <button onClick={() => { setActiveTab('jual'); setInputAmount(''); }} className={`pb-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'jual' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}><FontAwesomeIcon icon={faMoneyBillWave}/> Jual</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                                    {/* --- BAGIAN INPUT --- */}
                                     <div className="md:col-span-2">
                                         <label className="text-xs text-gray-400">{activeTab === 'beli' ? 'Anda Bayar (IDR)' : 'Anda Jual (Aset)'}</label>
                                         <input type="number" placeholder="0" value={inputAmount} onChange={e => setInputAmount(e.target.value)} className="w-full bg-transparent text-white text-3xl font-semibold focus:outline-none p-2 rounded-md"/>
+                                        {activeTab === 'jual' && baseFiatValue > 0 && (
+                                            <div className="text-xs text-gray-400 px-2">≈ Rp {baseFiatValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-center pb-2"><FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-2xl" /></div>
+                                    {/* --- BAGIAN OUTPUT --- */}
                                     <div className="md:col-span-2 text-right md:text-left">
                                         <label className="text-xs text-gray-400">Anda Dapat (Estimasi)</label>
                                         <p className="text-3xl font-semibold text-white p-2">{activeTab === 'beli' ? (cryptoAmount || 0).toFixed(6) : 'Rp ' + Math.floor(fiatAmount || 0).toLocaleString('id-ID')}</p>
+                                        {activeTab === 'beli' && usdtValue > 0 && (
+                                            <div className="text-xs text-gray-400 text-right md:text-left px-2">≈ ${usdtValue.toFixed(2)} USDT</div>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-sm font-semibold text-white mb-2 block">Pilih Aset</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <select value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); if (groupedRates[newNetwork]?.coins.length > 0) setSelectedCoin(groupedRates[newNetwork].coins[0]); }} className={`${inputStyle} pl-4`}><option value="" disabled>Pilih Jaringan</option>{Object.keys(groupedRates).map(network => (<option key={network} value={network}>{network}</option>))}</select>
-                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coin = groupedRates[selectedNetwork]?.coins.find(c => c.id === parseInt(e.target.value)); if(coin) setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${inputStyle} pl-4`}><option value="" disabled>Pilih Koin</option>{selectedNetwork && groupedRates[selectedNetwork]?.coins.map(coin => (<option key={coin.id} value={coin.id}>{coin.token_symbol}</option>))}</select>
+                                        <select value={selectedCoin?.id || ''} onChange={(e) => { const coin = groupedRates[selectedNetwork]?.coins.find(c => c.id === parseInt(e.target.value)); if(coin) setSelectedCoin(coin); }} disabled={!selectedNetwork} className={`${inputStyle} pl-4`}>
+                                            <option value="" disabled>Pilih Koin</option>
+                                            {/* PERBAIKAN: Menambahkan optional chaining (?.) untuk mencegah error jika jaringan tidak memiliki koin */}
+                                            {selectedNetwork && groupedRates[selectedNetwork]?.coins.map(coin => (
+                                                <option key={coin.id} value={coin.id}>{coin.token_symbol}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     {isApiNotSet && <p className="text-xs text-center text-yellow-400 mt-3">Admin belum atur API. Harga mungkin tidak akurat.</p>}
+                                    {selectedCoin && (
+                                        <div className="flex justify-between text-xs text-gray-400 mt-3 px-1">
+                                            <div className="flex items-center gap-2" title="Stok yang tersedia untuk diperjualbelikan">
+                                                <FontAwesomeIcon icon={faBoxOpen} />
+                                                <span>Stok: {activeTab === 'beli' ? selectedCoin.stock.toFixed(4) : `Rp ${selectedCoin.stock_rupiah.toLocaleString()}`}</span>
+                                            </div>
+                                            <div title="Harga pasar saat ini">
+                                                <span>Harga: ${marketPriceUsdt.toFixed(4)} USDT</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 {inputAmount > 0 && !isApiNotSet && (
                                     <div className="bg-gray-900/50 p-4 rounded-lg text-sm space-y-2">
-                                        <div className="flex justify-between"><span className="text-gray-400">Harga Dasar:</span><span>Rp { baseFiatValue.toLocaleString('id-ID', {maximumFractionDigits: 0}) }</span></div>
+                                        <div className="flex justify-between"><span className="text-gray-400">Nilai Transaksi:</span><span>Rp { baseFiatValue.toLocaleString('id-ID', {maximumFractionDigits: 0}) }</span></div>
                                         <div className="flex justify-between"><span className="text-gray-400">Biaya Layanan:</span><span className="text-primary">{activeTab === 'beli' ? '+ ' : '- '}Rp {adminProfit.toLocaleString('id-ID')}</span></div>
                                         <hr className="border-gray-700"/>
                                         <div className="flex justify-between font-bold"><span className="text-white">{activeTab === 'beli' ? 'Total Bayar' : 'Total Diterima'}:</span><span className="text-primary">Rp { finalPrice.toLocaleString('id-ID', {maximumFractionDigits: 0}) }</span></div>

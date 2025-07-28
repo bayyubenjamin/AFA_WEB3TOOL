@@ -64,7 +64,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
 
-  // State lainnya tetap sama (tidak diubah)
+  // State lainnya
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
   const [userAirdrops, setUserAirdrops] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(0);
@@ -72,13 +72,13 @@ export default function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Refs tetap sama (tidak diubah)
+  // Refs
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
   const scrollUpStartPosRef = useRef(null);
 
-  // Hooks lainnya tetap sama (tidak diubah)
+  // Hooks
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -86,15 +86,11 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // --- BLOK AUTENTIKASI YANG TELAH DISEMPURNAKAN ---
+  // --- BLOK AUTENTIKASI ---
   useEffect(() => {
     setLoadingInitialSession(true);
-    console.log("[Auth] Memulai pengecekan sesi...");
-
-    // Fungsi terpusat untuk menangani update sesi dan profil pengguna
     const handleSessionUpdate = async (session) => {
       if (session?.user) {
-        console.log("[Auth] Sesi aktif ditemukan. Mengambil profil untuk user:", session.user.id);
         try {
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -102,95 +98,60 @@ export default function App() {
             .eq('id', session.user.id)
             .single();
           
-          if (error && error.code !== 'PGRST116') throw error; // Abaikan error jika profil tidak ditemukan
+          if (error && error.code !== 'PGRST116') throw error;
 
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
-          console.log("[Auth] Profil dimuat, user di-set:", appUser.username);
         } catch (error) {
           console.error("[Auth] Gagal mengambil profil:", error);
-          setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null)); // Tetap set user meski profil gagal
+          setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null));
         }
       } else {
-        console.log("[Auth] Tidak ada sesi aktif, user adalah Guest.");
         setCurrentUser(null);
       }
-      // Selesaikan loading HANYA setelah semua proses selesai
       setLoadingInitialSession(false);
     };
 
-    // Alur autentikasi khusus untuk lingkungan Telegram Mini App
     const authInTelegram = async () => {
-        console.log("[Auth] Lingkungan Telegram terdeteksi.");
-        
-        // Beri tahu Telegram bahwa UI siap
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.ready();
-        }
-
+        if (window.Telegram?.WebApp) window.Telegram.WebApp.ready();
         try {
             const initData = window.Telegram.WebApp.initData;
             if (!initData) {
-                console.warn("[Auth] initData kosong. Sesi akan ditangani oleh onAuthStateChange.");
-                // Jika initData tidak ada, biarkan onAuthStateChange yang menangani dari local storage
                 const { data: { session } } = await supabase.auth.getSession();
                 handleSessionUpdate(session);
                 return;
             }
-
-            console.log("[Auth] Mengirim initData ke function 'telegram-auth'...");
-            const { data, error } = await supabase.functions.invoke('telegram-auth', {
-                body: { initData },
-            });
-
+            const { data, error } = await supabase.functions.invoke('telegram-auth', { body: { initData } });
             if (error) throw error;
             if (data.error) throw new Error(data.error);
-
-            console.log("[Auth] Sukses! Mengatur sesi dari function.");
-            const { error: sessionError } = await supabase.auth.setSession({
-                access_token: data.access_token,
-                refresh_token: data.refresh_token,
-            });
-
+            const { error: sessionError } = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
             if (sessionError) throw sessionError;
-
-            // Setelah setSession berhasil, onAuthStateChange akan otomatis terpanggil
-            // dan menjalankan handleSessionUpdate. Tidak perlu memanggilnya manual di sini.
-
         } catch (err) {
-            console.error("[Auth] Gagal autentikasi via Telegram initData:", err);
-            // Jika gagal, coba pulihkan sesi dari local storage sebagai fallback
+            console.error("[Auth] Gagal autentikasi via Telegram:", err);
             const { data: { session } } = await supabase.auth.getSession();
             handleSessionUpdate(session);
         }
     };
 
-    // Listener utama untuk semua perubahan status autentikasi (login, logout, refresh token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        console.log(`[Auth] Event terdeteksi: ${_event}`);
-        // Untuk INITIAL_SESSION, kita perlu logika khusus tergantung lingkungan
         if (_event === 'INITIAL_SESSION') {
             if (window.Telegram?.WebApp?.initData) {
-                // Di Telegram, kita jalankan alur khusus
                 authInTelegram();
             } else {
-                // Di browser biasa, cukup proses sesi yang ada
                 handleSessionUpdate(session);
             }
         } else {
-            // Untuk event lain (SIGNED_IN, SIGNED_OUT), selalu update sesi
             handleSessionUpdate(session);
         }
     });
 
-    // Cleanup subscription saat komponen di-unmount
     return () => {
       subscription?.unsubscribe();
     };
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat aplikasi pertama kali dimuat.
+  }, []);
 
 
-  // --- SEMUA FUNGSI DAN useEffect LAIN DI BAWAH INI TIDAK DIUBAH ---
+  // --- FUNGSI DAN useEffect LAINNYA ---
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
   const scrollToTop = () => { if (pageContentRef.current) { pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' }); } setShowBackToTop(false); if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } };
   const checkAirdropNotifications = useCallback(async () => { try { const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY); const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null; if (!lastVisitDate) { setHasNewAirdropNotification(true); return; } const { data, error } = await supabase.from('airdrops').select('created_at, AirdropUpdates(created_at)'); if (error) throw error; if (!data) return; for (const airdrop of data) { let lastActivityAt = new Date(airdrop.created_at); if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) { const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at)))); if (mostRecentUpdateDate > lastActivityAt) lastActivityAt = mostRecentUpdateDate; } if (lastActivityAt > lastVisitDate) { setHasNewAirdropNotification(true); return; } } setHasNewAirdropNotification(false); } catch (err) { console.error("Gagal mengecek notifikasi airdrop:", err); setHasNewAirdropNotification(false); } }, []);
@@ -204,7 +165,21 @@ export default function App() {
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
   
   const userForHeader = currentUser || defaultGuestUserForApp;
-  const showNav = !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register') && !location.pathname.includes('/postairdrops') && !location.pathname.includes('/update') && !location.pathname.startsWith('/login-telegram') && !location.pathname.startsWith('/auth/telegram/callback');
+
+  // --- [PERUBAHAN] Logika untuk menampilkan/menyembunyikan Header dan BottomNav ---
+  const noNavRoutes = [
+      '/admin', 
+      '/admin/events',
+      '/login', 
+      '/register', 
+      '/login-telegram', 
+      '/auth/telegram/callback'
+  ];
+
+  const showNav = !noNavRoutes.some(route => location.pathname === route) && 
+                  !location.pathname.includes('/postairdrops') && 
+                  !location.pathname.includes('/update');
+
   const handleOpenWalletModal = () => openWalletModal();
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
 
@@ -234,7 +209,6 @@ export default function App() {
             {/* --- ROUTE ADMIN --- */}
             <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
             <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-            {/* --- TAMBAHKAN ROUTE INI --- */}
             <Route path="/admin-warung" element={<PageAdminWarung currentUser={userForHeader} />} />
 
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
