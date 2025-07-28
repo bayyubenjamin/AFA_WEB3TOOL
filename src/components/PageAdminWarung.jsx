@@ -1,882 +1,211 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-    faSave, faSpinner, faSync, faCalculator, faPlus, faListAlt,
-    faTimes, faCheck, faExternalLinkAlt, faArrowLeft, faUpload, faTrash, faPen, faAngleDown, faAngleUp, faCog
-} from '@fortawesome/free-solid-svg-icons';
+import { faSave, faSpinner, faSync, faCogs, faArrowLeft, faLock, faLockOpen, faTrash, faPlus, faCheck, faTimes, faPlusCircle, faCoins, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
-import { Link } from 'react-router-dom';
+import { getUsdToIdrRate } from '../services/api';
 
-// ========================================================================
-//  KOMPONEN-KOMPONEN KECIL (HELPER)
-// ========================================================================
-
-const COMMON_NETWORKS = [
-    "Solana", "Ethereum", "Binance Smart Chain (BSC)", "Polygon", 
-    "Arbitrum", "Optimism", "Base", "Avalanche", "Tron", "Ton", "Lainnya / Kustom" 
-];
-
-const COMMON_NETWORK_ICONS = {
-    "Solana": "https://upload.wikimedia.org/wikipedia/en/b/b9/Solana_logo.png",
-    "Ethereum": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIa3GDAlj9jCzDOu-MBV7_NRhZ4VlzN-i8pg&s",
-    "Binance Smart Chain (BSC)": "https://cdn-icons-png.freepik.com/512/12114/12114208.png",
-    "Polygon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQk6leCuldaSsxH99h2ZPJXtT9aG3jRb0XTsQ&s",
-    "Arbitrum": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6mQ1pwxVT3lqCTZWhuUZzKTOqT0ZmYh2oeg&s",
-    "Optimism": "https://console.optimism.io/logos/new-op-mainnet-logo.svg",
-    "Base": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNZrouU_9cELxCRIFHcEgezwQIbcFw--3pig&s", 
-    "Avalanche": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4h7zSafilvGpowXKLHQnfO-XmaE7hoEFKug&s",
-    "Tron": "https://cryptologos.cc/logos/tron-trx-logo.png",
-    "Ton": "https://ton.org/download/ton_symbol.png"
+// --- Komponen Editor Margin Bertingkat ---
+const MarginTierEditor = ({ initialTiers = [], onTiersChange }) => {
+    const [tiers, setTiers] = useState(Array.isArray(initialTiers) ? initialTiers : []);
+    const handleTierChange = (index, field, value) => { const newTiers = [...tiers]; newTiers[index][field] = parseInt(value, 10) || 0; newTiers.sort((a, b) => a.up_to - b.up_to); setTiers(newTiers); onTiersChange(newTiers); };
+    const addTier = () => { const newTier = { up_to: 0, profit: 0 }; const newTiers = [...tiers, newTier].sort((a, b) => a.up_to - b.up_to); setTiers(newTiers); onTiersChange(newTiers); };
+    const removeTier = (index) => { const newTiers = tiers.filter((_, i) => i !== index); setTiers(newTiers); onTiersChange(newTiers); };
+    return ( <div className="space-y-2 mt-4"> <label className="text-sm font-semibold text-white">Pengaturan Margin Bertingkat</label> {tiers.map((tier, index) => ( <div key={index} className="flex items-center gap-2"> <span className="text-xs text-gray-400">Hingga Rp</span> <input type="number" value={tier.up_to} onChange={(e) => handleTierChange(index, 'up_to', e.target.value)} className="input-file w-full" placeholder="Batas Atas" /> <span className="text-xs text-gray-400">Untung Rp</span> <input type="number" value={tier.profit} onChange={(e) => handleTierChange(index, 'profit', e.target.value)} className="input-file w-full" placeholder="Keuntungan" /> <button onClick={() => removeTier(index)} className="btn-danger p-2 h-full"><FontAwesomeIcon icon={faTrash} /></button> </div> ))} <button onClick={addTier} className="btn-secondary text-xs w-full mt-2"><FontAwesomeIcon icon={faPlus} className="mr-2"/> Tambah Tingkatan</button> </div> );
 };
 
-
-const TransactionModal = ({ tx, onClose, onAction }) => {
-    const [imageUrl, setImageUrl] = useState(null);
-    const [adminProofFile, setAdminProofFile] = useState(null);
-    const [isActionLoading, setIsActionLoading] = useState(false);
-
-    useEffect(() => {
-        if (tx && tx.order_type === 'buy' && tx.proof_screenshot_url) {
-            const getSignedUrl = async () => {
-                const { data, error } = await supabase.storage.from('buktitransfer').createSignedUrl(tx.proof_screenshot_url, 300);
-                if (error) console.error("Gagal membuat signed URL", error);
-                else setImageUrl(data.signedUrl);
-            };
-            getSignedUrl();
-        }
-    }, [tx]);
-
-    if (!tx) return null;
-
-    const handleActionClick = async (newStatus) => {
-        setIsActionLoading(true);
-        await onAction(tx.id, newStatus, adminProofFile, tx.order_type); 
-        setIsActionLoading(false);
-        onClose(); 
-    };
-
-    const isBuy = tx.order_type === 'buy';
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-light-card dark:bg-dark-card rounded-xl w-full max-w-md p-6 space-y-4 text-light-text dark:text-dark-text" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-xl">Detail Transaksi #{tx.id}</h3>
-                <div className="text-sm space-y-2">
-                    <p><strong>User ID:</strong> <span className='font-mono text-xs'>{tx.user_id}</span></p>
-                    <p><strong>Tipe:</strong> <span className={`font-bold ${isBuy ? 'text-green-500' : 'text-red-500'}`}>{tx.order_type.toUpperCase()}</span></p>
-                    <p><strong>Aset:</strong> {tx.amount_crypto} {tx.token_symbol}</p>
-                    <p><strong>Nominal:</strong> Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</p>
-                    <p><strong>{isBuy ? 'Wallet User:' : 'Info Bayar User:'}</strong> <span className="font-mono text-xs break-all">{isBuy ? tx.user_wallet_address : tx.user_payment_info}</span></p>
-                    <div><strong>Bukti User:</strong>
-                        {isBuy ? (
-                            imageUrl ? <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">Lihat Screenshot <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : "Memuat..."
-                        ) : (
-                            tx.proof_tx_hash ? <a href={`https://etherscan.io/tx/${tx.proof_tx_hash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-2">{tx.proof_tx_hash.substring(0, 12)}... <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : "N/A"
-                        )}
-                    </div>
-                </div>
-                
-                {tx.status === 'WAITING_CONFIRMATION' && !isBuy && ( 
-                    <div className="pt-4 border-t border-light-border dark:border-dark-border">
-                        <label className="text-sm font-bold mb-2 block">Unggah Bukti Transfer ke User (Jika Sell Order)</label>
-                        <input type="file" accept="image/*" onChange={(e) => setAdminProofFile(e.target.files[0])} className="input-file w-full" />
-                        {!adminProofFile && <p className="text-xs text-red-400 mt-1">Bukti transfer wajib diunggah untuk menyetujui transaksi jual.</p>}
-                    </div>
-                )}
-
-                {tx.status === 'WAITING_CONFIRMATION' && (
-                    <div className="flex gap-3 pt-4 border-t border-light-border dark:border-dark-border">
-                        <button onClick={() => handleActionClick('COMPLETED')} disabled={isActionLoading || (!isBuy && !adminProofFile)} className="btn-success w-full py-2 flex items-center justify-center gap-2">
-                            {isActionLoading ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faCheck}/>} Setujui
-                        </button>
-                        <button onClick={() => handleActionClick('REJECTED')} disabled={isActionLoading} className="btn-danger w-full py-2 flex items-center justify-center gap-2">
-                            {isActionLoading ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faTimes}/>} Tolak
-                        </button>
-                    </div>
-                )}
-                <button onClick={onClose} className="btn-secondary w-full mt-2 py-2">Tutup</button>
-            </div>
-        </div>
-    );
-};
-
-const AddCoinModal = ({ onClose, onSave, initialNetwork = '', initialNetworkOption = COMMON_NETWORKS[0] }) => {
-    const [selectedNetworkOption, setSelectedNetworkOption] = useState(initialNetworkOption); 
-    const [newCoin, setNewCoin] = useState({ 
-        token_symbol: '', 
-        token_name: '', 
-        network: initialNetworkOption === "Lainnya / Kustom" ? "" : initialNetwork, 
-        network_icon: COMMON_NETWORK_ICONS[initialNetworkOption] || '', 
-        icon: '', admin_wallet: '', is_active: true, 
-        base_rate: 0, 
-        spread_percent: 0.01, 
-        stock: '', stock_rupiah: '',
-        rate_sell: 0, 
-        rate_buy: 0 
+// --- Komponen Editor Pengaturan Koin (DI-UPGRADE) ---
+const CoinSettingsEditor = ({ rate, onSave, onToggleBlock, usdToIdrRate }) => {
+    const [isSaving, setIsSaving] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
+    const [coinData, setCoinData] = useState({
+        coingecko_id: rate.coingecko_id || '',
+        margin_tiers: rate.margin_tiers || [],
+        stock: rate.stock || 0,
+        stock_rupiah: rate.stock_rupiah || 0,
+        icon: rate.icon || '',
+        network: rate.network || ''
     });
-    const [isSaving, setIsSaving] = useState(false);
-    
-    const showCustomNetworkInput = selectedNetworkOption === "Lainnya / Kustom";
 
-    useEffect(() => {
-        if (selectedNetworkOption !== "Lainnya / Kustom") {
-            setNewCoin(prev => ({ 
-                ...prev, 
-                network: selectedNetworkOption, 
-                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' 
-            }));
-        } else {
-            setNewCoin(prev => ({ ...prev, network: "" })); 
-        }
-    }, [selectedNetworkOption]);
-
-
-    const handleNetworkSelectChange = (e) => { 
-        setSelectedNetworkOption(e.target.value);
+    const handleChange = (field, value) => {
+        setCoinData(prev => ({ ...prev, [field]: value }));
     };
-
-    const handleCustomNetworkNameChange = (e) => { 
-        setNewCoin(prev => ({ ...prev, network: e.target.value }));
-    };
-
-    const handleOtherInputChange = (e) => { 
-        const { name, value } = e.target;
-        setNewCoin(prev => ({ ...prev, [name]: value }));
-    };
-    
-    const handleSaveClick = async () => {
-        if (!newCoin.token_symbol || !newCoin.token_name) {
-            alert('Simbol dan Nama Koin wajib diisi.');
-            return;
-        }
-
-        if (showCustomNetworkInput) {
-            if (newCoin.network.trim() === "" || newCoin.network.trim() === "Lainnya / Kustom") {
-                alert('Untuk jaringan kustom, nama jaringan kustom wajib diisi.');
-                return;
-            }
-        } else {
-            if (newCoin.network.trim() === "") { 
-                alert('Jaringan wajib dipilih.');
-                return;
-            }
-        }
-
-        if (!newCoin.network_icon) {
-            alert('URL Ikon Jaringan wajib diisi.');
-            return;
-        }
-        
-        if (isNaN(parseFloat(newCoin.base_rate)) || parseFloat(newCoin.base_rate) <= 0) {
-            alert('Harga Dasar (IDR) harus angka dan lebih besar dari 0.');
-            return;
-        }
-        if (isNaN(parseFloat(newCoin.spread_percent)) || parseFloat(newCoin.spread_percent) < 0) {
-            alert('Spread (%) harus angka dan tidak boleh negatif.');
-            return;
-            }
-
-        setIsSaving(true);
-
-        const currentBaseRate = parseFloat(newCoin.base_rate);
-        const currentSpreadPercent = parseFloat(newCoin.spread_percent);
-        const calculatedSellRate = currentBaseRate;
-        const calculatedBuyRate = currentBaseRate * (1 - (currentSpreadPercent / 100));
-
-        const dataToSubmit = {
-            ...newCoin,
-            base_rate: currentBaseRate,
-            spread_percent: currentSpreadPercent,
-            stock: parseFloat(newCoin.stock) || null,
-            stock_rupiah: parseFloat(newCoin.stock_rupiah) || null,
-            rate_sell: calculatedSellRate, 
-            rate_buy: calculatedBuyRate, 
-        };
-
-        await onSave(dataToSubmit);
-        setIsSaving(false);
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-light-card dark:bg-dark-card rounded-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-xl text-light-text dark:text-dark-text">Tambah Dagangan Baru</h3> 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                    <InputField label="Simbol" name="token_symbol" value={newCoin.token_symbol} onChange={handleOtherInputChange} type="text" placeholder="USDT" />
-                    <InputField label="Nama Koin" name="token_name" value={newCoin.token_name} onChange={handleOtherInputChange} type="text" placeholder="Tether" />
-                    
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jaringan</label>
-                        <div className="relative">
-                            <select 
-                                name="network-select" 
-                                value={selectedNetworkOption} 
-                                onChange={handleNetworkSelectChange} 
-                                className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none"
-                            >
-                                {COMMON_NETWORKS.map(network => (
-                                    <option key={network} value={network}>{network}</option>
-                                ))}
-                            </select>
-                            <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        </div>
-                    </div>
-                    {showCustomNetworkInput && (
-                        <InputField label="Nama Jaringan Kustom" name="network" value={newCoin.network} onChange={handleCustomNetworkNameChange} type="text" placeholder="Masukkan nama jaringan baru (cth: Core Dao)" />
-                    )}
-                    <InputField label="URL Ikon Jaringan" name="network_icon" value={newCoin.network_icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-jaringan.png" />
-                    
-                    <InputField label="URL Ikon Koin" name="icon" value={newCoin.icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-koin.png" />
-                    <div className="col-span-2"><InputField label="Wallet Admin" name="admin_wallet" value={newCoin.admin_wallet} onChange={handleOtherInputChange} type="text" placeholder="0x..." /></div>
-                    <InputField label="Harga Dasar (IDR)" name="base_rate" value={newCoin.base_rate} onChange={handleOtherInputChange} placeholder="16000" />
-                    <InputField label="Spread (%)" name="spread_percent" value={newCoin.spread_percent} onChange={handleOtherInputChange} placeholder="1" />
-                    <InputField label="Stok Koin (Opsional)" name="stock" value={newCoin.stock} onChange={handleOtherInputChange} step="any" placeholder="1000" />
-                    <InputField label="Stok Rupiah (Opsional)" name="stock_rupiah" value={newCoin.stock_rupiah} onChange={handleOtherInputChange} placeholder="10000000" />
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                    <button onClick={onClose} className="btn-secondary px-4 py-2">Batal</button>
-                    <button onClick={handleSaveClick} disabled={isSaving} className="btn-primary px-4 py-2">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin/> : 'Simpan Dagangan'}</button> 
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const InputField = ({ label, name, value, onChange, type = "number", step = "0.01", placeholder="" }) => (
-    <div>
-        <label className="text-xs font-bold text-gray-500 dark:text-gray-400">{label}</label>
-        <input 
-            type={type} 
-            name={name} 
-            step={step} 
-            value={value ?? ''} 
-            onChange={onChange} 
-            placeholder={placeholder} 
-            className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all"
-        />
-    </div>
-);
-
-// MODIFIKASI: NetworkSettingsModal untuk mengedit jaringan secara terpisah
-const NetworkSettingsModal = ({ onClose, onSave, initialNetwork, initialNetworkIcon }) => {
-    const [networkName, setNetworkName] = useState(initialNetwork);
-    const [networkIcon, setNetworkIcon] = useState(initialNetworkIcon);
-    const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState('');
 
     const handleSave = async () => {
-        setError('');
-        if (networkName.trim() === "" || networkName.trim() === "Lainnya / Kustom" || !networkIcon.trim() === "") { 
-            alert("Nama Jaringan wajib diisi dan tidak boleh 'Lainnya / Kustom'. URL Ikon Jaringan juga wajib diisi.");
-            return;
-        }
         setIsSaving(true);
-        try {
-            await onSave(initialNetwork, networkName, networkIcon); 
-            onClose();
-        } catch (err) {
-            setError(err.message || "Gagal menyimpan perubahan jaringan.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-light-card dark:bg-dark-card rounded-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-xl text-light-text dark:text-dark-text">Edit Pengaturan Jaringan</h3>
-                {error && <p className="text-red-400 text-sm">{error}</p>}
-                <InputField label="Nama Jaringan" name="networkName" value={networkName} onChange={(e) => setNetworkName(e.target.value)} type="text" placeholder="Nama Jaringan Baru" />
-                <InputField label="URL Ikon Jaringan" name="networkIcon" value={networkIcon} onChange={(e) => setNetworkIcon(e.target.value)} type="text" placeholder="https://logo-jaringan.png" />
-                <div className="flex justify-end gap-3 pt-4">
-                    <button onClick={onClose} className="btn-secondary px-4 py-2">Batal</button>
-                    <button onClick={handleSave} disabled={isSaving} className="btn-primary px-4 py-2">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin/> : 'Simpan Perubahan'}</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const CoinSettingsEditor = ({ initialRate, onActionComplete }) => {
-    const initialSelectedOption = COMMON_NETWORKS.includes(initialRate.network) ? initialRate.network : "Lainnya / Kustom";
-    const [selectedNetworkOption, setSelectedNetworkOption] = useState(initialSelectedOption);
-    const [rate, setRate] = useState(initialRate);
-    const [calcInput, setCalcInput] = useState({ idr: '', crypto: '' });
-    const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState('');
-    
-    const showCustomNetworkInput = selectedNetworkOption === "Lainnya / Kustom";
-
-    useEffect(() => { 
-        setRate(initialRate); 
-        setSelectedNetworkOption(COMMON_NETWORKS.includes(initialRate.network) ? initialRate.network : "Lainnya / Kustom");
-    }, [initialRate]);
-
-    useEffect(() => {
-        if (selectedNetworkOption !== "Lainnya / Kustom") {
-            setRate(prev => ({ 
-                ...prev, 
-                network: selectedNetworkOption, 
-                network_icon: COMMON_NETWORK_ICONS[selectedNetworkOption] || '' 
-            }));
-        } 
-    }, [selectedNetworkOption]);
-
-    const handleNetworkSelectChange = (e) => { 
-        setSelectedNetworkOption(e.target.value);
-    };
-
-    const handleCustomNetworkNameChange = (e) => { 
-        setRate(prev => ({ ...prev, network: e.target.value }));
-    };
-
-    const handleOtherInputChange = (e) => { 
-        const { name, value } = e.target;
-        setRate(prev => ({ ...prev, [name]: value }));
-    };
-
-    const applySimpleRate = () => {
-        const idrValue = parseFloat(calcInput.idr);
-        const cryptoValue = parseFloat(calcInput.crypto);
-        if (!idrValue || !cryptoValue || idrValue <= 0 || cryptoValue <= 0) {
-            alert("Isi kalkulator dengan benar."); return;
-        }
-        const spread = parseFloat(rate.spread_percent) || 0;
-        const calculatedSellRate = idrValue / cryptoValue;
-        const calculatedBuyRate = calculatedSellRate * (1 - (spread / 100));
-        setRate(prev => ({ 
-            ...prev, 
-            base_rate: calculatedSellRate.toFixed(2), 
-            rate_sell: calculatedSellRate.toFixed(2), 
-            rate_buy: calculatedBuyRate.toFixed(2) 
-        }));
-    };
-
-    const handleDeleteCoin = async () => {
-        if (!window.confirm(`Apakah Anda yakin ingin menghapus koin ${rate.token_symbol} (${rate.network})?`)) {
-            return;
-        }
-        setError('');
-        try {
-            const { error: deleteError } = await supabase.from('crypto_rates').delete().eq('id', rate.id);
-            if (deleteError) throw deleteError;
-            onActionComplete(`Koin ${rate.token_symbol} (${rate.network}) berhasil dihapus.`);
-        } catch (deleteError) {
-            setError("Gagal menghapus koin: " + deleteError.message);
-        }
-    };
-
-
-    const handleSave = async () => {
-        setError('');
-        if (!rate.token_symbol || !rate.token_name) {
-            alert('Simbol dan Nama Koin wajib diisi.');
-            return;
-        }
-
-        if (!rate.network) {
-             alert('Jaringan koin wajib terisi.'); 
-             return;
-        }
-        if (!rate.network_icon) {
-            alert('URL Ikon Jaringan koin wajib terisi.'); 
-            return;
-        }
-
-        if (isNaN(parseFloat(rate.base_rate)) || parseFloat(rate.base_rate) <= 0) {
-            alert('Harga Dasar (IDR) harus angka dan lebih besar dari 0.');
-            return;
-        }
-        if (isNaN(parseFloat(rate.spread_percent)) || parseFloat(rate.spread_percent) < 0) {
-            alert('Spread (%) harus angka dan tidak boleh negatif.');
-            return;
-        }
-        if (isNaN(parseFloat(rate.rate_sell))) { 
-            alert('Harga Jual (IDR) harus angka.');
-            return;
-        }
-        if (isNaN(parseFloat(rate.rate_buy))) { 
-            alert('Harga Beli (IDR) harus angka.');
-            return;
-        }
-
-        setIsSaving(true); 
-
-        const dataToSubmit = { ...rate };
-        delete dataToSubmit.id;
-        
-        dataToSubmit.base_rate = parseFloat(dataToSubmit.base_rate) || 0;
-        dataToSubmit.spread_percent = parseFloat(dataToSubmit.spread_percent) || 0;
-        dataToSubmit.rate_sell = parseFloat(dataToSubmit.rate_sell) || 0; 
-        dataToSubmit.rate_buy = parseFloat(dataToSubmit.rate_buy) || 0; 
-        dataToSubmit.stock = parseFloat(dataToSubmit.stock) || null;
-        dataToSubmit.stock_rupiah = parseFloat(dataToSubmit.stock_rupiah) || null;
-
-        for (const key in dataToSubmit) {
-            if (typeof dataToSubmit[key] === 'string' && dataToSubmit[key].trim() === '') {
-                if (['icon', 'admin_wallet', 'stock', 'stock_rupiah', 'network_icon'].includes(key)) {
-                    dataToSubmit[key] = null;
-                } else if (['rate_sell', 'rate_buy', 'base_rate', 'spread_percent'].includes(key)) {
-                    dataToSubmit[key] = 0;
-                }
-            }
-        }
-
-        const { error: updateError } = await supabase.from('crypto_rates').update(dataToSubmit).eq('id', rate.id);
-        if (updateError) { 
-            setError('Gagal menyimpan: ' + updateError.message); 
-            if (updateError.code === '23505' && updateError.message.includes('crypto_rates_token_symbol_key')) {
-                setError('Gagal menyimpan: Simbol koin ini sudah ada (di jaringan manapun). Silakan gunakan simbol lain atau ubah batasan database.');
-            } else if (updateError.code === '23505' && updateError.message.includes('unique_token_symbol_network')) { 
-                setError('Gagal menyimpan: Kombinasi simbol koin dan jaringan ini sudah ada. Silakan gunakan simbol atau jaringan lain.');
-            }
-        }
-        else { onActionComplete(`Pengaturan ${rate.token_symbol} (${rate.network}) disimpan!`); }
+        await onSave(rate.id, coinData);
         setIsSaving(false);
     };
+    
+    const handleToggle = async () => { setIsToggling(true); await onToggleBlock(rate.id, !rate.is_trade_blocked); setIsToggling(false); };
+    const marketPriceIdr = rate.market_price_usd ? (rate.market_price_usd * usdToIdrRate).toLocaleString('id-ID') : 'N/A';
 
-    const inputKalkulatorStyle = "w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-md px-3 py-1.5 text-sm transition-all focus:outline-none focus:ring-1 focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80";
-
-    return (
-        <div className={`p-4 bg-light-card dark:bg-dark-card/50 border rounded-lg space-y-4 ${error ? 'border-red-500/50' : 'border-light-border dark:border-dark-border'}`}>
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <img src={rate.network_icon || rate.icon || 'https://via.placeholder.com/32'} alt={rate.network} className="w-8 h-8 rounded-full bg-white"/>
-                    <div>
-                        <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{rate.token_name} <span className="text-sm font-normal text-gray-400">({rate.token_symbol})</span></h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{rate.network}</p> 
-                    </div>
-                </div>
-                <div className="flex gap-2"> {/* Group buttons */}
-                    <button onClick={handleSave} disabled={isSaving} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-2">
-                        {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />} {isSaving ? 'Menyimpan' : 'Simpan'}
-                    </button>
-                    <button onClick={handleDeleteCoin} className="btn-danger text-xs px-3 py-1.5 flex items-center gap-2">
-                        <FontAwesomeIcon icon={faTrash} /> Hapus
-                    </button>
-                </div>
-            </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            
-            <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-lg">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-2"><FontAwesomeIcon icon={faCalculator}/> Kalkulator Kurs</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 items-center">
-                    <input type="number" placeholder="Jumlah Rupiah" value={calcInput.idr} onChange={e => setCalcInput({...calcInput, idr: e.target.value})} className={inputKalkulatorStyle} />
-                    <input type="number" placeholder={`Jml ${rate.token_symbol}`} value={calcInput.crypto} onChange={e => setCalcInput({...calcInput, crypto: e.target.value})} className={inputKalkulatorStyle} />
-                    <button onClick={applySimpleRate} className="btn-secondary text-xs py-2 px-3">Terapkan</button>
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <InputField label="Simbol Koin" name="token_symbol" value={rate.token_symbol} onChange={handleOtherInputChange} type="text" placeholder="USDT" />
-                <InputField label="Nama Koin" name="token_name" value={rate.token_name} onChange={handleOtherInputChange} type="text" placeholder="Tether" />
-                
-                {/* MODIFIKASI: Hapus bagian input jaringan yang bisa diedit */}
-                {/* Input Jaringan dan URL Ikon Jaringan dipindahkan ke NetworkSettingsModal */}
-                {/* Bidang ini tidak lagi diedit di sini */}
-                
-                <InputField label="URL Ikon Koin" name="icon" value={rate.icon} onChange={handleOtherInputChange} type="text" placeholder="https://logo-koin.png" />
-                
-                <InputField label="Harga Jual (IDR)" name="rate_sell" value={rate.rate_sell} onChange={handleOtherInputChange} />
-                <InputField label="Harga Beli (IDR)" name="rate.rate_buy" value={rate.rate_buy} onChange={handleOtherInputChange} />
-                <InputField label="Spread (%)" name="spread_percent" value={rate.spread_percent} onChange={handleOtherInputChange} />
-                <InputField label="Stok Koin" name="stock" value={rate.stock} onChange={handleOtherInputChange} step="any" />
-                <InputField label="Stok Rupiah" name="stock_rupiah" value={rate.stock_rupiah} onChange={handleOtherInputChange} />
-
-                <div className="col-span-2 md:col-span-4">
-                    <InputField label="Wallet Admin" name="admin_wallet" value={rate.admin_wallet} onChange={handleOtherInputChange} type="text" placeholder="Alamat wallet untuk koin ini"/>
-                </div>
-            </div>
+    return ( <div className="card bg-gray-800 p-4 space-y-4 rounded-lg shadow-lg"> <div className="flex justify-between items-center border-b border-gray-700 pb-2"> <div className="flex items-center gap-3"> <img src={coinData.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-gray-700" /> <h3 className="font-bold text-lg text-white">{rate.token_name} ({rate.token_symbol})</h3> </div> <span className="text-xs font-mono text-gray-400">Harga Pasar: Rp {marketPriceIdr}</span> </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><label className="text-xs font-semibold text-gray-400">URL Ikon</label><input type="text" value={coinData.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file w-full mt-1" /></div>
+            <div><label className="text-xs font-semibold text-gray-400">Jaringan</label><input type="text" value={coinData.network} onChange={e => handleChange('network', e.target.value)} className="input-file w-full mt-1" /></div>
+            <div><label className="text-xs font-semibold text-gray-400">Stok Koin</label><input type="number" step="any" value={coinData.stock} onChange={e => handleChange('stock', e.target.value)} className="input-file w-full mt-1" /></div>
+            <div><label className="text-xs font-semibold text-gray-400">Stok Rupiah</label><input type="number" value={coinData.stock_rupiah} onChange={e => handleChange('stock_rupiah', e.target.value)} className="input-file w-full mt-1" /></div>
         </div>
-    );
+        <div><label className="text-sm font-semibold text-white">CoinGecko API ID</label><input type="text" placeholder="cth: binancecoin" value={coinData.coingecko_id} onChange={e => handleChange('coingecko_id', e.target.value)} className="input-file w-full mt-1" /></div>
+        <MarginTierEditor initialTiers={coinData.margin_tiers} onTiersChange={tiers => handleChange('margin_tiers', tiers)} />
+        <div className="flex gap-2 pt-4"> <button onClick={handleSave} disabled={isSaving} className="btn-primary w-full text-sm flex-grow">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} className="mr-2" /> Simpan</>}</button> <button onClick={handleToggle} disabled={isToggling} className={`${rate.is_trade_blocked ? 'btn-success' : 'btn-danger'} w-full text-sm flex-grow`}>{isToggling ? <FontAwesomeIcon icon={faSpinner} spin /> : (rate.is_trade_blocked ? "Buka" : "Kunci")}</button> </div>
+    </div> );
 };
 
-// --- KOMPONEN UTAMA ADMIN ---
+// --- Komponen Form Tambah Koin ---
+const AddNewCoinForm = ({ onSave, onCancel }) => {
+    const [newCoin, setNewCoin] = useState({ token_name: '', token_symbol: '', network: '', icon: '', is_active: true });
+    const [isSaving, setIsSaving] = useState(false);
+    const handleChange = (field, value) => setNewCoin(prev => ({...prev, [field]: value}));
+    const handleSave = async () => {
+        if (!newCoin.token_name || !newCoin.token_symbol || !newCoin.network) { alert('Nama, Simbol, dan Jaringan wajib diisi.'); return; }
+        setIsSaving(true);
+        await onSave(newCoin);
+        setIsSaving(false);
+    };
+    return ( <div className="card bg-gray-800 p-6 rounded-lg mb-8 border border-primary/50"> <h3 className="text-xl font-bold mb-4">Tambah Koin Baru</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <input type="text" placeholder="Nama Token (cth: Tether)" value={newCoin.token_name} onChange={e => handleChange('token_name', e.target.value)} className="input-file" /> <input type="text" placeholder="Simbol (cth: USDT)" value={newCoin.token_symbol} onChange={e => handleChange('token_symbol', e.target.value)} className="input-file" /> <input type="text" placeholder="Jaringan (cth: BSC)" value={newCoin.network} onChange={e => handleChange('network', e.target.value)} className="input-file" /> <input type="text" placeholder="URL Ikon" value={newCoin.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file" /> </div> <div className="flex items-center justify-between mt-4"> <label className="flex items-center gap-2 text-sm"> <input type="checkbox" checked={newCoin.is_active} onChange={e => handleChange('is_active', e.target.checked)} className="form-checkbox" /> Aktifkan Koin </label> <div className="flex gap-2"> <button onClick={onCancel} className="btn-secondary">Batal</button> <button onClick={handleSave} disabled={isSaving} className="btn-primary">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Simpan Koin Baru'}</button> </div> </div> </div> );
+};
+
+// --- KOMPONEN UTAMA HALAMAN ADMIN ---
 export default function PageAdminWarung({ onSwitchView }) {
-    const [activeTab, setActiveTab] = useState('transactions');
     const [rates, setRates] = useState([]);
     const [transactions, setTransactions] = useState([]);
-    const [paymentMethods, setPaymentMethods] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [notification, setNotification] = useState('');
-    const [showAddCoinModal, setShowAddCoinModal] = useState(false);
-    const [modalInitialNetwork, setModalInitialNetwork] = useState('');
-    const [modalInitialNetworkOption, setModalInitialNetworkOption] = useState(COMMON_NETWORKS[0]);
-    const [expandedNetworkGroups, setExpandedNetworkGroups] = useState({}); 
+    const [usdToIdrRate, setUsdToIdrRate] = useState(16500);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState('');
+    const [showAddCoinForm, setShowAddCoinForm] = useState(false);
 
-    const [showNetworkSettingsModal, setShowNetworkSettingsModal] = useState(false);
-    const [editingNetworkName, setEditingNetworkName] = useState('');
-    const [editingNetworkIcon, setEditingNetworkIcon] = useState('');
-
-    const [activeTxTab, setActiveTxTab] = useState('WAITING_CONFIRMATION');
-    const [selectedTx, setSelectedTx] = useState(null);
-    
-    const [editingMethod, setEditingMethod] = useState(null); 
-    const [newMethod, setNewPaymentMethod] = useState({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
+    const groupedRates = useMemo(() => {
+        if (!rates) return {};
+        return rates.reduce((acc, rate) => {
+            const network = rate.network || 'Lainnya';
+            if (!acc[network]) acc[network] = [];
+            acc[network].push(rate);
+            return acc;
+        }, {});
+    }, [rates]);
 
     const fetchData = useCallback(async () => {
-        setIsLoading(true);
         try {
-            const { data: ratesData, error: ratesError } = await supabase.from('crypto_rates').select('*, network_icon').eq('is_active', true);
-            if (ratesError) throw ratesError;
-
-            const { data: userData, error: userError } = await supabase.auth.getUser();
-            let currentUserId = null;
-            if (userError) {
-                console.error("Error getting user from Supabase:", userError);
-                currentUserId = 'a80b8529-657c-48c0-9d0d-2e389d494dfa'; 
-            } else {
-                currentUserId = userData.user?.id || 'a80b8529-657c-48c0-9d0d-2e389d494dfa'; 
-            }
-
-            const { data: txData, error: txError } = await supabase.from('warung_transactions').select('*').eq('user_id', currentUserId).order('created_at', { ascending: false }).limit(20); 
-            if (txError) throw txData;
-
-            const { data: payData, error: payError } = await supabase.from('admin_payment_methods').select('*').order('method_name');
-            if (payError) throw payData;
-
-            setRates(ratesData || []);
-            setTransactions(txData || []);
-            setPaymentMethods(payData || []);
-
-            // MODIFIKASI: Inisialisasi expandedNetworkGroups agar semua tertutup secara default,
-            // dan pastikan groupedRates memiliki network_icon di tingkat grup.
-            const initialExpandedState = {};
-            const tempGroupedRates = {}; // Gunakan temp objek untuk membangun groupedRates dengan network_icon
-            (ratesData || []).forEach(rate => {
-                const network = rate.network || 'Lainnya';
-                if (!(network in tempGroupedRates)) {
-                    tempGroupedRates[network] = {
-                        coins: [],
-                        network_icon: rate.network_icon || null // Ambil ikon dari koin pertama di jaringan itu
-                    };
-                    initialExpandedState[network] = false; // Default: tertutup
-                }
-                tempGroupedRates[network].coins.push(rate);
-            });
-            setExpandedNetworkGroups(initialExpandedState);
-            // MODIFIKASI PENTING: Set groupedRates dari tempGroupedRates yang sudah benar
-            setRates(Object.values(tempGroupedRates).flatMap(group => group.coins)); // Keep rates flat, but use tempGroupedRates for display logic
-            // The 'rates' state here still holds the raw flat list from DB.
-            // The groupedRates variable below in render will be built correctly from it.
-
-        } catch (error) {
-            setNotification("Gagal mengambil data: " + error.message);
+            const ratesPromise = supabase.from('crypto_rates').select('*').order('network');
+            const transPromise = supabase.from('transactions').select(`*`).order('created_at', { ascending: false });
+            const [ratesRes, transRes] = await Promise.all([ratesPromise, transPromise]);
+            if (ratesRes.error) throw ratesRes.error;
+            if (transRes.error) throw transRes.error;
+            setRates(ratesRes.data || []);
+            setTransactions(transRes.data || []);
+        } catch (err) {
+            console.error("Gagal memuat data admin:", err);
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    const handleActionComplete = (message) => {
-        setNotification(message);
-        fetchData(); 
-        setTimeout(() => setNotification(''), 4000);
-    };
-
-    const handleTransactionAction = async (txId, newStatus, adminProofFile, orderType) => { 
-        let updateData = { status: newStatus };
-        let actionMessage = "";
-
-        try {
-            if (newStatus === 'COMPLETED' && adminProofFile && orderType === 'sell') {
-                const fileExt = adminProofFile.name.split('.').pop();
-                const fileName = `admin_${txId}_${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage.from('adminbuktibayar').upload(fileName, adminProofFile);
-                if (uploadError) throw new Error(`Gagal mengunggah bukti admin: ${uploadError.message}. Pastikan kebijakan RLS di bucket 'adminbuktibayar' Anda mengizinkan upload.`);
-                updateData.admin_proof_url = fileName;
-                actionMessage = "menyetujui dan mengunggah bukti";
-            } else if (newStatus === 'COMPLETED') {
-                actionMessage = "menyetujui";
-            } else if (newStatus === 'REJECTED') {
-                actionMessage = "menolak";
-            }
-
-            const { error: updateError } = await supabase.from('warung_transactions').update(updateData).eq('id', txId);
-            if (updateError) throw updateError;
-
-            handleActionComplete(`Transaksi #${txId} berhasil di${actionMessage}.`);
-        } catch (error) {
-            handleActionComplete(`Gagal ${actionMessage} transaksi #${txId}: ${error.message}`);
-        }
-    };
-
-    const handleAddNewCoin = async (newCoinData) => { 
-        try {
-            const { error: insertError } = await supabase.from('crypto_rates').insert([newCoinData]);
-            if (insertError) {
-                if (insertError.code === '23505' && insertError.message.includes('crypto_rates_token_symbol_key')) {
-                    alert('Gagal menambah koin: Simbol koin ini sudah ada (di jaringan manapun). Silakan gunakan simbol lain atau ubah batasan database.');
-                } else if (insertError.code === '23505' && insertError.message.includes('unique_token_symbol_network')) {
-                    alert('Gagal menambah koin: Kombinasi simbol koin dan jaringan ini sudah ada. Silakan gunakan simbol atau jaringan lain.');
-                } else {
-                    alert("Gagal menambah koin: " + insertError.message);
-                }
-                throw insertError; 
-            }
-            handleActionComplete(`Koin ${newCoinData.token_symbol} (${newCoinData.network}) berhasil ditambahkan!`);
-        } catch (error) {
-            console.error("Error adding new coin:", error);
-        }
-    };
-
-    const openAddCoinModal = (networkName = '', networkOption = COMMON_NETWORKS[0]) => {
-        setModalInitialNetwork(networkName);
-        setModalInitialNetworkOption(networkOption);
-        setShowAddCoinModal(true);
-    };
-
-    const openNetworkSettingsModal = (networkName, networkIcon) => {
-        setEditingNetworkName(networkName);
-        setEditingNetworkIcon(networkIcon);
-        setShowNetworkSettingsModal(true);
-    };
-
-    const handleSaveNetworkSettings = async (oldNetworkName, newNetworkName, newNetworkIcon) => {
-        try {
-            const { error: updateError } = await supabase.from('crypto_rates')
-                .update({ network: newNetworkName, network_icon: newNetworkIcon })
-                .eq('network', oldNetworkName);
-
-            if (updateError) throw updateError;
-            handleActionComplete(`Pengaturan jaringan '${oldNetworkName}' berhasil diperbarui menjadi '${newNetworkName}'.`);
-            setShowNetworkSettingsModal(false); 
-        } catch (error) {
-            console.error("Error updating network settings:", error);
-            if (error.code === '23505' && error.message.includes('unique_token_symbol_network')) {
-                throw new Error('Nama jaringan baru ini sudah ada dan ada konflik koin. Silakan gunakan nama jaringan lain.');
-            } else {
-                throw new Error(`Gagal memperbarui jaringan: ${error.message}`);
-            }
-        }
-    };
-
-
-    const handleSavePaymentMethod = async () => {
-        if (!newMethod.method_name || !newMethod.full_name || !newMethod.account_number) {
-            alert("Semua kolom wajib diisi.");
-            return;
-        }
-        
-        const dataToSave = { ...newMethod };
-        if (dataToSave.icon_url === '') dataToSave.icon_url = null;
-        
-        if (editingMethod) {
-            delete dataToSave.id;
-            const { error } = await supabase.from('admin_payment_methods').update(dataToSave).eq('id', editingMethod.id);
-            if (error) { alert("Gagal mengupdate: " + error.message); }
-            else { setNotification("Metode pembayaran diupdate!"); }
-        } 
-        else {
-            const { error } = await supabase.from('admin_payment_methods').insert([dataToSave]);
-            if (error) { alert("Gagal menambah: " + error.message); }
-            else { setNotification("Metode pembayaran baru ditambahkan!"); }
-        }
-        
-        setNewPaymentMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' });
-        setEditingMethod(null);
+    useEffect(() => {
+        setIsLoading(true);
         fetchData();
-    };
+        const channel = supabase.channel('realtime-admin-all').on('postgres_changes', { event: '*', schema: 'public' }, () => fetchData()).subscribe();
+        return () => supabase.removeChannel(channel);
+    }, [fetchData]);
 
-    const handleDeletePaymentMethod = async (id) => {
-        if (window.confirm("Apakah Anda yakin ingin menghapus metode pembayaran ini?")) {
-            const { error } = await supabase.from('admin_payment_methods').delete().eq('id', id);
-            if (error) { alert("Gagal menghapus: " + error.message); }
-            else { setNotification("Metode pembayaran dihapus!"); }
+    const handleSaveSettings = async (id, dataToSave) => {
+        const { error } = await supabase.from('crypto_rates').update(dataToSave).eq('id', id);
+        if (error) alert('Gagal menyimpan: ' + error.message); else alert('Pengaturan berhasil disimpan!');
+    };
+    const handleToggleBlock = async (id, blockStatus) => {
+        const { error } = await supabase.from('crypto_rates').update({ is_trade_blocked: blockStatus }).eq('id', id);
+        if (error) alert('Gagal mengubah status blokir: ' + error.message);
+    };
+    const handleUpdateTransaction = async (id, status) => {
+        const { error } = await supabase.from('transactions').update({ status }).eq('id', id);
+        if (error) alert('Gagal update transaksi: ' + error.message);
+    };
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        const { data, error } = await supabase.functions.invoke('get-market-data');
+        if (error) alert('Gagal menyegarkan harga: ' + error.message); else alert(data.message || 'Permintaan refresh berhasil dikirim!');
+        setIsRefreshing(false);
+    };
+    const handleAddNewCoin = async (newCoinData) => {
+        const { error } = await supabase.from('crypto_rates').insert([newCoinData]);
+        if (error) alert('Gagal menambah koin baru: ' + error.message); else {
+            alert('Koin baru berhasil ditambahkan!');
+            setShowAddCoinForm(false);
             fetchData();
         }
     };
 
-    const filteredTransactions = transactions.filter(tx => tx.status === activeTxTab);
-
-    // MODIFIKASI: Mengelompokkan koin berdasarkan jaringan dan menyimpan ikon jaringan
-    // Penting: Objek ini dibuat setiap kali render, sehingga selalu up-to-date dari state 'rates'
-    const groupedRatesForDisplay = rates.reduce((acc, rate) => {
-        const network = rate.network || 'Lainnya'; 
-        if (!acc[network]) {
-            acc[network] = {
-                coins: [],
-                network_icon: rate.network_icon || null // Ambil ikon jaringan dari koin pertama di grup ini
-            };
-        }
-        acc[network].coins.push(rate);
-        return acc;
-    }, {});
-
-
-    const toggleNetworkGroup = (networkName) => {
-        setExpandedNetworkGroups(prev => ({
-            ...prev,
-            [networkName]: !prev[networkName]
-        }));
-    };
-
-
     return (
-        <section className="page-content space-y-6 max-w-6xl mx-auto py-8">
-            {showAddCoinModal && (
-                <AddCoinModal 
-                    onClose={() => setShowAddCoinModal(false)} 
-                    onSave={handleAddNewCoin} 
-                    initialNetwork={modalInitialNetwork} 
-                    initialNetworkOption={modalInitialNetworkOption} 
-                />
-            )}
-            {showNetworkSettingsModal && (
-                <NetworkSettingsModal
-                    onClose={() => setShowNetworkSettingsModal(false)}
-                    onSave={handleSaveNetworkSettings}
-                    initialNetwork={editingNetworkName}
-                    initialNetworkIcon={editingNetworkIcon}
-                />
-            )}
-
-            <TransactionModal tx={selectedTx} onClose={() => setSelectedTx(null)} onAction={handleTransactionAction} />
-            
-            <button onClick={onSwitchView} className="text-sm text-primary hover:underline mb-4 inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faArrowLeft} /> Kembali ke Tampilan User
-            </button>
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Panel Admin Warung Kripto</h1>
-            
-            {notification && <div className="bg-green-500/10 text-green-400 p-3 rounded-md text-sm">{notification}</div>}
-
-            <div className="flex border-b border-light-border dark:border-dark-border">
-                <button onClick={() => setActiveTab('transactions')} className={`pb-3 px-5 font-semibold ${activeTab === 'transactions' ? 'border-b-2 border-primary text-primary' : 'text-gray-400'}`}>Transaksi</button>
-                <button onClick={() => setActiveTab('settings')} className={`pb-3 px-5 font-semibold ${activeTab === 'settings' ? 'border-b-2 border-primary text-primary' : 'text-gray-400'}`}>Kurs & Stok</button>
-                <button onClick={() => setActiveTab('payments')} className={`pb-3 px-5 font-semibold ${activeTab === 'payments' ? 'border-b-2 border-primary text-primary' : 'text-gray-400'}`}>Metode Bayar</button>
+        <section className="page-content space-y-8">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold">Panel Admin Warung Kripto</h1>
+                <button onClick={onSwitchView} className="btn-secondary text-sm"><FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Kembali</button>
             </div>
+            
+            <div className="space-y-4">
+                <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-2xl font-bold flex items-center gap-3"><FontAwesomeIcon icon={faCogs} /> Pengaturan Koin & Margin</h2>
+                    <div className="flex gap-2">
+                        <button onClick={handleManualRefresh} disabled={isRefreshing} className="btn-secondary text-sm"><FontAwesomeIcon icon={faSync} className={isRefreshing ? 'animate-spin' : ''} /> {isRefreshing ? '...' : 'Segarkan Harga'}</button>
+                        <button onClick={() => setShowAddCoinForm(!showAddCoinForm)} className="btn-primary text-sm"><FontAwesomeIcon icon={faPlusCircle} /> {showAddCoinForm ? 'Tutup Form' : 'Tambah Koin'}</button>
+                    </div>
+                </div>
 
-            {isLoading ? <div className="text-center py-10 text-light-text dark:text-dark-text"><FontAwesomeIcon icon={faSpinner} spin size="2x"/></div> : (
-                <>
-                    {activeTab === 'transactions' && (
-                        <div className="card-premium p-4 md:p-6 text-light-text dark:text-dark-text">
-                            <div className="flex border-b border-black/10 dark:border-white/10 mb-2">
-                                <button onClick={() => setActiveTxTab('WAITING_CONFIRMATION')} className={`pb-3 px-4 text-sm font-semibold ${activeTxTab === 'WAITING_CONFIRMATION' ? 'border-b-2 border-primary text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}>Menunggu</button>
-                                <button onClick={() => setActiveTxTab('COMPLETED')} className={`pb-3 px-4 text-sm font-semibold ${activeTxTab === 'COMPLETED' ? 'border-b-2 border-primary text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}>Selesai</button>
-                                <button onClick={() => setActiveTxTab('REJECTED')} className={`pb-3 px-4 text-sm font-semibold ${activeTxTab === 'REJECTED' ? 'border-b-2 border-primary text-primary' : 'text-light-subtle dark:text-dark-subtle'}`}>Ditolak</button>
-                            </div>
-                            <div className="space-y-1">
-                                {filteredTransactions.length > 0 ? (
-                                    filteredTransactions.map(tx => (
-                                        <button key={tx.id} onClick={() => setSelectedTx(tx)} className="w-full text-left grid grid-cols-4 gap-2 items-center p-3 border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-dark/50 transition-colors rounded-md">
-                                            <span className="font-semibold text-sm font-mono text-light-text dark:text-dark-text">{tx.user_id.substring(0,8)}...</span>
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-full text-center ${tx.order_type === 'buy' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{tx.order_type.toUpperCase()}</span>
-                                            <span className="text-sm text-light-text dark:text-dark-text">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span>
-                                            <span className="text-sm font-mono text-light-text dark:text-dark-text">{Number(tx.amount_crypto).toFixed(5)} {tx.token_symbol}</span>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <p className="text-center text-sm text-gray-400 py-8">Tidak ada transaksi di tab ini.</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    
-                    {activeTab === 'settings' && (
-                        <div className="card-premium p-4 md:p-6 space-y-6 text-light-text dark:text-dark-text">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Atur Kurs & Stok</h2>
-                                <button onClick={() => openAddCoinModal('', COMMON_NETWORKS[0])} className="btn-success text-sm px-4 py-2 flex items-center gap-2">
-                                    <FontAwesomeIcon icon={faPlus} /> Tambah Dagangan
-                                </button>
-                            </div>
-                            
-                            {Object.keys(groupedRatesForDisplay).length > 0 ? ( /* MODIFIKASI: Gunakan groupedRatesForDisplay */
-                                Object.keys(groupedRatesForDisplay).sort().map(networkName => (
-                                    <div key={networkName} className="space-y-4 mb-6 p-4 border border-light-border dark:border-dark-border rounded-lg">
-                                        <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleNetworkGroup(networkName)}>
-                                            <h3 className="text-lg font-bold text-primary dark:text-primary-light flex items-center gap-2">
-                                                {/* MODIFIKASI: Tampilkan ikon jaringan di samping nama jaringan */}
-                                                {groupedRatesForDisplay[networkName].network_icon && ( /* MODIFIKASI: Gunakan network_icon dari groupedRatesForDisplay */
-                                                    <img src={groupedRatesForDisplay[networkName].network_icon} alt={`${networkName} icon`} className="w-6 h-6 rounded-full"/>
-                                                )}
-                                                Jaringan: {networkName}
-                                            </h3>
-                                            <div className="flex items-center gap-2">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); openNetworkSettingsModal(networkName, groupedRatesForDisplay[networkName].network_icon); }} 
-                                                    className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-2"
-                                                >
-                                                    <FontAwesomeIcon icon={faCog} /> Edit Jaringan
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); openAddCoinModal(networkName, networkName); }} className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-2">
-                                                    <FontAwesomeIcon icon={faPlus} /> Tambah Koin
-                                                </button>
-                                                <FontAwesomeIcon 
-                                                    icon={expandedNetworkGroups[networkName] ? faAngleUp : faAngleDown} 
-                                                    className="text-gray-500"
-                                                />
-                                            </div>
-                                        </div>
-                                        {expandedNetworkGroups[networkName] && (
-                                            <div className="space-y-4 pt-4 border-t border-light-border dark:border-dark-border mt-4">
-                                                {groupedRatesForDisplay[networkName].coins.map(rate => ( /* MODIFIKASI: Akses koin melalui properti 'coins' dari groupedRatesForDisplay */
-                                                    <CoinSettingsEditor 
-                                                        key={rate.id} 
-                                                        initialRate={rate} 
-                                                        onActionComplete={handleActionComplete} 
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-center text-gray-400">Belum ada dagangan yang ditambahkan. Gunakan tombol "Tambah Dagangan" untuk memulai.</p>
-                            )}
-                        </div>
-                    )}
+                {showAddCoinForm && <AddNewCoinForm onSave={handleAddNewCoin} onCancel={() => setShowAddCoinForm(false)} />}
 
-                    {activeTab === 'payments' && (
-                        <div className="card-premium p-4 md:p-6 space-y-6">
-                            <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Kelola Metode Pembayaran Anda</h2>
-                            <div className="space-y-2">
-                                {paymentMethods.map(method => (
-                                    <div key={method.id} className="flex items-center justify-between p-3 bg-light-bg dark:bg-dark-bg rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <img src={method.icon_url || 'https://via.placeholder.com/32'} alt={method.method_name} className="w-8 h-8 rounded-full bg-white"/>
-                                            <div>
-                                                <p className="font-bold text-light-text dark:text-dark-text">{method.method_name} <span className="text-xs font-normal text-gray-400">({method.method_type})</span></p>
-                                                <p className="text-sm text-light-subtle dark:text-dark-subtle">{method.account_number} (a/n {method.full_name})</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-3">
-                                            <button onClick={() => { setEditingMethod(method); setNewPaymentMethod(method); }} className="text-yellow-400 hover:text-yellow-300"><FontAwesomeIcon icon={faPen}/></button>
-                                            <button onClick={() => handleDeletePaymentMethod(method.id)} className="text-red-500 hover:text-red-400"><FontAwesomeIcon icon={faTrash}/></button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="pt-4 border-t border-light-border dark:border-dark-border space-y-3">
-                                <h3 className="font-bold text-light-text dark:text-dark-text">{editingMethod ? 'Edit Metode Pembayaran' : 'Tambah Metode Baru'}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <InputField label="Nama Lengkap" name="full_name" value={newMethod.full_name} onChange={(e) => setNewPaymentMethod({...newMethod, full_name: e.target.value})} type="text"/>
-                                    <div className="relative">
-                                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Jenis</label>
-                                        <select value={newMethod.method_type} onChange={(e) => setNewPaymentMethod({...newMethod, method_type: e.target.value})} className="mt-1 w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-primary dark:focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all appearance-none">
-                                            <option>E-Wallet</option>
-                                            <option>Bank</option>
-                                        </select>
-                                        <FontAwesomeIcon icon={faAngleDown} className="absolute right-4 bottom-3 text-gray-400 pointer-events-none" />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <InputField label="Nama Metode" name="method_name" value={newMethod.method_name} onChange={(e) => setNewPaymentMethod({...newMethod, method_name: e.target.value})} type="text" placeholder="cth: DANA, BCA"/>
-                                    <InputField label="Nomor Rekening/Telepon" name="account_number" value={newMethod.account_number} onChange={(e) => setNewPaymentMethod({...newMethod, account_number: e.target.value})} type="text" placeholder="cth: 0812..."/>
-                                </div>
-                                <InputField label="URL Ikon (Opsional)" name="icon_url" value={newMethod.icon_url} onChange={(e) => setNewPaymentMethod({...newMethod, icon_url: e.target.value})} type="text"/>
-                                <div className="flex gap-3 justify-end">
-                                    {editingMethod && <button onClick={() => { setEditingMethod(null); setNewPaymentMethod({ method_name: '', full_name: '', method_type: 'E-Wallet', account_number: '', icon_url: '' }); }} className="btn-secondary">Batal Edit</button>}
-                                    <button onClick={handleSavePaymentMethod} className="btn-primary">{editingMethod ? 'Update Metode' : 'Tambah Metode'}</button>
+                {isLoading && <div className="text-center p-8"><FontAwesomeIcon icon={faSpinner} spin size="2x" /><p>Memuat pengaturan...</p></div>}
+                {!isLoading && error && <div className="bg-red-500/10 text-red-400 p-4 rounded-lg">Error: {error}</div>}
+                
+                {!isLoading && !error && (
+                    <div className="space-y-8">
+                        {Object.keys(groupedRates).length > 0 ? Object.keys(groupedRates).map(network => (
+                            <div key={network}>
+                                <h3 className="text-xl font-semibold mb-4 text-primary border-b-2 border-primary/30 pb-2">Jaringan: {network}</h3>
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {groupedRates[network].map(rate => (
+                                        <CoinSettingsEditor key={rate.id} rate={rate} onSave={handleSaveSettings} onToggleBlock={handleToggleBlock} usdToIdrRate={usdToIdrRate} />
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </>
-            )}
+                        )) : !showAddCoinForm && <p className="text-gray-400 text-center">Tidak ada koin ditemukan. Klik "Tambah Koin" untuk memulai.</p>}
+                    </div>
+                )}
+            </div>
+            
+            <div className="space-y-4 pt-8">
+                <h2 className="text-2xl font-bold mb-3">Daftar Transaksi Masuk</h2>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-gray-400">
+                        <thead className="text-xs text-gray-100 uppercase bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3">User ID</th>
+                                <th className="px-6 py-3">Jenis</th>
+                                <th className="px-6 py-3">Jumlah</th>
+                                <th className="px-6 py-3">Status</th>
+                                <th className="px-6 py-3">Bukti</th>
+                                <th className="px-6 py-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {transactions && transactions.map(tx => (
+                                <tr key={tx.id} className="bg-gray-800 border-b border-gray-700">
+                                    <td className="px-6 py-4 text-xs font-mono" title={tx.user_id}>{tx.user_id ? tx.user_id.substring(0, 8) : 'N/A'}...</td>
+                                    <td className="px-6 py-4">{tx.type}</td>
+                                    <td className="px-6 py-4">{tx.type === 'beli' ? `${Number(tx.amount_crypto).toFixed(6)} ${tx.token_symbol}` : `Rp ${Number(tx.amount_fiat).toLocaleString()}`}</td>
+                                    <td className="px-6 py-4">{tx.status}</td>
+                                    <td className="px-6 py-4"><a href={tx.proof_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Lihat Bukti</a></td>
+                                    <td className="px-6 py-4 flex gap-2">
+                                        <button onClick={() => handleUpdateTransaction(tx.id, 'completed')} className="btn-success"><FontAwesomeIcon icon={faCheck} /></button>
+                                        <button onClick={() => handleUpdateTransaction(tx.id, 'rejected')} className="btn-danger"><FontAwesomeIcon icon={faTimes} /></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
     );
 }
