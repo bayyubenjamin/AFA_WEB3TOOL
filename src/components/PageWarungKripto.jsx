@@ -1,4 +1,5 @@
 // src/components/PageWarungKripto.jsx
+// PENAMBAHAN: Tombol link ke halaman Pengaturan Rekening Admin.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,17 +7,17 @@ import {
     faStore, faMoneyBillWave, faArrowRightArrowLeft, faCheckCircle,
     faBolt, faSpinner, faExclamationTriangle, faHistory, faCogs,
     faReceipt, faAngleDown, faAngleUp, faExternalLinkAlt, faGasPump,
-    faSignature, faUniversity, faMobileAlt, faBoxOpen, faBook, faShieldAlt, faInfoCircle
+    faSignature, faUniversity, faMobileAlt, faBoxOpen, faBook, faShieldAlt, faInfoCircle, faCommentDots,
+    faLandmark // Icon baru untuk rekening
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-// --- Kunci Cache dan Durasi ---
 const RATES_CACHE_KEY = 'warungKriptoRatesCache';
-const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // Cache berlaku selama 5 menit
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000;
 
-// --- Komponen-komponen UI (Helper) yang Didesain Ulang ---
+// --- Komponen-komponen UI (Helper) ---
 
 const InfoCard = ({ icon, title, children }) => (
     <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border p-4 rounded-lg flex items-start gap-4">
@@ -31,12 +32,14 @@ const InfoCard = ({ icon, title, children }) => (
 const TransactionHistoryItem = ({ tx }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const statusMap = {
-        pending: { text: 'Menunggu', color: 'bg-yellow-500/10 text-yellow-400', icon: faSpinner },
-        completed: { text: 'Selesai', color: 'bg-green-500/10 text-green-400', icon: faCheckCircle },
-        rejected: { text: 'Ditolak', color: 'bg-red-500/10 text-red-400', icon: faExclamationTriangle },
+        'pending': { text: 'Pending', color: 'bg-yellow-500/10 text-yellow-400' },
+        'awaiting_payment': { text: 'Menunggu Pembayaran', color: 'bg-yellow-500/10 text-yellow-400' },
+        'awaiting_confirmation': { text: 'Menunggu Konfirmasi', color: 'bg-blue-500/10 text-blue-400' },
+        'completed': { text: 'Selesai', color: 'bg-green-500/10 text-green-400' },
+        'rejected': { text: 'Ditolak', color: 'bg-red-500/10 text-red-400' },
     };
     const status = statusMap[tx.status] || { text: tx.status, color: 'bg-gray-500/10 text-gray-400' };
-    const isBuy = tx.type === 'beli';
+    const isBuy = tx.order_type === 'beli';
 
     return (
         <div className="border-b border-light-border dark:border-dark-border last:border-b-0">
@@ -47,7 +50,7 @@ const TransactionHistoryItem = ({ tx }) => {
                             <FontAwesomeIcon icon={isBuy ? faBolt : faMoneyBillWave} className={`text-lg ${isBuy ? 'text-green-400' : 'text-red-400'}`} />
                         </div>
                         <div>
-                            <span className="font-semibold text-sm text-light-text dark:text-dark-text capitalize">{tx.type} {tx.token_symbol}</span>
+                            <span className="font-semibold text-sm text-light-text dark:text-dark-text capitalize">{tx.order_type} {tx.token_symbol}</span>
                             <span className="block text-xs text-light-text-secondary dark:text-dark-text-secondary">{new Date(tx.created_at).toLocaleDateString('id-ID')}</span>
                         </div>
                     </div>
@@ -60,10 +63,12 @@ const TransactionHistoryItem = ({ tx }) => {
             {isExpanded && (
                 <div className="bg-light-hover dark:bg-dark-hover p-3 text-xs space-y-2 text-light-text-secondary dark:text-dark-text-secondary rounded-b-md">
                      <div className="flex justify-between"><span>Status:</span> <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${status.color}`}>{status.text}</span></div>
-                     <div className="flex justify-between"><span>ID:</span> <span className="font-mono">{tx.id}</span></div>
-                     <div className="flex justify-between"><span>Rupiah:</span> <span className="font-mono">Rp {Number(tx.amount_fiat).toLocaleString('id-ID')}</span></div>
-                    {isBuy ? <p><strong>Wallet:</strong> <span className="font-mono break-all">{tx.wallet_address}</span></p> : <p><strong>Info Bayar:</strong> <span className="font-mono break-all">{tx.user_payment_info}</span></p>}
-                    {tx.proof_url && <a href={tx.proof_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Lihat Bukti <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a>}
+                     <div className="flex justify-between"><span>ID Pesanan:</span> <span className="font-mono">{tx.id}</span></div>
+                     <div className="flex justify-between"><span>Rupiah:</span> <span className="font-mono">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span></div>
+                    {isBuy ? <p><strong>Wallet:</strong> <span className="font-mono break-all">{tx.wallet_address}</span></p> : <p><strong>Info Bayar:</strong> <span className="font-mono break-all">{JSON.stringify(tx.user_payment_info)}</span></p>}
+                    <Link to={`/warung-kripto/order/${tx.id}`} className="text-primary hover:underline font-bold flex items-center gap-2 pt-1">
+                        <FontAwesomeIcon icon={faCommentDots} /> Lihat Detail Pesanan
+                    </Link>
                 </div>
             )}
         </div>
@@ -84,25 +89,14 @@ const ImportantWarning = () => (
     </div>
 );
 
-const AssetSelector = ({ label, value, onChange, options, placeholder, renderOption, disabled }) => (
+const AssetSelector = ({ value, onChange, options, placeholder, renderOption, disabled }) => (
     <div className="relative w-full">
-        <select
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-            className="w-full appearance-none bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-3 pl-12 pr-10 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-        >
+        <select value={value} onChange={onChange} disabled={disabled} className="w-full appearance-none bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-3 pl-12 pr-10 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
             <option value="" disabled>{placeholder}</option>
-            {options.map(option => (
-                <option key={option.key} value={option.value}>{option.label}</option>
-            ))}
+            {options.map(option => (<option key={option.key} value={option.value}>{option.label}</option>))}
         </select>
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            {renderOption}
-        </div>
-         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <FontAwesomeIcon icon={faAngleDown} className="text-gray-400"/>
-        </div>
+        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">{renderOption}</div>
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"><FontAwesomeIcon icon={faAngleDown} className="text-gray-400"/></div>
     </div>
 );
 
@@ -115,28 +109,16 @@ export default function PageWarungKripto({ currentUser }) {
     const [inputAmount, setInputAmount] = useState('');
     const [walletAddress, setWalletAddress] = useState('');
     const [userPaymentInfo, setUserPaymentInfo] = useState({ fullName: '', method: 'bank', details: '' });
-    const [proofFile, setProofFile] = useState(null);
     const [history, setHistory] = useState([]);
-    const [adminPaymentMethods, setAdminPaymentMethods] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const [showConfirmation, setShowConfirmation] = useState(false);
     const [usdToIdrRate, setUsdToIdrRate] = useState(16500);
 
+    const navigate = useNavigate();
     const isAdmin = useMemo(() => currentUser?.role === 'admin', [currentUser]);
 
-    const { 
-        groupedRates, 
-        cryptoAmount, 
-        fiatAmount,
-        finalPrice, 
-        adminProfit, 
-        isApiNotSet,
-        baseFiatValue,
-        usdtValue,
-        marketPriceUsdt
-    } = useMemo(() => {
+    const { groupedRates, cryptoAmount, fiatAmount, finalPrice, adminProfit, isApiNotSet, baseFiatValue, usdtValue } = useMemo(() => {
         if (!rates || rates.length === 0) return { groupedRates: {} };
         const groups = rates.reduce((acc, coin) => {
             const network = coin.network;
@@ -171,28 +153,19 @@ export default function PageWarungKripto({ currentUser }) {
                 usdtAmount = inputNum * marketPriceUSD;
             }
         }
-        return { groupedRates: groups, cryptoAmount: cryptoOutput, fiatAmount: fiatOutput, finalPrice: finalUserPrice, adminProfit: profit, isApiNotSet: apiNotSet, baseFiatValue: baseValue, usdtValue: usdtAmount, marketPriceUsdt: marketPriceUSD };
+        return { groupedRates: groups, cryptoAmount: cryptoOutput, fiatAmount: fiatOutput, finalPrice: finalUserPrice, adminProfit: profit, isApiNotSet: apiNotSet, baseFiatValue: baseValue, usdtValue: usdtAmount };
     }, [rates, inputAmount, selectedCoin, activeTab, usdToIdrRate]);
     
     const fetchData = useCallback(async (isInitialLoad = false) => {
-        if (isInitialLoad) {
-            const hasCache = localStorage.getItem(RATES_CACHE_KEY);
-            if (!hasCache) {
-                setIsLoading(true);
-            }
-        }
-
-        // 1. Coba muat dari cache untuk UI instan
+        if (isInitialLoad && !localStorage.getItem(RATES_CACHE_KEY)) setIsLoading(true);
         if (typeof window !== 'undefined') {
             try {
                 const cachedDataJSON = localStorage.getItem(RATES_CACHE_KEY);
                 if (cachedDataJSON) {
                     const cachedData = JSON.parse(cachedDataJSON);
-                    const isCacheValid = (Date.now() - cachedData.timestamp) < CACHE_EXPIRATION_MS;
-                    if (isCacheValid && cachedData.rates && cachedData.usdToIdrRate) {
+                    if ((Date.now() - cachedData.timestamp) < CACHE_EXPIRATION_MS) {
                         setRates(cachedData.rates);
                         setUsdToIdrRate(cachedData.usdToIdrRate);
-
                         if (isInitialLoad && cachedData.rates.length > 0 && !selectedNetwork) {
                             const firstNetworkName = cachedData.rates[0].network;
                             setSelectedNetwork(firstNetworkName);
@@ -201,39 +174,25 @@ export default function PageWarungKripto({ currentUser }) {
                         if(isInitialLoad) setIsLoading(false);
                     }
                 }
-            } catch (e) {
-                console.error("Gagal memuat dari cache", e);
-                localStorage.removeItem(RATES_CACHE_KEY);
-            }
+            } catch (e) { console.error("Gagal memuat dari cache", e); localStorage.removeItem(RATES_CACHE_KEY); }
         }
-
-        // 2. Selalu ambil data baru dari jaringan
         try {
             const ratesPromise = supabase.from('crypto_rates').select('*').eq('is_active', true).order('network');
             const txPromise = currentUser ? supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(10) : Promise.resolve({ data: [] });
-            const adminPayPromise = supabase.from('admin_payment_methods').select('*');
             const ratePromise = getUsdToIdrRate();
-            
-            const [ratesRes, txRes, adminPayRes, freshUsdRate] = await Promise.all([ratesPromise, txPromise, adminPayPromise, ratePromise]);
-
+            const [ratesRes, txRes, freshUsdRate] = await Promise.all([ratesPromise, txPromise, ratePromise]);
             if (ratesRes.error) throw ratesRes.error;
             if (txRes.error) throw txRes.error;
-            if (adminPayRes.error) throw adminPayRes.error;
-
             const ratesData = ratesRes.data || [];
-            
             setRates(ratesData);
             setHistory(txRes.data || []);
-            setAdminPaymentMethods(adminPayRes.data || []);
             setUsdToIdrRate(freshUsdRate);
-            
             if (typeof window !== 'undefined') {
                 try {
                     const cachePayload = { rates: ratesData, usdToIdrRate: freshUsdRate, timestamp: Date.now() };
                     localStorage.setItem(RATES_CACHE_KEY, JSON.stringify(cachePayload));
                 } catch (e) { console.error("Gagal menyimpan ke cache", e); }
             }
-
             if (isInitialLoad && ratesData.length > 0 && !selectedNetwork) {
                 const firstNetworkName = ratesData[0].network;
                 setSelectedNetwork(firstNetworkName);
@@ -248,64 +207,75 @@ export default function PageWarungKripto({ currentUser }) {
     }, [currentUser, selectedNetwork]);
 
     useEffect(() => {
-        fetchData(true); // Tandai sebagai pemuatan awal
+        fetchData(true);
         const channel = supabase.channel('public:crypto_rates_user').on('postgres_changes', { event: '*', schema: 'public', table: 'crypto_rates' }, () => {
-            if (typeof window !== 'undefined') localStorage.removeItem(RATES_CACHE_KEY); // Invalidate cache
-            fetchData(false); // Ambil data baru tanpa loading screen
+            if (typeof window !== 'undefined') localStorage.removeItem(RATES_CACHE_KEY);
+            fetchData(false);
         }).subscribe();
         return () => supabase.removeChannel(channel);
     }, [fetchData]);
 
-
-    const handleProceed = () => { /* ... (fungsi tidak berubah) ... */ };
-    const handleFinalSubmit = async () => { /* ... (fungsi tidak berubah) ... */ };
-    
-    const handlePaymentInfoChange = (field, value) => {
-        setUserPaymentInfo(prev => ({ ...prev, [field]: value }));
+    const handleCreateOrder = async () => {
+        if (!currentUser || !currentUser.id) {
+            alert("Anda harus login untuk membuat pesanan.");
+            return navigate('/login');
+        }
+        if (isButtonDisabled) {
+            alert("Harap lengkapi semua field yang diperlukan.");
+            return;
+        }
+        const confirmationMessage = `Anda akan ${activeTab === 'beli' ? 'membeli' : 'menjual'} ${cryptoAmount.toFixed(6)} ${selectedCoin.token_symbol} dengan total Rp ${Math.floor(finalPrice).toLocaleString('id-ID')}.\n\nPastikan data sudah benar. Lanjutkan?`;
+        if (window.confirm(confirmationMessage)) {
+            setIsSubmitting(true);
+            setError('');
+            const transactionData = {
+                user_id: currentUser.id,
+                order_type: activeTab, 
+                token_symbol: selectedCoin.token_symbol,
+                network: selectedCoin.network,
+                amount_crypto: cryptoAmount,
+                amount_idr: finalPrice,
+                status: activeTab === 'beli' ? 'awaiting_payment' : 'awaiting_confirmation',
+                wallet_address: activeTab === 'beli' ? walletAddress : null,
+                user_payment_info: activeTab === 'jual' ? { ...userPaymentInfo, details: `${userPaymentInfo.method.toUpperCase()}: ${userPaymentInfo.details}` } : null,
+            };
+            const { data: newOrder, error } = await supabase.from('warung_transactions').insert(transactionData).select().single();
+            if (error) {
+                setError('Gagal membuat pesanan: ' + error.message);
+                alert('Gagal membuat pesanan: ' + error.message);
+            } else {
+                alert('Pesanan berhasil dibuat! Anda akan diarahkan ke halaman detail & obrolan.');
+                navigate(`/warung-kripto/order/${newOrder.id}`);
+            }
+            setIsSubmitting(false);
+        }
     };
-
+    
+    const handlePaymentInfoChange = (field, value) => setUserPaymentInfo(prev => ({ ...prev, [field]: value }));
     const isButtonDisabled = !selectedCoin || !inputAmount || isApiNotSet || (activeTab === 'beli' && !walletAddress) || (activeTab === 'jual' && (!userPaymentInfo.fullName || !userPaymentInfo.method || !userPaymentInfo.details));
     const inputStyle = "w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text py-2.5 px-4 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/80 transition-all";
-
-    const networkOptions = Object.keys(groupedRates).map(network => ({
-        key: network,
-        value: network,
-        label: network,
-        icon: groupedRates[network]?.network_icon
-    }));
-
-    const coinOptions = selectedNetwork ? groupedRates[selectedNetwork]?.coins.map(coin => ({
-        key: coin.id,
-        value: coin.id,
-        label: `${coin.token_symbol}`,
-        icon: coin.icon
-    })) : [];
+    const networkOptions = Object.keys(groupedRates).map(network => ({ key: network, value: network, label: network, icon: groupedRates[network]?.network_icon }));
+    const coinOptions = selectedNetwork ? groupedRates[selectedNetwork]?.coins.map(coin => ({ key: coin.id, value: coin.id, label: `${coin.token_symbol}`, icon: coin.icon })) : [];
 
     return (
         <section className="page-content space-y-8 max-w-7xl mx-auto py-8 px-4">
-            
             <div className="text-center mb-8">
                 <FontAwesomeIcon icon={faStore} className="text-primary text-5xl mb-3"/>
                 <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Pasar Kripto Instan</h1>
-                <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                    Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.
-                </p>
+                <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.</p>
             </div>
-            
+
+            {/* ## PENAMBAHAN TOMBOL PENGATURAN REKENING ## */}
             {isAdmin && (
-                 <div className="flex justify-center gap-2 mb-6">
-                    <Link to="/admin/warung-jaringan" className="btn-secondary text-sm flex items-center gap-2">
-                        <FontAwesomeIcon icon={faCogs} /> Pengaturan
-                    </Link>
-                    <Link to="/order-admin/buku-order" className="btn-primary text-sm flex items-center gap-2">
-                        <FontAwesomeIcon icon={faBook} /> Buku Order
-                    </Link>
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                    <Link to="/admin/warung-jaringan" className="btn-secondary text-sm flex items-center gap-2"><FontAwesomeIcon icon={faCogs} /> Pengaturan Jaringan</Link>
+                    <Link to="/admin/rekening" className="btn-secondary text-sm flex items-center gap-2"><FontAwesomeIcon icon={faLandmark} /> Pengaturan Rekening</Link>
+                    <Link to="/order-admin/buku-order" className="btn-primary text-sm flex items-center gap-2"><FontAwesomeIcon icon={faBook} /> Buku Order</Link>
                 </div>
             )}
-            
+
             {isLoading && <div className="text-center py-20"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary"/><p className="mt-3 text-light-text-secondary dark:text-dark-text-secondary">Memuat data warung...</p></div>}
             {!isLoading && error && <div className="bg-red-500/10 max-w-lg mx-auto text-center p-8 text-red-400 rounded-xl"><FontAwesomeIcon icon={faExclamationTriangle} size="2x" className="mb-3"/><h3 className="font-bold">Gagal Memuat Data</h3><p className="text-sm mt-1">{error}</p></div>}
-            
             {!isLoading && !error && (
                 rates.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -315,71 +285,30 @@ export default function PageWarungKripto({ currentUser }) {
                                     <button onClick={() => { setActiveTab('beli'); setInputAmount(''); }} className={`py-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'beli' ? 'border-b-2 border-primary text-primary' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary'}`}><FontAwesomeIcon icon={faBolt}/> Beli</button>
                                     <button onClick={() => { setActiveTab('jual'); setInputAmount(''); }} className={`py-3 font-bold w-1/2 text-center transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'jual' ? 'border-b-2 border-red-500 text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500'}`}><FontAwesomeIcon icon={faMoneyBillWave}/> Jual</button>
                                 </div>
-
                                 <div className="flex flex-col md:flex-row items-center gap-4">
-                                    <div className="w-full">
+                                     <div className="w-full">
                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar' : 'Anda Jual'}</label>
                                         <div className="relative flex items-center">
-                                            {activeTab === 'beli' && (
-                                                <span className="text-3xl font-semibold text-light-text dark:text-dark-text mr-2">Rp</span>
-                                            )}
-                                            <input 
-                                                type="number" 
-                                                placeholder="0" 
-                                                value={inputAmount} 
-                                                onChange={e => setInputAmount(e.target.value)} 
-                                                className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"
-                                            />
-                                            {activeTab === 'jual' && selectedCoin && (
-                                                <span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>
-                                            )}
+                                            {activeTab === 'beli' && (<span className="text-3xl font-semibold text-light-text dark:text-dark-text mr-2">Rp</span>)}
+                                            <input type="number" placeholder="0" value={inputAmount} onChange={e => setInputAmount(e.target.value)} className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"/>
+                                            {activeTab === 'jual' && selectedCoin && (<span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>)}
                                         </div>
-                                        {/* --- PERUBAHAN DI SINI --- */}
-                                        {activeTab === 'jual' && usdtValue > 0 && (
-                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ $ {usdtValue.toFixed(2)} USDT</div>
-                                        )}
+                                        {activeTab === 'jual' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ $ {usdtValue.toFixed(2)} USDT</div>)}
                                     </div>
-
-                                    <div className="flex items-center justify-center p-2 bg-light-bg dark:bg-dark-bg rounded-full border border-light-border dark:border-dark-border my-2 md:my-0">
-                                        <FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-lg" />
-                                    </div>
-
+                                    <div className="flex items-center justify-center p-2 bg-light-bg dark:bg-dark-bg rounded-full border border-light-border dark:border-dark-border my-2 md:my-0"><FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-lg" /></div>
                                     <div className="w-full text-left md:text-right">
                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Anda Dapat (Estimasi)</label>
-                                        <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">
-                                            {activeTab === 'beli' 
-                                                ? <>{(cryptoAmount || 0).toFixed(6)} <span className="text-xl text-light-text-secondary dark:text-dark-text-secondary">{selectedCoin?.token_symbol || ''}</span></>
-                                                : `Rp ${Math.floor(fiatAmount || 0).toLocaleString('id-ID')}`
-                                            }
-                                        </p>
-                                        {activeTab === 'beli' && usdtValue > 0 && (
-                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2 text-right">≈ ${usdtValue.toFixed(2)} USDT</div>
-                                        )}
+                                        <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">{activeTab === 'beli' ? <>{(cryptoAmount || 0).toFixed(6)} <span className="text-xl text-light-text-secondary dark:text-dark-text-secondary">{selectedCoin?.token_symbol || ''}</span></> : `Rp ${Math.floor(fiatAmount || 0).toLocaleString('id-ID')}`}</p>
+                                        {activeTab === 'beli' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2 text-right">≈ ${usdtValue.toFixed(2)} USDT</div>)}
                                     </div>
                                 </div>
-
-
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-1 block">Pilih Aset</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <AssetSelector
-                                            value={selectedNetwork || ''}
-                                            onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); if (groupedRates[newNetwork]?.coins.length > 0) setSelectedCoin(groupedRates[newNetwork].coins[0]); }}
-                                            options={networkOptions}
-                                            placeholder="Pilih Jaringan"
-                                            renderOption={<img src={groupedRates[selectedNetwork]?.network_icon || 'https://via.placeholder.com/24'} alt={selectedNetwork} className="w-6 h-6 rounded-full bg-gray-700 object-cover" />}
-                                        />
-                                         <AssetSelector
-                                            value={selectedCoin?.id || ''}
-                                            onChange={(e) => { const coin = groupedRates[selectedNetwork]?.coins.find(c => c.id.toString() === e.target.value); if(coin) setSelectedCoin(coin); }}
-                                            disabled={!selectedNetwork}
-                                            options={coinOptions}
-                                            placeholder="Pilih Koin"
-                                            renderOption={<img src={selectedCoin?.icon || 'https://via.placeholder.com/24'} alt={selectedCoin?.token_symbol} className="w-6 h-6 rounded-full bg-gray-700 object-cover" />}
-                                        />
+                                        <AssetSelector value={selectedNetwork || ''} onChange={(e) => { const newNetwork = e.target.value; setSelectedNetwork(newNetwork); if (groupedRates[newNetwork]?.coins.length > 0) setSelectedCoin(groupedRates[newNetwork].coins[0]); }} options={networkOptions} placeholder="Pilih Jaringan" renderOption={<img src={groupedRates[selectedNetwork]?.network_icon || 'https://via.placeholder.com/24'} alt={selectedNetwork} className="w-6 h-6 rounded-full bg-gray-700 object-cover" />}/>
+                                        <AssetSelector value={selectedCoin?.id || ''} onChange={(e) => { const coin = groupedRates[selectedNetwork]?.coins.find(c => c.id.toString() === e.target.value); if(coin) setSelectedCoin(coin); }} disabled={!selectedNetwork} options={coinOptions} placeholder="Pilih Koin" renderOption={<img src={selectedCoin?.icon || 'https://via.placeholder.com/24'} alt={selectedCoin?.token_symbol} className="w-6 h-6 rounded-full bg-gray-700 object-cover" />} />
                                     </div>
                                 </div>
-                                
                                 {inputAmount > 0 && !isApiNotSet && (
                                     <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-lg text-sm space-y-2 border border-light-border dark:border-dark-border">
                                         <div className="flex justify-between text-light-text-secondary dark:text-dark-text-secondary"><span>Nilai Transaksi:</span><span className="text-light-text dark:text-dark-text">Rp { baseFiatValue.toLocaleString('id-ID', {maximumFractionDigits: 0}) }</span></div>
@@ -388,9 +317,7 @@ export default function PageWarungKripto({ currentUser }) {
                                         <div className="flex justify-between font-bold text-light-text dark:text-dark-text"><span>{activeTab === 'beli' ? 'Total Bayar' : 'Total Diterima'}:</span><span className="text-primary">Rp { finalPrice.toLocaleString('id-ID', {maximumFractionDigits: 0}) }</span></div>
                                     </div>
                                 )}
-                                
                                 <ImportantWarning />
-
                                 {activeTab === 'beli' ? ( 
                                     <div>
                                         <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 block">Alamat Wallet Penerima</label>
@@ -409,20 +336,16 @@ export default function PageWarungKripto({ currentUser }) {
                                         </div>
                                     </div> 
                                 )}
-                                
                                 <div className="pt-2">
-                                    <button onClick={handleProceed} disabled={isButtonDisabled} className={`w-full text-base py-3.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all ${activeTab === 'beli' ? 'btn-primary' : 'btn-danger'}`}>
-                                        {isSubmitting ? <FontAwesomeIcon icon={faSpinner} spin /> : (activeTab === 'beli' ? 'Lanjutkan Pembayaran' : 'Lanjutkan Penjualan')}
+                                    <button onClick={handleCreateOrder} disabled={isButtonDisabled} className={`w-full text-base py-3.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all ${activeTab === 'beli' ? 'btn-primary' : 'btn-danger'}`}>
+                                        {isSubmitting ? <FontAwesomeIcon icon={faSpinner} spin /> : (activeTab === 'beli' ? 'Beli Sekarang' : 'Jual Sekarang')}
                                     </button>
                                 </div>
                             </div>
                         </div>
-
                         <div className="lg:col-span-2 space-y-6">
                             <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-sm">
-                                <h2 className="text-lg font-bold p-4 border-b border-light-border dark:border-dark-border text-light-text dark:text-dark-text flex items-center gap-2">
-                                    <FontAwesomeIcon icon={faHistory}/> Riwayat Transaksi
-                                </h2>
+                                <h2 className="text-lg font-bold p-4 border-b border-light-border dark:border-dark-border text-light-text dark:text-dark-text flex items-center gap-2"><FontAwesomeIcon icon={faHistory}/> Riwayat Transaksi</h2>
                                 <div className="max-h-96 overflow-y-auto custom-scrollbar">
                                     {history.length > 0 ? (history.map(tx => <TransactionHistoryItem key={tx.id} tx={tx} />)) : (<p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary py-8">Belum ada transaksi.</p>)}
                                 </div>

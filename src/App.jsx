@@ -1,4 +1,5 @@
 // src/App.jsx
+// Kode ini menggunakan struktur asli Anda dan hanya menambahkan rute yang diperlukan.
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
@@ -27,9 +28,11 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageWarungKripto from './components/PageWarungKripto';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
-import PageAdminWarung from './components/PageAdminWarung'; 
-// --- PENAMBAHAN IMPORT BARU ---
+import PageAdminWarung from './components/PageAdminWarung';
 import PageAdminOrderBook from './components/PageAdminOrderBook';
+import PageUserOrder from './components/PageUserOrder';
+// --- PENAMBAHAN IMPORT BARU ---
+import PageAdminRekening from './components/PageAdminRekening';
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -88,7 +91,6 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // ... (Blok autentikasi dan fungsi lainnya tetap sama)
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleSessionUpdate = async (session) => {
@@ -152,15 +154,13 @@ export default function App() {
     };
   }, []);
 
-
-  // --- FUNGSI DAN useEffect LAINNYA ---
   const handleScroll = (event) => { const currentScrollY = event.currentTarget.scrollTop; const SCROLL_UP_THRESHOLD = 60; if (currentScrollY < 80) { setIsHeaderVisible(true); scrollUpStartPosRef.current = null; } else if (currentScrollY > lastScrollY.current) { setIsHeaderVisible(false); scrollUpStartPosRef.current = null; } else if (currentScrollY < lastScrollY.current) { if (scrollUpStartPosRef.current === null) { scrollUpStartPosRef.current = lastScrollY.current; } const distanceScrolledUp = scrollUpStartPosRef.current - currentScrollY; if (distanceScrolledUp > SCROLL_UP_THRESHOLD) { setIsHeaderVisible(true); } } lastScrollY.current = currentScrollY; if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } if (currentScrollY > 400) { setShowBackToTop(true); backToTopTimeoutRef.current = setTimeout(() => { setShowBackToTop(false); }, 2000); } else { setShowBackToTop(false); } };
   const scrollToTop = () => { if (pageContentRef.current) { pageContentRef.current.scrollTo({ top: 0, behavior: 'smooth' }); } setShowBackToTop(false); if (backToTopTimeoutRef.current) { clearTimeout(backToTopTimeoutRef.current); } };
   const checkAirdropNotifications = useCallback(async () => { try { const lastVisitTimestamp = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY); const lastVisitDate = lastVisitTimestamp ? new Date(lastVisitTimestamp) : null; if (!lastVisitDate) { setHasNewAirdropNotification(true); return; } const { data, error } = await supabase.from('airdrops').select('created_at, AirdropUpdates(created_at)'); if (error) throw error; if (!data) return; for (const airdrop of data) { let lastActivityAt = new Date(airdrop.created_at); if (airdrop.AirdropUpdates && airdrop.AirdropUpdates.length > 0) { const mostRecentUpdateDate = new Date(Math.max(...airdrop.AirdropUpdates.map(u => new Date(u.created_at)))); if (mostRecentUpdateDate > lastActivityAt) lastActivityAt = mostRecentUpdateDate; } if (lastActivityAt > lastVisitDate) { setHasNewAirdropNotification(true); return; } } setHasNewAirdropNotification(false); } catch (err) { console.error("Gagal mengecek notifikasi airdrop:", err); setHasNewAirdropNotification(false); } }, []);
   const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin", 'admin/rekening': "Pengaturan Rekening" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book", 'admin/rekening': "Payment Settings" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
@@ -177,7 +177,7 @@ export default function App() {
       '/auth/telegram/callback'
   ];
 
-  const showNav = !noNavRoutes.some(route => location.pathname === route) && 
+  const showNav = !noNavRoutes.some(route => location.pathname.startsWith(route)) && 
                   !location.pathname.includes('/postairdrops') && 
                   !location.pathname.includes('/update');
 
@@ -205,17 +205,25 @@ export default function App() {
             <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={handleOpenWalletModal} />} />
             <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
             <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
-            
-            {/* --- ROUTE ADMIN --- */}
-            <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
-            <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-            {/* --- PERUBAHAN ROUTE --- */}
-            <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
-            <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
-
-
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
+            
+            {/* --- GRUP ROUTE WARUNG KRIPTO --- */}
             <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
+            <Route path="/warung-kripto/order/:orderId" element={<PageUserOrder currentUser={userForHeader} />} />
+
+            {/* --- GRUP ROUTE ADMIN --- */}
+            {currentUser?.role === 'admin' && (
+                <>
+                    <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
+                    <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+                    <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
+                    <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
+                    {/* --- RUTE BARU DI SINI --- */}
+                    <Route path="/admin/rekening" element={<PageAdminRekening />} />
+                </>
+            )}
+
+            {/* --- ROUTE LAIN-LAIN --- */}
             <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
             <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
           </Routes>
@@ -234,3 +242,4 @@ export default function App() {
     </div>
   );
 }
+
