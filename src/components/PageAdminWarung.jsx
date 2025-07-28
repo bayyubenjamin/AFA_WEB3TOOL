@@ -1,9 +1,10 @@
+// src/components/PageAdminWarung.jsx
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faSave, faSpinner, faSync, faCogs, faArrowLeft, faLock, faLockOpen, faTrash, faPlus, 
-    faCheck, faTimes, faPlusCircle, faCoins, faMoneyBillWave, faChevronDown, faChevronUp, faBook, 
-    faWrench, faEdit, faTimesCircle, faUpload, faExternalLinkAlt
+    faSave, faSpinner, faSync, faCogs, faArrowLeft, faTrash, faPlus, 
+    faChevronDown, faChevronUp, faWrench, faEdit, faTimesCircle, faPlusCircle
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
@@ -63,81 +64,128 @@ const CoinSettingsPanel = ({ groupedRates, handleSaveSettings, handleToggleBlock
     return ( <div className="space-y-4"> <div className="flex justify-between items-center mb-3"> <h2 className="text-2xl font-bold flex items-center gap-3"><FontAwesomeIcon icon={faWrench} /> Pengaturan Jaringan & Koin</h2> <div className="flex gap-2"><button onClick={() => setAddingToNetwork('NEW')} className="btn-primary text-sm"><FontAwesomeIcon icon={faPlus} /> Tambah Jaringan</button><button onClick={handleManualRefresh} disabled={isRefreshing} className="btn-secondary text-sm"><FontAwesomeIcon icon={faSync} className={isRefreshing ? 'animate-spin' : ''} /> {isRefreshing ? '...' : 'Refresh Harga'}</button> </div></div> {addingToNetwork === 'NEW' && <AddNewCoinForm onSave={handleAddAndClose} onCancel={() => setAddingToNetwork(null)} />} <div className="space-y-4"> {Object.keys(groupedRates).length > 0 ? Object.keys(groupedRates).map(network => ( <div key={network} className="bg-gray-800/50 border border-gray-700 rounded-lg"> <div className="flex justify-between items-center p-4"> <button onClick={() => toggleNetwork(network)} className="flex-grow flex items-center text-left gap-3"> <img src={groupedRates[network].network_icon || 'https://via.placeholder.com/24'} alt={network} className="w-6 h-6 rounded-full bg-gray-700" /> <h3 className="text-lg font-semibold text-primary">{network} <span className="text-xs text-gray-400 ml-2">({groupedRates[network].coins.length} koin)</span></h3> </button> <div className="flex items-center gap-2"><button onClick={() => setEditingNetwork({name: network, icon: groupedRates[network].network_icon})} className="text-gray-400 hover:text-white"><FontAwesomeIcon icon={faCogs}/></button><button onClick={() => toggleNetwork(network)} className="text-gray-400 hover:text-white"><FontAwesomeIcon icon={openNetworks[network] ? faChevronUp : faChevronDown} /></button></div></div> {editingNetwork?.name === network && (<form onSubmit={handleEditNetworkSubmit} className="p-4 border-t border-gray-700 space-y-2"><label className="text-xs font-semibold text-white">Ubah Nama Jaringan</label><input name="newName" defaultValue={network} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full"/><label className="text-xs font-semibold text-white">URL Ikon Jaringan</label><input name="newIcon" defaultValue={editingNetwork.icon || ''} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full"/><div className="flex gap-2 justify-end pt-2"><button type="button" onClick={() => setEditingNetwork(null)} className="btn-secondary text-xs">Batal</button><button type="submit" className="btn-primary text-xs">Simpan</button></div></form>)} {openNetworks[network] && ( <div className="p-4 border-t border-gray-700 space-y-3"> {groupedRates[network].coins.map(rate => ( editingCoinId === rate.id ? ( <CoinSettingsEditor key={rate.id} rate={rate} onSave={handleSaveAndClose} onToggleBlock={handleToggleBlock} onDelete={handleDeleteCoin} usdToIdrRate={usdToIdrRate} onCancel={() => setEditingCoinId(null)} /> ) : ( <CoinRow key={rate.id} rate={rate} onEdit={setEditingCoinId} /> ) ))} <div className="pt-2"> {addingToNetwork === network ? ( <AddNewCoinForm onSave={handleAddAndClose} onCancel={() => setAddingToNetwork(null)} defaultNetwork={network} /> ) : ( <button onClick={() => { setAddingToNetwork(network); setEditingCoinId(null); }} className="btn-primary-outline text-xs w-full"> <FontAwesomeIcon icon={faPlusCircle} className="mr-2"/> Tambah Koin ke {network} </button> )} </div> </div> )} </div> )) : <p className="text-gray-400 text-center py-8">Tidak ada koin.</p>} </div> </div> );
 };
 
-const OrderBookPanel = ({ transactions, handleUpdateTransaction, handleUploadProof }) => {
-    const [proofFile, setProofFile] = useState(null);
-    const [uploadingTxId, setUploadingTxId] = useState(null);
-    const onFileChange = (e, txId) => { if(e.target.files.length > 0) setProofFile({ file: e.target.files[0], txId }); };
-    const onUpload = async (txId) => { if (proofFile && proofFile.txId === txId) { setUploadingTxId(txId); await handleUploadProof(txId, proofFile.file); setProofFile(null); setUploadingTxId(null); } };
-    return ( <div className="space-y-4"> <h2 className="text-2xl font-bold mb-3"><FontAwesomeIcon icon={faBook} /> Buku Order</h2> <div className="overflow-x-auto bg-gray-800/50 rounded-lg border border-gray-700"> <table className="w-full text-sm text-left text-gray-400"> <thead className="text-xs text-gray-100 uppercase bg-gray-700/50"> <tr> <th className="px-6 py-3">Waktu</th><th className="px-6 py-3">Detail</th><th className="px-6 py-3">Bukti</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Aksi</th> </tr> </thead> <tbody> {transactions && transactions.length > 0 ? transactions.map(tx => ( <tr key={tx.id} className="bg-transparent border-b border-gray-700 hover:bg-white/5"> <td className="px-6 py-4 text-xs">{new Date(tx.created_at).toLocaleString('id-ID')}</td> <td className="px-6 py-4"><span className={`font-bold ${tx.type === 'beli' ? 'text-green-400' : 'text-red-400'}`}>{tx.type.toUpperCase()}</span><div>{tx.type === 'beli' ? `${Number(tx.amount_crypto).toFixed(6)} ${tx.token_symbol}` : `Rp ${Number(tx.amount_fiat).toLocaleString()}`}</div><div className="text-xs text-gray-500 font-mono" title={tx.user_id}>User: {tx.user_id ? tx.user_id.substring(0, 8) : 'N/A'}...</div></td> <td className="px-6 py-4 text-xs space-y-2"> <div className="flex gap-2"> {tx.proof_url && <a href={tx.proof_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">User <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a>} {tx.admin_proof_url && <a href={tx.admin_proof_url} target="_blank" rel="noopener noreferrer" className="btn-success text-xs">Admin <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a>} </div><div className="flex items-center gap-2"><input type="file" onChange={(e) => onFileChange(e, tx.id)} className="input-file dark:bg-slate-900 dark:border-slate-700 text-xs w-full"/><button onClick={() => onUpload(tx.id)} disabled={!proofFile || proofFile.txId !== tx.id || uploadingTxId === tx.id} className="btn-primary p-2">{uploadingTxId === tx.id ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUpload}/>}</button></div></td> <td className="px-6 py-4">{tx.status}</td> <td className="px-6 py-4 flex gap-2"><button onClick={() => handleUpdateTransaction(tx.id, 'completed')} className="btn-success p-2"><FontAwesomeIcon icon={faCheck} /></button><button onClick={() => handleUpdateTransaction(tx.id, 'rejected')} className="btn-danger p-2"><FontAwesomeIcon icon={faTimes} /></button></td> </tr> )) : ( <tr><td colSpan="5" className="text-center py-8 text-gray-500">Tidak ada transaksi.</td></tr> )} </tbody> </table> </div> </div> );
-};
-
 // --- Komponen Utama Halaman Admin ---
 export default function PageAdminWarung({ currentUser }) {
     const [rates, setRates] = useState([]);
-    const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [usdToIdrRate, setUsdToIdrRate] = useState(16500);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
-    const [activeView, setActiveView] = useState('settings');
-    const groupedRates = useMemo(() => { if (!rates) return {}; return rates.reduce((acc, rate) => { const network = rate.network || 'Lainnya'; if (!acc[network]) acc[network] = { coins: [], network_icon: rate.network_icon }; acc[network].coins.push(rate); return acc; }, {}); }, [rates]);
-    const fetchData = useCallback(async () => { try { const ratesPromise = supabase.from('crypto_rates').select('*').order('network'); const transPromise = supabase.from('warung_transactions').select(`*`).order('created_at', { ascending: false }); const [ratesRes, transRes] = await Promise.all([ratesPromise, transPromise]); if (ratesRes.error) throw ratesRes.error; if (transRes.error) throw transRes.error; setRates(ratesRes.data || []); setTransactions(transRes.data || []); const rate = await getUsdToIdrRate(); setUsdToIdrRate(rate); } catch (err) { console.error("Gagal memuat data admin:", err); setError(err.message); } finally { setIsLoading(false); } }, []);
-    useEffect(() => { setIsLoading(true); fetchData(); const channel = supabase.channel('realtime-admin-all').on('postgres_changes', { event: '*', schema: 'public' }, () => fetchData()).subscribe(); return () => supabase.removeChannel(channel); }, [fetchData]);
-    const handleSaveSettings = async (id, dataToSave) => { const { error } = await supabase.from('crypto_rates').update(dataToSave).eq('id', id); if (error) alert('Gagal menyimpan: ' + error.message); else { alert('Pengaturan berhasil disimpan!'); fetchData(); } };
-    const handleToggleBlock = async (id, blockStatus) => { const { error } = await supabase.from('crypto_rates').update({ is_trade_blocked: blockStatus }).eq('id', id); if (error) alert('Gagal mengubah status blokir: ' + error.message); else fetchData(); };
-    const handleUpdateTransaction = async (id, status) => { const { error } = await supabase.from('warung_transactions').update({ status }).eq('id', id); if (error) alert('Gagal update transaksi: ' + error.message); else fetchData(); };
-    const handleManualRefresh = async () => { setIsRefreshing(true); const { data, error } = await supabase.functions.invoke('get-market-data'); if (error) alert('Gagal menyegarkan harga: ' + error.message); else alert(data.message || 'Permintaan refresh berhasil dikirim!'); setIsRefreshing(false); };
-    const handleAddNewCoin = async (newCoinData, callback) => { const { error } = await supabase.from('crypto_rates').insert([newCoinData]); if (error) { alert('Gagal menambah koin baru: ' + error.message); console.error(error); } else { alert('Koin baru berhasil ditambahkan!'); if(callback) callback(); } };
-    const handleDeleteCoin = async (id) => { const { error } = await supabase.from('crypto_rates').delete().eq('id', id); if (error) { alert('Gagal menghapus koin: ' + error.message); } else { alert('Koin berhasil dihapus.'); fetchData(); } };
-    const handleEditNetwork = async (oldName, newName, newIcon) => { const { error } = await supabase.from('crypto_rates').update({ network: newName, network_icon: newIcon }).eq('network', oldName); if (error) { alert(`Gagal mengubah jaringan: ${error.message}`); } else { alert(`Jaringan ${oldName} berhasil diubah.`); fetchData(); } };
-    const handleUploadProof = async (txId, file) => { if (!file) return; const filePath = `admin_proofs/${txId}-${file.name}`; const { error: uploadError } = await supabase.storage.from('warung-files').upload(filePath, file, { upsert: true }); if (uploadError) { alert('Gagal upload: ' + uploadError.message); return; } const { data } = supabase.storage.from('warung-files').getPublicUrl(filePath); const { error: updateError } = await supabase.from('warung_transactions').update({ admin_proof_url: data.publicUrl }).eq('id', txId); if (updateError) { alert('Gagal update URL: ' + updateError.message); } else { alert('Bukti berhasil diunggah!'); fetchData(); } };
-    const SidebarButton = ({ view, label, icon }) => ( <button onClick={() => setActiveView(view)} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md transition-colors ${activeView === view ? 'bg-primary text-white' : 'text-gray-300 hover:bg-gray-700'}`}><FontAwesomeIcon icon={icon} /><span>{label}</span></button> );
-    return ( 
-        <section className="page-content space-y-6 py-8"> 
-            <div className="flex justify-between items-center"> 
-                <h1 className="text-2xl font-bold">Admin Warung Kripto</h1> 
-                <Link to="/warung-kripto" className="btn-secondary text-sm"> 
-                    <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Kembali ke Warung 
-                </Link> 
-            </div> 
-            <div className="flex flex-col md:flex-row gap-6"> 
-                <aside className="md:w-1/4 lg:w-1/5"> 
-                    <div className="bg-gray-800/50 p-4 rounded-lg space-y-2 border border-gray-700 sticky top-24"> 
-                        <SidebarButton view="settings" label="Pengaturan Jaringan" icon={faWrench} /> 
-                        <SidebarButton view="orders" label="Buku Order" icon={faBook} /> 
-                    </div> 
-                </aside> 
-                <main className="flex-grow"> 
-                    {isLoading && <div className="text-center p-8"><FontAwesomeIcon icon={faSpinner} spin size="2x" /><p>Memuat data...</p></div>} 
-                    {!isLoading && error && <div className="bg-red-500/10 text-red-400 p-4 rounded-lg">Error: {error}</div>} 
-                    {!isLoading && !error && ( 
-                        <> 
-                            {activeView === 'settings' && ( 
-                                <CoinSettingsPanel 
-                                    groupedRates={groupedRates} 
-                                    handleSaveSettings={handleSaveSettings} 
-                                    handleToggleBlock={handleToggleBlock} 
-                                    handleDeleteCoin={handleDeleteCoin} 
-                                    handleEditNetwork={handleEditNetwork} 
-                                    usdToIdrRate={usdToIdrRate} 
-                                    handleManualRefresh={handleManualRefresh} 
-                                    isRefreshing={isRefreshing} 
-                                    handleAddNewCoin={handleAddNewCoin} 
-                                    fetchData={fetchData} 
-                                /> 
-                            )} 
-                            {activeView === 'orders' && ( 
-                                <OrderBookPanel 
-                                    transactions={transactions} 
-                                    handleUpdateTransaction={handleUpdateTransaction} 
-                                    handleUploadProof={handleUploadProof}
-                                /> 
-                            )} 
-                        </> 
-                    )} 
-                </main> 
-            </div> 
-        </section> 
+
+    const groupedRates = useMemo(() => {
+        if (!rates) return {};
+        return rates.reduce((acc, rate) => {
+            const network = rate.network || 'Lainnya';
+            if (!acc[network]) {
+                acc[network] = { coins: [], network_icon: rate.network_icon };
+            }
+            acc[network].coins.push(rate);
+            return acc;
+        }, {});
+    }, [rates]);
+
+    const fetchData = useCallback(async () => {
+        try {
+            const { data, error } = await supabase.from('crypto_rates').select('*').order('network');
+            if (error) throw error;
+            setRates(data || []);
+            const rate = await getUsdToIdrRate();
+            setUsdToIdrRate(rate);
+        } catch (err) {
+            console.error("Gagal memuat data admin:", err);
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        setIsLoading(true);
+        fetchData();
+        const channel = supabase.channel('realtime-admin-rates').on('postgres_changes', { event: '*', schema: 'public', table: 'crypto_rates' }, () => fetchData()).subscribe();
+        return () => supabase.removeChannel(channel);
+    }, [fetchData]);
+
+    const handleSaveSettings = async (id, dataToSave) => {
+        const { error } = await supabase.from('crypto_rates').update(dataToSave).eq('id', id);
+        if (error) alert('Gagal menyimpan: ' + error.message);
+        else {
+            alert('Pengaturan berhasil disimpan!');
+            fetchData();
+        }
+    };
+
+    const handleToggleBlock = async (id, blockStatus) => {
+        const { error } = await supabase.from('crypto_rates').update({ is_trade_blocked: blockStatus }).eq('id', id);
+        if (error) alert('Gagal mengubah status blokir: ' + error.message);
+        else fetchData();
+    };
+    
+    const handleManualRefresh = async () => {
+        setIsRefreshing(true);
+        const { data, error } = await supabase.functions.invoke('get-market-data');
+        if (error) alert('Gagal menyegarkan harga: ' + error.message);
+        else alert(data.message || 'Permintaan refresh berhasil dikirim!');
+        setIsRefreshing(false);
+    };
+
+    const handleAddNewCoin = async (newCoinData, callback) => {
+        const { error } = await supabase.from('crypto_rates').insert([newCoinData]);
+        if (error) {
+            alert('Gagal menambah koin baru: ' + error.message);
+            console.error(error);
+        } else {
+            alert('Koin baru berhasil ditambahkan!');
+            if(callback) callback();
+        }
+    };
+
+    const handleDeleteCoin = async (id) => {
+        const { error } = await supabase.from('crypto_rates').delete().eq('id', id);
+        if (error) {
+            alert('Gagal menghapus koin: ' + error.message);
+        } else {
+            alert('Koin berhasil dihapus.');
+            fetchData();
+        }
+    };
+    
+    const handleEditNetwork = async (oldName, newName, newIcon) => {
+        const { error } = await supabase.from('crypto_rates').update({ network: newName, network_icon: newIcon }).eq('network', oldName);
+        if (error) {
+            alert(`Gagal mengubah jaringan: ${error.message}`);
+        } else {
+            alert(`Jaringan ${oldName} berhasil diubah.`);
+            fetchData();
+        }
+    };
+    
+    return (
+        <section className="page-content space-y-6 py-8">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Admin Warung Kripto</h1>
+                <Link to="/admin" className="btn-secondary text-sm">
+                    <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Kembali ke Dashboard
+                </Link>
+            </div>
+            <main>
+                {isLoading && <div className="text-center p-8"><FontAwesomeIcon icon={faSpinner} spin size="2x" /><p>Memuat data...</p></div>}
+                {!isLoading && error && <div className="bg-red-500/10 text-red-400 p-4 rounded-lg">Error: {error}</div>}
+                {!isLoading && !error && (
+                    <CoinSettingsPanel
+                        groupedRates={groupedRates}
+                        handleSaveSettings={handleSaveSettings}
+                        handleToggleBlock={handleToggleBlock}
+                        handleDeleteCoin={handleDeleteCoin}
+                        handleEditNetwork={handleEditNetwork}
+                        usdToIdrRate={usdToIdrRate}
+                        handleManualRefresh={handleManualRefresh}
+                        isRefreshing={isRefreshing}
+                        handleAddNewCoin={handleAddNewCoin}
+                        fetchData={fetchData}
+                    />
+                )}
+            </main>
+        </section>
     );
 }
-

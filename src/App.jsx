@@ -1,3 +1,5 @@
+// src/App.jsx
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
@@ -25,9 +27,9 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageWarungKripto from './components/PageWarungKripto';
 import PageLoginWithTelegram from './components/PageLoginWithTelegram';
 import TelegramAuthCallback from './components/TelegramAuthCallback';
-
-// --- TAMBAHKAN IMPORT INI ---
 import PageAdminWarung from './components/PageAdminWarung'; 
+// --- PENAMBAHAN IMPORT BARU ---
+import PageAdminOrderBook from './components/PageAdminOrderBook';
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -56,7 +58,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     address: profileData?.web3_address || null,
     telegram_user_id: profileData?.telegram_user_id || null,
     user_metadata: authUser.user_metadata || {},
-    role: profileData?.role || 'user', // Menambahkan role
+    role: profileData?.role || 'user',
   };
 };
 
@@ -86,7 +88,7 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
-  // --- BLOK AUTENTIKASI ---
+  // ... (Blok autentikasi dan fungsi lainnya tetap sama)
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleSessionUpdate = async (session) => {
@@ -158,7 +160,7 @@ export default function App() {
   const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
@@ -166,7 +168,6 @@ export default function App() {
   
   const userForHeader = currentUser || defaultGuestUserForApp;
 
-  // --- [PERUBAHAN] Logika untuk menampilkan/menyembunyikan Header dan BottomNav ---
   const noNavRoutes = [
       '/admin', 
       '/admin/events',
@@ -188,7 +189,6 @@ export default function App() {
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
 
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
-        {/* Konten Routes hanya akan dirender setelah loading selesai */}
         {!loadingInitialSession ? (
           <Routes>
             <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
@@ -209,7 +209,10 @@ export default function App() {
             {/* --- ROUTE ADMIN --- */}
             <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
             <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-            <Route path="/admin-warung" element={<PageAdminWarung currentUser={userForHeader} />} />
+            {/* --- PERUBAHAN ROUTE --- */}
+            <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
+            <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
+
 
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
             <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
@@ -224,7 +227,6 @@ export default function App() {
       {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
       <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
       
-      {/* Layar Loading Global */}
       <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg transition-opacity duration-500 ${loadingInitialSession ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
         <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
