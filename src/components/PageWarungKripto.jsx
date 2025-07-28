@@ -241,7 +241,7 @@ export default function PageWarungKripto({ currentUser }) {
                 <FontAwesomeIcon icon={faStore} className="text-primary text-5xl mb-3"/>
                 <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Warung Kripto AFA</h1>
                 <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                    Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.
+                    Platform jual beli krpto eceran untuk kebutuhan gassfee anda, aman, dan tanpa hambatan.
                 </p>
             </div>
             
@@ -270,26 +270,48 @@ export default function PageWarungKripto({ currentUser }) {
                                 </div>
 
                                 <div className="flex flex-col md:flex-row items-center gap-4">
+                                    {/* --- INPUT DENGAN PERUBAHAN --- */}
                                     <div className="w-full">
-                                        <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar (IDR)' : 'Anda Jual (Aset)'}</label>
-                                        <input type="number" placeholder="0" value={inputAmount} onChange={e => setInputAmount(e.target.value)} className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"/>
-                                        {/* --- FUNGSI DIKEMBALIKAN --- */}
+                                        <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar' : 'Anda Jual'}</label>
+                                        <div className="relative flex items-center">
+                                            {activeTab === 'beli' && (
+                                                <span className="text-3xl font-semibold text-light-text dark:text-dark-text mr-2">Rp</span>
+                                            )}
+                                            <input 
+                                                type="number" 
+                                                placeholder="0" 
+                                                value={inputAmount} 
+                                                onChange={e => setInputAmount(e.target.value)} 
+                                                className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"
+                                            />
+                                            {activeTab === 'jual' && selectedCoin && (
+                                                <span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>
+                                            )}
+                                        </div>
                                         {activeTab === 'jual' && baseFiatValue > 0 && (
                                             <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ Rp {baseFiatValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
                                         )}
                                     </div>
-                                    <div className="flex items-center justify-center p-2 bg-light-bg dark:bg-dark-bg rounded-full border border-light-border dark:border-dark-border">
+
+                                    <div className="flex items-center justify-center p-2 bg-light-bg dark:bg-dark-bg rounded-full border border-light-border dark:border-dark-border my-2 md:my-0">
                                         <FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-lg" />
                                     </div>
+
+                                    {/* --- OUTPUT DENGAN PERUBAHAN --- */}
                                     <div className="w-full text-left md:text-right">
                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Anda Dapat (Estimasi)</label>
-                                        <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2">{activeTab === 'beli' ? (cryptoAmount || 0).toFixed(6) : 'Rp ' + Math.floor(fiatAmount || 0).toLocaleString('id-ID')}</p>
-                                        {/* --- FUNGSI DIKEMBALIKAN --- */}
+                                        <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">
+                                            {activeTab === 'beli' 
+                                                ? <>{(cryptoAmount || 0).toFixed(6)} <span className="text-xl text-light-text-secondary dark:text-dark-text-secondary">{selectedCoin?.token_symbol || ''}</span></>
+                                                : `Rp ${Math.floor(fiatAmount || 0).toLocaleString('id-ID')}`
+                                            }
+                                        </p>
                                         {activeTab === 'beli' && usdtValue > 0 && (
                                             <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2 text-right">≈ ${usdtValue.toFixed(2)} USDT</div>
                                         )}
                                     </div>
                                 </div>
+
 
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-1 block">Pilih Aset</label>
