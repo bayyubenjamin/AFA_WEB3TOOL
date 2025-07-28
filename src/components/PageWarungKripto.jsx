@@ -12,6 +12,10 @@ import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
 import { Link } from 'react-router-dom';
 
+// --- Kunci Cache dan Durasi ---
+const RATES_CACHE_KEY = 'warungKriptoRatesCache';
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // Cache berlaku selama 5 menit
+
 // --- Komponen-komponen UI (Helper) yang Didesain Ulang ---
 
 const InfoCard = ({ icon, title, children }) => (
@@ -170,32 +174,71 @@ export default function PageWarungKripto({ currentUser }) {
         return { groupedRates: groups, cryptoAmount: cryptoOutput, fiatAmount: fiatOutput, finalPrice: finalUserPrice, adminProfit: profit, isApiNotSet: apiNotSet, baseFiatValue: baseValue, usdtValue: usdtAmount, marketPriceUsdt: marketPriceUSD };
     }, [rates, inputAmount, selectedCoin, activeTab, usdToIdrRate]);
     
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
+    const fetchData = useCallback(async (isInitialLoad = false) => {
+        if (isInitialLoad) {
+            const hasCache = localStorage.getItem(RATES_CACHE_KEY);
+            if (!hasCache) {
+                setIsLoading(true);
+            }
+        }
+
+        // 1. Coba muat dari cache untuk UI instan
+        if (typeof window !== 'undefined') {
+            try {
+                const cachedDataJSON = localStorage.getItem(RATES_CACHE_KEY);
+                if (cachedDataJSON) {
+                    const cachedData = JSON.parse(cachedDataJSON);
+                    const isCacheValid = (Date.now() - cachedData.timestamp) < CACHE_EXPIRATION_MS;
+                    if (isCacheValid && cachedData.rates && cachedData.usdToIdrRate) {
+                        setRates(cachedData.rates);
+                        setUsdToIdrRate(cachedData.usdToIdrRate);
+
+                        if (isInitialLoad && cachedData.rates.length > 0 && !selectedNetwork) {
+                            const firstNetworkName = cachedData.rates[0].network;
+                            setSelectedNetwork(firstNetworkName);
+                            setSelectedCoin(cachedData.rates[0]);
+                        }
+                        if(isInitialLoad) setIsLoading(false);
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal memuat dari cache", e);
+                localStorage.removeItem(RATES_CACHE_KEY);
+            }
+        }
+
+        // 2. Selalu ambil data baru dari jaringan
         try {
             const ratesPromise = supabase.from('crypto_rates').select('*').eq('is_active', true).order('network');
             const txPromise = currentUser ? supabase.from('warung_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(10) : Promise.resolve({ data: [] });
             const adminPayPromise = supabase.from('admin_payment_methods').select('*');
+            const ratePromise = getUsdToIdrRate();
             
-            const [ratesRes, txRes, adminPayRes] = await Promise.all([ratesPromise, txPromise, adminPayPromise]);
+            const [ratesRes, txRes, adminPayRes, freshUsdRate] = await Promise.all([ratesPromise, txPromise, adminPayPromise, ratePromise]);
 
             if (ratesRes.error) throw ratesRes.error;
             if (txRes.error) throw txRes.error;
             if (adminPayRes.error) throw adminPayRes.error;
 
             const ratesData = ratesRes.data || [];
+            
             setRates(ratesData);
             setHistory(txRes.data || []);
             setAdminPaymentMethods(adminPayRes.data || []);
+            setUsdToIdrRate(freshUsdRate);
             
-            if (ratesData.length > 0 && !selectedNetwork) {
+            if (typeof window !== 'undefined') {
+                try {
+                    const cachePayload = { rates: ratesData, usdToIdrRate: freshUsdRate, timestamp: Date.now() };
+                    localStorage.setItem(RATES_CACHE_KEY, JSON.stringify(cachePayload));
+                } catch (e) { console.error("Gagal menyimpan ke cache", e); }
+            }
+
+            if (isInitialLoad && ratesData.length > 0 && !selectedNetwork) {
                 const firstNetworkName = ratesData[0].network;
                 setSelectedNetwork(firstNetworkName);
                 setSelectedCoin(ratesData[0]);
             }
-            
-            const rate = await getUsdToIdrRate();
-            setUsdToIdrRate(rate);
         } catch (err) {
             console.error("Gagal memuat data warung:", err);
             setError(err.message);
@@ -205,10 +248,14 @@ export default function PageWarungKripto({ currentUser }) {
     }, [currentUser, selectedNetwork]);
 
     useEffect(() => {
-        fetchData();
-        const channel = supabase.channel('public:crypto_rates_user').on('postgres_changes', { event: '*', schema: 'public', table: 'crypto_rates' }, () => fetchData()).subscribe();
+        fetchData(true); // Tandai sebagai pemuatan awal
+        const channel = supabase.channel('public:crypto_rates_user').on('postgres_changes', { event: '*', schema: 'public', table: 'crypto_rates' }, () => {
+            if (typeof window !== 'undefined') localStorage.removeItem(RATES_CACHE_KEY); // Invalidate cache
+            fetchData(false); // Ambil data baru tanpa loading screen
+        }).subscribe();
         return () => supabase.removeChannel(channel);
     }, [fetchData]);
+
 
     const handleProceed = () => { /* ... (fungsi tidak berubah) ... */ };
     const handleFinalSubmit = async () => { /* ... (fungsi tidak berubah) ... */ };
@@ -239,9 +286,9 @@ export default function PageWarungKripto({ currentUser }) {
             
             <div className="text-center mb-8">
                 <FontAwesomeIcon icon={faStore} className="text-primary text-5xl mb-3"/>
-                <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Warung Kripto AFA</h1>
+                <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Pasar Kripto Instan</h1>
                 <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                    Platform jual beli krpto eceran untuk kebutuhan gassfee anda, aman, dan tanpa hambatan.
+                    Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.
                 </p>
             </div>
             
@@ -270,7 +317,6 @@ export default function PageWarungKripto({ currentUser }) {
                                 </div>
 
                                 <div className="flex flex-col md:flex-row items-center gap-4">
-                                    {/* --- INPUT DENGAN PERUBAHAN --- */}
                                     <div className="w-full">
                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar' : 'Anda Jual'}</label>
                                         <div className="relative flex items-center">
@@ -288,8 +334,9 @@ export default function PageWarungKripto({ currentUser }) {
                                                 <span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>
                                             )}
                                         </div>
-                                        {activeTab === 'jual' && baseFiatValue > 0 && (
-                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ Rp {baseFiatValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
+                                        {/* --- PERUBAHAN DI SINI --- */}
+                                        {activeTab === 'jual' && usdtValue > 0 && (
+                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ $ {usdtValue.toFixed(2)} USDT</div>
                                         )}
                                     </div>
 
@@ -297,7 +344,6 @@ export default function PageWarungKripto({ currentUser }) {
                                         <FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-lg" />
                                     </div>
 
-                                    {/* --- OUTPUT DENGAN PERUBAHAN --- */}
                                     <div className="w-full text-left md:text-right">
                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Anda Dapat (Estimasi)</label>
                                         <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">
@@ -397,3 +443,4 @@ export default function PageWarungKripto({ currentUser }) {
         </section>
     );
 }
+
