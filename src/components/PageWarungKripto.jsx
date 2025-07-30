@@ -1,5 +1,5 @@
 // src/components/PageWarungKripto.jsx
-// PENAMBAHAN: Tombol link ke halaman Pengaturan Rekening Admin.
+// PERBAIKAN FINAL: Menghapus field 'token_chain' yang tidak ada di database.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,7 +8,7 @@ import {
     faBolt, faSpinner, faExclamationTriangle, faHistory, faCogs,
     faReceipt, faAngleDown, faAngleUp, faExternalLinkAlt, faGasPump,
     faSignature, faUniversity, faMobileAlt, faBoxOpen, faBook, faShieldAlt, faInfoCircle, faCommentDots,
-    faLandmark // Icon baru untuk rekening
+    faLandmark
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
@@ -62,9 +62,9 @@ const TransactionHistoryItem = ({ tx }) => {
             </button>
             {isExpanded && (
                 <div className="bg-light-hover dark:bg-dark-hover p-3 text-xs space-y-2 text-light-text-secondary dark:text-dark-text-secondary rounded-b-md">
-                     <div className="flex justify-between"><span>Status:</span> <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${status.color}`}>{status.text}</span></div>
-                     <div className="flex justify-between"><span>ID Pesanan:</span> <span className="font-mono">{tx.id}</span></div>
-                     <div className="flex justify-between"><span>Rupiah:</span> <span className="font-mono">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span></div>
+                      <div className="flex justify-between"><span>Status:</span> <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${status.color}`}>{status.text}</span></div>
+                      <div className="flex justify-between"><span>ID Pesanan:</span> <span className="font-mono">{tx.id}</span></div>
+                      <div className="flex justify-between"><span>Rupiah:</span> <span className="font-mono">Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</span></div>
                     {isBuy ? <p><strong>Wallet:</strong> <span className="font-mono break-all">{tx.wallet_address}</span></p> : <p><strong>Info Bayar:</strong> <span className="font-mono break-all">{JSON.stringify(tx.user_payment_info)}</span></p>}
                     <Link to={`/warung-kripto/order/${tx.id}`} className="text-primary hover:underline font-bold flex items-center gap-2 pt-1">
                         <FontAwesomeIcon icon={faCommentDots} /> Lihat Detail Pesanan
@@ -232,12 +232,15 @@ export default function PageWarungKripto({ currentUser }) {
                 user_id: currentUser.id,
                 order_type: activeTab, 
                 token_symbol: selectedCoin.token_symbol,
-                network: selectedCoin.network,
+                // ## PERBAIKAN DI SINI ##
+                // Field 'network' sudah ada di tabel, jadi kita gunakan ini.
+                // Field 'token_chain' yang menyebabkan error sudah dihapus.
+                network: selectedCoin.network, 
                 amount_crypto: cryptoAmount,
                 amount_idr: finalPrice,
-                status: activeTab === 'beli' ? 'awaiting_payment' : 'awaiting_confirmation',
+                status: 'awaiting_payment',
                 wallet_address: activeTab === 'beli' ? walletAddress : null,
-                user_payment_info: activeTab === 'jual' ? { ...userPaymentInfo, details: `${userPaymentInfo.method.toUpperCase()}: ${userPaymentInfo.details}` } : null,
+                user_payment_info: activeTab === 'jual' ? { fullName: userPaymentInfo.fullName, details: `${userPaymentInfo.method.toUpperCase()}: ${userPaymentInfo.details}` } : null,
             };
             const { data: newOrder, error } = await supabase.from('warung_transactions').insert(transactionData).select().single();
             if (error) {
@@ -265,7 +268,6 @@ export default function PageWarungKripto({ currentUser }) {
                 <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.</p>
             </div>
 
-            {/* ## PENAMBAHAN TOMBOL PENGATURAN REKENING ## */}
             {isAdmin && (
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
                     <Link to="/admin/warung-jaringan" className="btn-secondary text-sm flex items-center gap-2"><FontAwesomeIcon icon={faCogs} /> Pengaturan Jaringan</Link>
@@ -287,20 +289,20 @@ export default function PageWarungKripto({ currentUser }) {
                                 </div>
                                 <div className="flex flex-col md:flex-row items-center gap-4">
                                      <div className="w-full">
-                                        <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar' : 'Anda Jual'}</label>
-                                        <div className="relative flex items-center">
-                                            {activeTab === 'beli' && (<span className="text-3xl font-semibold text-light-text dark:text-dark-text mr-2">Rp</span>)}
-                                            <input type="number" placeholder="0" value={inputAmount} onChange={e => setInputAmount(e.target.value)} className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"/>
-                                            {activeTab === 'jual' && selectedCoin && (<span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>)}
-                                        </div>
-                                        {activeTab === 'jual' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ $ {usdtValue.toFixed(2)} USDT</div>)}
-                                    </div>
+                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{activeTab === 'beli' ? 'Anda Bayar' : 'Anda Jual'}</label>
+                                         <div className="relative flex items-center">
+                                             {activeTab === 'beli' && (<span className="text-3xl font-semibold text-light-text dark:text-dark-text mr-2">Rp</span>)}
+                                             <input type="number" placeholder="0" value={inputAmount} onChange={e => setInputAmount(e.target.value)} className="w-full bg-transparent text-light-text dark:text-dark-text text-3xl font-semibold focus:outline-none p-2 rounded-md -ml-2"/>
+                                             {activeTab === 'jual' && selectedCoin && (<span className="text-xl font-semibold text-light-text-secondary dark:text-dark-text-secondary ml-2">{selectedCoin.token_symbol}</span>)}
+                                         </div>
+                                         {activeTab === 'jual' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2">≈ $ {usdtValue.toFixed(2)} USDT</div>)}
+                                     </div>
                                     <div className="flex items-center justify-center p-2 bg-light-bg dark:bg-dark-bg rounded-full border border-light-border dark:border-dark-border my-2 md:my-0"><FontAwesomeIcon icon={faArrowRightArrowLeft} className="text-gray-500 text-lg" /></div>
-                                    <div className="w-full text-left md:text-right">
-                                        <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Anda Dapat (Estimasi)</label>
-                                        <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">{activeTab === 'beli' ? <>{(cryptoAmount || 0).toFixed(6)} <span className="text-xl text-light-text-secondary dark:text-dark-text-secondary">{selectedCoin?.token_symbol || ''}</span></> : `Rp ${Math.floor(fiatAmount || 0).toLocaleString('id-ID')}`}</p>
-                                        {activeTab === 'beli' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2 text-right">≈ ${usdtValue.toFixed(2)} USDT</div>)}
-                                    </div>
+                                     <div className="w-full text-left md:text-right">
+                                         <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Anda Dapat (Estimasi)</label>
+                                         <p className="text-3xl font-semibold text-light-text dark:text-dark-text p-2 whitespace-nowrap overflow-x-auto custom-scrollbar">{activeTab === 'beli' ? <>{(cryptoAmount || 0).toFixed(6)} <span className="text-xl text-light-text-secondary dark:text-dark-text-secondary">{selectedCoin?.token_symbol || ''}</span></> : `Rp ${Math.floor(fiatAmount || 0).toLocaleString('id-ID')}`}</p>
+                                         {activeTab === 'beli' && usdtValue > 0 && (<div className="text-xs text-light-text-secondary dark:text-dark-text-secondary px-2 text-right">≈ ${usdtValue.toFixed(2)} USDT</div>)}
+                                     </div>
                                 </div>
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-light-text dark:text-dark-text mb-1 block">Pilih Aset</label>
@@ -366,4 +368,3 @@ export default function PageWarungKripto({ currentUser }) {
         </section>
     );
 }
-

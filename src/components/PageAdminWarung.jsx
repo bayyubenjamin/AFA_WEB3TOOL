@@ -1,10 +1,12 @@
 // src/components/PageAdminWarung.jsx
+// PENAMBAHAN: Kolom input untuk 'admin_wallet' di pengaturan koin.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faSave, faSpinner, faSync, faCogs, faArrowLeft, faTrash, faPlus, 
-    faChevronDown, faChevronUp, faWrench, faEdit, faTimesCircle, faPlusCircle
+    faChevronDown, faChevronUp, faWrench, faEdit, faTimesCircle, faPlusCircle,
+    faWallet // Icon untuk wallet
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { getUsdToIdrRate } from '../services/api';
@@ -33,24 +35,133 @@ const CoinSettingsEditor = ({ rate, onSave, onToggleBlock, onDelete, usdToIdrRat
     const [isSaving, setIsSaving] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [coinData, setCoinData] = useState({ coingecko_id: rate.coingecko_id || '', margin_tiers: rate.margin_tiers || [], stock: rate.stock || 0, stock_rupiah: rate.stock_rupiah || 0, icon: rate.icon || '', network: rate.network || '' });
+    // ## PENAMBAHAN: State untuk menyimpan admin_wallet ##
+    const [coinData, setCoinData] = useState({ 
+        coingecko_id: rate.coingecko_id || '', 
+        margin_tiers: rate.margin_tiers || [], 
+        stock: rate.stock || 0, 
+        stock_rupiah: rate.stock_rupiah || 0, 
+        icon: rate.icon || '', 
+        network: rate.network || '',
+        admin_wallet: rate.admin_wallet || '' // Tambahkan ini
+    });
     const handleChange = (field, value) => { setCoinData(prev => ({ ...prev, [field]: value })); };
     const handleSave = async () => { setIsSaving(true); await onSave(rate.id, coinData); setIsSaving(false); };
     const handleToggle = async () => { setIsToggling(true); await onToggleBlock(rate.id, !rate.is_trade_blocked); setIsToggling(false); };
     const handleDelete = async () => { if (window.confirm(`Yakin ingin menghapus koin ${rate.token_name} (${rate.token_symbol})?`)) { setIsDeleting(true); await onDelete(rate.id); setIsDeleting(false); } };
     const marketPriceIdr = rate.market_price_usd ? (rate.market_price_usd * usdToIdrRate).toLocaleString('id-ID') : 'N/A';
-    return ( <div className="card bg-gray-800 p-4 space-y-4 rounded-lg shadow-lg border border-primary/50 relative"> <div className="flex justify-between items-start border-b border-gray-700 pb-2"> <div className="flex items-center gap-3"> <img src={coinData.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-gray-700" /> <div> <h3 className="font-bold text-lg text-white">{rate.token_name} ({rate.token_symbol})</h3> <span className="text-xs font-mono text-gray-400">Harga: Rp {marketPriceIdr}</span></div></div> <button onClick={onCancel} className="text-gray-400 hover:text-white"><FontAwesomeIcon icon={faTimesCircle}/></button></div><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label className="text-xs font-semibold text-gray-400">URL Ikon</label><input type="text" value={coinData.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div><div><label className="text-xs font-semibold text-gray-400">Jaringan</label><input type="text" value={coinData.network} onChange={e => handleChange('network', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div><div><label className="text-xs font-semibold text-gray-400">Stok Koin</label><input type="number" step="any" value={coinData.stock} onChange={e => handleChange('stock', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div><div><label className="text-xs font-semibold text-gray-400">Stok Rupiah</label><input type="number" value={coinData.stock_rupiah} onChange={e => handleChange('stock_rupiah', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div></div><div><label className="text-sm font-semibold text-white">CoinGecko API ID</label><input type="text" placeholder="cth: binancecoin" value={coinData.coingecko_id} onChange={e => handleChange('coingecko_id', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div><MarginTierEditor initialTiers={coinData.margin_tiers} onTiersChange={tiers => handleChange('margin_tiers', tiers)} /><div className="flex gap-2 pt-4"> <button onClick={handleSave} disabled={isSaving || isDeleting} className="btn-primary w-full text-sm flex-grow">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} className="mr-2" /> Simpan</>}</button> <button onClick={handleToggle} disabled={isToggling || isDeleting} className={`${rate.is_trade_blocked ? 'btn-success' : 'btn-secondary'} w-full text-sm flex-grow`}>{isToggling ? <FontAwesomeIcon icon={faSpinner} spin /> : (rate.is_trade_blocked ? "Buka" : "Kunci")}</button> <button onClick={handleDelete} disabled={isDeleting || isSaving} className="btn-danger text-sm p-2">{isDeleting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrash} />}</button> </div></div> );
+    
+    return ( 
+        <div className="card bg-gray-800 p-4 space-y-4 rounded-lg shadow-lg border border-primary/50 relative"> 
+            <div className="flex justify-between items-start border-b border-gray-700 pb-2"> 
+                <div className="flex items-center gap-3"> 
+                    <img src={coinData.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-gray-700" /> 
+                    <div> 
+                        <h3 className="font-bold text-lg text-white">{rate.token_name} ({rate.token_symbol})</h3> 
+                        <span className="text-xs font-mono text-gray-400">Harga: Rp {marketPriceIdr}</span>
+                    </div>
+                </div> 
+                <button onClick={onCancel} className="text-gray-400 hover:text-white"><FontAwesomeIcon icon={faTimesCircle}/></button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><label className="text-xs font-semibold text-gray-400">URL Ikon</label><input type="text" value={coinData.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div>
+                <div><label className="text-xs font-semibold text-gray-400">Jaringan</label><input type="text" value={coinData.network} onChange={e => handleChange('network', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div>
+                <div><label className="text-xs font-semibold text-gray-400">Stok Koin</label><input type="number" step="any" value={coinData.stock} onChange={e => handleChange('stock', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div>
+                <div><label className="text-xs font-semibold text-gray-400">Stok Rupiah</label><input type="number" value={coinData.stock_rupiah} onChange={e => handleChange('stock_rupiah', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" /></div>
+            </div>
+            
+            {/* ## PENAMBAHAN: Input field untuk Alamat Wallet Admin ## */}
+            <div className="space-y-1">
+                <label className="text-sm font-semibold text-white flex items-center gap-2"><FontAwesomeIcon icon={faWallet} /> Alamat Wallet Admin</label>
+                <input 
+                    type="text" 
+                    placeholder="Masukkan alamat wallet untuk menerima aset ini" 
+                    value={coinData.admin_wallet} 
+                    onChange={e => handleChange('admin_wallet', e.target.value)} 
+                    className="input-file dark:bg-slate-900 dark:border-slate-700 w-full" 
+                />
+            </div>
+
+            <div>
+                <label className="text-sm font-semibold text-white">CoinGecko API ID</label>
+                <input type="text" placeholder="cth: binancecoin" value={coinData.coingecko_id} onChange={e => handleChange('coingecko_id', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700 w-full mt-1" />
+            </div>
+            <MarginTierEditor initialTiers={coinData.margin_tiers} onTiersChange={tiers => handleChange('margin_tiers', tiers)} />
+            <div className="flex gap-2 pt-4"> 
+                <button onClick={handleSave} disabled={isSaving || isDeleting} className="btn-primary w-full text-sm flex-grow">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} className="mr-2" /> Simpan</>}</button> 
+                <button onClick={handleToggle} disabled={isToggling || isDeleting} className={`${rate.is_trade_blocked ? 'btn-success' : 'btn-secondary'} w-full text-sm flex-grow`}>{isToggling ? <FontAwesomeIcon icon={faSpinner} spin /> : (rate.is_trade_blocked ? "Buka" : "Kunci")}</button> 
+                <button onClick={handleDelete} disabled={isDeleting || isSaving} className="btn-danger text-sm p-2">{isDeleting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrash} />}</button> 
+            </div>
+        </div> 
+    );
 };
 
 const AddNewCoinForm = ({ onSave, onCancel, defaultNetwork = '' }) => {
-    const [newCoin, setNewCoin] = useState({ token_name: '', token_symbol: '', network: defaultNetwork, icon: '', is_active: true, rate_buy: 0, rate_sell: 0, stock: 0, stock_rupiah: 0, margin_tiers: [], coingecko_id: '' });
+    // ## PENAMBAHAN: State untuk admin_wallet saat menambah koin baru ##
+    const [newCoin, setNewCoin] = useState({ 
+        token_name: '', 
+        token_symbol: '', 
+        network: defaultNetwork, 
+        icon: '', 
+        is_active: true, 
+        rate_buy: 0, 
+        rate_sell: 0, 
+        stock: 0, 
+        stock_rupiah: 0, 
+        margin_tiers: [], 
+        coingecko_id: '',
+        admin_wallet: '' // Tambahkan ini
+    });
     const [isSaving, setIsSaving] = useState(false);
     const handleChange = (field, value) => setNewCoin(prev => ({...prev, [field]: value}));
     const handleSave = async () => { if (!newCoin.token_name || !newCoin.token_symbol || !newCoin.network) { alert('Nama, Simbol, dan Jaringan wajib diisi.'); return; } setIsSaving(true); await onSave(newCoin); setIsSaving(false); };
-    return ( <div className="card bg-gray-900/50 p-6 rounded-lg my-4 border border-primary/50"> <h3 className="text-xl font-bold mb-4">{`Tambah Koin Baru ${defaultNetwork ? `ke Jaringan ${defaultNetwork}`: ''}`}</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> <input type="text" placeholder="Nama Token (cth: Tether)" value={newCoin.token_name} onChange={e => handleChange('token_name', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> <input type="text" placeholder="Simbol (cth: USDT)" value={newCoin.token_symbol} onChange={e => handleChange('token_symbol', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> <input type="text" placeholder="Jaringan (cth: BSC)" value={newCoin.network} onChange={e => handleChange('network', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" readOnly={!!defaultNetwork} /> <input type="text" placeholder="URL Ikon" value={newCoin.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> </div> <div className="flex items-center justify-between mt-4"> <label className="flex items-center gap-2 text-sm"> <input type="checkbox" checked={newCoin.is_active} onChange={e => handleChange('is_active', e.target.checked)} className="form-checkbox" /> Aktifkan Koin </label> <div className="flex gap-2"> <button onClick={onCancel} className="btn-secondary">Batal</button> <button onClick={handleSave} disabled={isSaving} className="btn-primary">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Simpan Koin'}</button> </div> </div> </div> );
+    
+    return ( 
+        <div className="card bg-gray-900/50 p-6 rounded-lg my-4 border border-primary/50"> 
+            <h3 className="text-xl font-bold mb-4">{`Tambah Koin Baru ${defaultNetwork ? `ke Jaringan ${defaultNetwork}`: ''}`}</h3> 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+                <input type="text" placeholder="Nama Token (cth: Tether)" value={newCoin.token_name} onChange={e => handleChange('token_name', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> 
+                <input type="text" placeholder="Simbol (cth: USDT)" value={newCoin.token_symbol} onChange={e => handleChange('token_symbol', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> 
+                <input type="text" placeholder="Jaringan (cth: BSC)" value={newCoin.network} onChange={e => handleChange('network', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" readOnly={!!defaultNetwork} /> 
+                <input type="text" placeholder="URL Ikon" value={newCoin.icon} onChange={e => handleChange('icon', e.target.value)} className="input-file dark:bg-slate-900 dark:border-slate-700" /> 
+            </div> 
+            
+            {/* ## PENAMBAHAN: Input field wallet admin untuk koin baru ## */}
+            <div className="mt-4">
+                <input 
+                    type="text" 
+                    placeholder="Alamat Wallet Admin untuk Koin Ini" 
+                    value={newCoin.admin_wallet} 
+                    onChange={e => handleChange('admin_wallet', e.target.value)} 
+                    className="input-file dark:bg-slate-900 dark:border-slate-700 w-full" 
+                />
+            </div>
+
+            <div className="flex items-center justify-between mt-4"> 
+                <label className="flex items-center gap-2 text-sm"> 
+                    <input type="checkbox" checked={newCoin.is_active} onChange={e => handleChange('is_active', e.target.checked)} className="form-checkbox" /> Aktifkan Koin 
+                </label> 
+                <div className="flex gap-2"> 
+                    <button onClick={onCancel} className="btn-secondary">Batal</button> 
+                    <button onClick={handleSave} disabled={isSaving} className="btn-primary">{isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Simpan Koin'}</button> 
+                </div> 
+            </div> 
+        </div> 
+    );
 };
 
-const CoinRow = ({ rate, onEdit }) => ( <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"> <div className="flex items-center gap-3"> <img src={rate.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-gray-700" /> <div> <span className="font-bold text-white">{rate.token_name} ({rate.token_symbol})</span> <div className={`text-xs ${rate.is_trade_blocked ? 'text-red-400' : 'text-green-400'}`}> {rate.is_trade_blocked ? 'Terkunci' : 'Aktif'} </div> </div> </div> <button onClick={() => onEdit(rate.id)} className="btn-secondary text-xs"> <FontAwesomeIcon icon={faEdit} className="mr-2"/> Edit </button> </div> );
+const CoinRow = ({ rate, onEdit }) => ( 
+    <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"> 
+        <div className="flex items-center gap-3"> 
+            <img src={rate.icon || 'https://via.placeholder.com/32'} alt={rate.token_name} className="w-8 h-8 rounded-full bg-gray-700" /> 
+            <div> 
+                <span className="font-bold text-white">{rate.token_name} ({rate.token_symbol})</span> 
+                <div className={`text-xs ${rate.is_trade_blocked ? 'text-red-400' : 'text-green-400'}`}> {rate.is_trade_blocked ? 'Terkunci' : 'Aktif'} </div> 
+            </div> 
+        </div> 
+        <button onClick={() => onEdit(rate.id)} className="btn-secondary text-xs"> <FontAwesomeIcon icon={faEdit} className="mr-2"/> Edit </button> 
+    </div> 
+);
 
 const CoinSettingsPanel = ({ groupedRates, handleSaveSettings, handleToggleBlock, handleDeleteCoin, handleEditNetwork, usdToIdrRate, handleManualRefresh, isRefreshing, handleAddNewCoin, fetchData }) => {
     const [openNetworks, setOpenNetworks] = useState({});
@@ -189,3 +300,4 @@ export default function PageAdminWarung({ currentUser }) {
         </section>
     );
 }
+

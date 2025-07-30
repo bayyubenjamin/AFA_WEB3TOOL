@@ -1,10 +1,16 @@
-// File: src/components/TransactionChat.jsx
-// PERBAIKAN: Menambahkan key unik pada mapping dan fetching profil pengirim
+// src/components/TransactionChat.jsx
+// PERBAIKAN: Menyamakan bucket & memastikan listener real-time berfungsi optimal.
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane, faSpinner, faPaperclip, faFileImage } from '@fortawesome/free-solid-svg-icons';
+
+// Helper untuk mengecek apakah URL adalah gambar
+const isImageUrl = (url) => {
+    if (!url) return false;
+    return /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+};
 
 export default function TransactionChat({ transactionId, currentUser }) {
     const [messages, setMessages] = useState([]);
@@ -14,23 +20,24 @@ export default function TransactionChat({ transactionId, currentUser }) {
     const [userProfiles, setUserProfiles] = useState({});
     const messagesEndRef = useRef(null);
 
-    const fetchSenderProfile = async (senderId) => {
-        if (userProfiles[senderId]) return userProfiles[senderId];
+    // Dibuat stabil dengan useCallback agar tidak menyebabkan re-render yang tidak perlu
+    const fetchSenderProfile = useCallback(async (senderId) => {
+        // Cek cache dulu untuk menghindari fetch berulang
+        if (userProfiles[senderId]) return;
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('username, avatar_url')
+            .select('username, avatar_url, role')
             .eq('id', senderId)
             .single();
 
         if (!error && data) {
             setUserProfiles(prev => ({ ...prev, [senderId]: data }));
-            return data;
         }
-        return { username: 'User', avatar_url: null };
-    };
+    }, [userProfiles]); // Dependensi ke userProfiles
 
     useEffect(() => {
+        // Fungsi untuk mengambil pesan awal
         const fetchMessages = async () => {
             const { data, error } = await supabase
                 .from('chat_messages')
@@ -40,13 +47,20 @@ export default function TransactionChat({ transactionId, currentUser }) {
 
             if (!error) {
                 setMessages(data);
-                // Pre-fetch profiles for existing messages
                 const senderIds = [...new Set(data.map(msg => msg.sender_id))];
-                senderIds.forEach(id => fetchSenderProfile(id));
+                // Menggunakan Promise.all untuk efisiensi saat mengambil banyak profil
+                await Promise.all(senderIds.map(id => fetchSenderProfile(id)));
             }
         };
 
         fetchMessages();
+
+        // ## PERBAIKAN REAL-TIME ##
+        // Listener Supabase untuk pesan baru. Dibuat agar stabil.
+        const handleNewMessage = (payload) => {
+            fetchSenderProfile(payload.new.sender_id);
+            setMessages(currentMessages => [...currentMessages, payload.new]);
+        };
 
         const channel = supabase.channel(`chat:${transactionId}`)
             .on('postgres_changes', {
@@ -54,14 +68,14 @@ export default function TransactionChat({ transactionId, currentUser }) {
                 schema: 'public',
                 table: 'chat_messages',
                 filter: `transaction_id=eq.${transactionId}`
-            }, (payload) => {
-                 fetchSenderProfile(payload.new.sender_id);
-                 setMessages(prev => [...prev, payload.new]);
-            })
+            }, handleNewMessage)
             .subscribe();
 
-        return () => supabase.removeChannel(channel);
-    }, [transactionId]);
+        // Fungsi cleanup untuk membersihkan channel saat komponen tidak lagi ditampilkan
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [transactionId, fetchSenderProfile]); // Dependensi yang benar
     
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,17 +97,18 @@ export default function TransactionChat({ transactionId, currentUser }) {
         if (attachment) {
             const fileExt = attachment.name.split('.').pop();
             const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `chat_proofs/${currentUser.id}/${transactionId}/${fileName}`;
+            const filePath = `chat_attachments/${currentUser.id}/${transactionId}/${fileName}`;
     
-            const { error: uploadError } = await supabase.storage.from('warung-files').upload(filePath, attachment);
+            // Menggunakan bucket 'buktitransfer' agar konsisten
+            const { error: uploadError } = await supabase.storage.from('buktitransfer').upload(filePath, attachment);
     
             if (uploadError) {
-                alert('Gagal mengunggah bukti: ' + uploadError.message);
+                alert('Gagal mengunggah file: ' + uploadError.message);
                 setIsSending(false);
                 return;
             }
     
-            const { data } = supabase.storage.from('warung-files').getPublicUrl(filePath);
+            const { data } = supabase.storage.from('buktitransfer').getPublicUrl(filePath);
             uploadedUrl = data.publicUrl;
         }
     
@@ -114,23 +129,44 @@ export default function TransactionChat({ transactionId, currentUser }) {
     };
 
     const getSenderInfo = (senderId) => {
-        return userProfiles[senderId] || { username: 'Memuat...', avatar_url: null };
+        return userProfiles[senderId] || { username: 'Memuat...', avatar_url: null, role: 'user' };
     };
 
     return (
         <div className="flex flex-col h-[500px] bg-light-bg dark:bg-dark-bg rounded-lg border border-light-border dark:border-dark-border">
             <div className="flex-grow p-4 overflow-y-auto custom-scrollbar">
-                {/* PERBAIKAN: Menggunakan msg.id sebagai key */}
                 {messages.map(msg => {
                     const sender = getSenderInfo(msg.sender_id);
+                    const isCurrentUser = msg.sender_id === currentUser.id;
+                    const isAdminSender = sender.role === 'admin';
+
+                    if (msg.is_system_message) {
+                        return (
+                            <div key={msg.id} className="text-center my-3">
+                                <span className="text-xs text-gray-500 bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full">
+                                    {isCurrentUser ? "Anda" : "Admin"} mengirimkan bukti transfer
+                                </span>
+                                {isImageUrl(msg.attachment_url) && (
+                                     <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                        <img src={msg.attachment_url} alt="Bukti Transfer" className="max-w-xs mx-auto rounded-lg shadow-md" />
+                                     </a>
+                                )}
+                            </div>
+                        )
+                    }
+
                     return (
-                        <div key={msg.id} className={`flex items-end gap-2 mb-4 ${msg.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                            {msg.sender_id !== currentUser.id && (
+                        <div key={msg.id} className={`flex items-end gap-2 mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                            {!isCurrentUser && (
                                 <img src={sender.avatar_url || `https://ui-avatars.com/api/?name=${sender.username?.charAt(0)}&background=F97D3C&color=FFF`} alt="avatar" className="w-6 h-6 rounded-full"/>
                             )}
-                            <div className={`max-w-xs md:max-w-md px-3 py-2 rounded-lg ${msg.sender_id === currentUser.id ? 'bg-primary text-white' : 'bg-white dark:bg-dark-card'}`}>
+                            <div className={`max-w-xs md:max-w-md px-3 py-2 rounded-lg ${isCurrentUser ? 'bg-primary text-white' : (isAdminSender ? 'bg-green-600 text-white' : 'bg-white dark:bg-dark-card')}`}>
                                <p className="text-sm">{msg.message}</p>
-                               {msg.attachment_url && (
+                               {isImageUrl(msg.attachment_url) ? (
+                                    <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                                        <img src={msg.attachment_url} alt="Lampiran" className="max-w-[200px] rounded-md" />
+                                    </a>
+                               ) : msg.attachment_url && (
                                    <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-2 text-xs text-blue-400 hover:underline">
                                        <FontAwesomeIcon icon={faFileImage} /> Lihat Lampiran
                                    </a>
