@@ -31,8 +31,9 @@ import TelegramAuthCallback from './components/TelegramAuthCallback';
 import PageAdminWarung from './components/PageAdminWarung';
 import PageAdminOrderBook from './components/PageAdminOrderBook';
 import PageUserOrder from './components/PageUserOrder';
-// --- PENAMBAHAN IMPORT BARU ---
 import PageAdminRekening from './components/PageAdminRekening';
+// --- PENAMBAHAN IMPORT BARU ---
+import KebijakanLayanan from './components/KebijakanLayanan'; // <-- IMPORT BARU
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -160,7 +161,9 @@ export default function App() {
   const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin", 'admin/rekening': "Pengaturan Rekening" }; const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book", 'admin/rekening': "Payment Settings" }; const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin", 'admin/rekening': "Pengaturan Rekening", 'kebijakan-layanan': "Kebijakan & Layanan" }; // <-- PENAMBAHAN JUDUL BARU
+  const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book", 'admin/rekening': "Payment Settings", 'kebijakan-layanan': "Policy & Terms" }; // <-- PENAMBAHAN JUDUL BARU
+  const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
   const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
@@ -178,8 +181,8 @@ export default function App() {
   ];
 
   const showNav = !noNavRoutes.some(route => location.pathname.startsWith(route)) && 
-                  !location.pathname.includes('/postairdrops') && 
-                  !location.pathname.includes('/update');
+                    !location.pathname.includes('/postairdrops') && 
+                    !location.pathname.includes('/update');
 
   const handleOpenWalletModal = () => openWalletModal();
   const mainPaddingBottomClass = showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6';
@@ -207,6 +210,9 @@ export default function App() {
             <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
             
+            {/* --- RUTE BARU DI SINI --- */}
+            <Route path="/kebijakan-layanan" element={<KebijakanLayanan />} />
+
             {/* --- GRUP ROUTE WARUNG KRIPTO --- */}
             <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
             <Route path="/warung-kripto/order/:orderId" element={<PageUserOrder currentUser={userForHeader} />} />
@@ -218,7 +224,6 @@ export default function App() {
                     <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
                     <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
                     <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
-                    {/* --- RUTE BARU DI SINI --- */}
                     <Route path="/admin/rekening" element={<PageAdminRekening />} />
                 </>
             )}
@@ -242,4 +247,3 @@ export default function App() {
     </div>
   );
 }
-
