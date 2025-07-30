@@ -264,7 +264,7 @@ export default function PageWarungKripto({ currentUser }) {
         <section className="page-content space-y-8 max-w-7xl mx-auto py-8 px-4">
             <div className="text-center mb-8">
                 <FontAwesomeIcon icon={faStore} className="text-primary text-5xl mb-3"/>
-                <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Pasar Kripto Instan</h1>
+                <h1 className="text-4xl md:text-5xl font-bold futuristic-text-gradient mb-2">Warung Kripto AFA</h1>
                 <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">Platform jual beli aset digital yang dirancang untuk transaksi cepat, aman, dan tanpa hambatan.</p>
             </div>
 

@@ -1,12 +1,12 @@
 // src/components/PageAdminOrderBook.jsx
-// PENYESUAIAN: Menampilkan detail lengkap pembayaran/wallet di panel admin.
+// PERBAIKAN FINAL: Membaca `user_payment_info` sebagai String JSON.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowLeft, faSpinner, faCheck, faTimes, faUpload,
     faExternalLinkAlt, faBook, faComments, faInfoCircle, faPlayCircle,
-    faUser, faWallet, faLandmark
+    faWallet, faLandmark
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
@@ -56,27 +56,46 @@ const OrderDetailPanel = ({ transaction, onUpdateStatus, onUploadProof, currentU
     const canBeProcessed = transaction.status === 'awaiting_confirmation';
     const canBeFinalized = ['awaiting_confirmation', 'processing'].includes(transaction.status);
 
+    // --- LOGIKA PEMBACAAN DATA YANG BENAR ---
     const renderPaymentDetails = () => {
+        // Tampilkan hanya untuk order 'jual' dan jika ada info pembayaran
         if (transaction.order_type === 'jual' && transaction.user_payment_info) {
-            const { fullName, details } = transaction.user_payment_info;
-            const [bankName, ...accountNumberParts] = (details || '').split(':');
-            const accountNumber = accountNumberParts.join(':').trim();
+            try {
+                // 1. Ubah string JSON menjadi objek JavaScript yang bisa digunakan
+                const paymentInfo = JSON.parse(transaction.user_payment_info);
 
-            return (
-                <div className="space-y-2">
-                    <h4 className="font-bold text-sm flex items-center gap-2"><FontAwesomeIcon icon={faLandmark} /> Informasi Pencairan Dana User</h4>
-                    <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg space-y-1">
-                        <p><strong>Nama Penerima:</strong> {fullName}</p>
-                        <p><strong>Bank:</strong> {bankName}</p>
-                        <p><strong>No. Rekening:</strong> {accountNumber}</p>
-                        <hr className="border-light-border dark:border-dark-border my-1"/>
-                        <p><strong>Jumlah Transfer:</strong> <span className="font-bold text-primary">Rp {Number(transaction.amount_idr).toLocaleString('id-ID')}</span></p>
+                // 2. Ambil data dari objek yang sudah di-parse
+                const fullName = paymentInfo.fullName || '(nama tidak ada)';
+                const details = paymentInfo.details || '';
+
+                // 3. Pisahkan Metode (BANK/E-WALLET) dari nomornya
+                const detailParts = details.split(':');
+                const paymentMethod = detailParts[0]?.trim() || '(metode tidak ada)';
+                const accountNumber = detailParts.slice(1).join(':').trim() || '(nomor tidak ada)';
+
+                return (
+                    <div className="space-y-2">
+                        <h4 className="font-bold text-sm flex items-center gap-2"><FontAwesomeIcon icon={faLandmark} /> Informasi Pencairan Dana User</h4>
+                        <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg space-y-1">
+                            <p><strong>Nama Penerima:</strong> {fullName}</p>
+                            <p><strong>Metode/Bank:</strong> {paymentMethod}</p>
+                            <p><strong>No. Rekening/Wallet:</strong> {accountNumber}</p>
+                            <hr className="border-light-border dark:border-dark-border my-1"/>
+                            <p><strong>Jumlah Transfer:</strong> <span className="font-bold text-primary">Rp {Number(transaction.amount_idr).toLocaleString('id-ID')}</span></p>
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            } catch (error) {
+                // Jika parsing gagal (untuk data yang mungkin formatnya salah total)
+                console.error("Gagal mem-parsing user_payment_info:", error);
+                return (
+                    <div className="text-xs text-red-400">Gagal membaca detail pembayaran user. Data mungkin rusak.</div>
+                );
+            }
         }
         return null;
     };
+    // --- AKHIR LOGIKA PEMBACAAN DATA ---
 
     return (
         <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg h-full flex flex-col">
@@ -140,7 +159,9 @@ export default function PageAdminOrderBook({ currentUser }) {
     useEffect(() => {
         fetchData();
         const channel = supabase.channel('realtime-admin-transactions').on('postgres_changes', { event: '*', schema: 'public', table: 'warung_transactions' }, (payload) => {
-            if (selectedTx && payload.new.id === selectedTx.id) setSelectedTx(payload.new);
+            if (selectedTx && payload.new.id === selectedTx.id) {
+                setSelectedTx(payload.new);
+            }
             fetchData();
         }).subscribe();
         return () => supabase.removeChannel(channel);
