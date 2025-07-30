@@ -1,5 +1,4 @@
 // src/components/PageAdminOrderBook.jsx
-// PERBAIKAN FINAL: Membaca `user_payment_info` sebagai String JSON.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -46,29 +45,28 @@ const OrderDetailPanel = ({ transaction, onUpdateStatus, onUploadProof, currentU
     const [isUploading, setIsUploading] = useState(false);
 
     if (!transaction) {
-        return <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary"><p><FontAwesomeIcon icon={faInfoCircle} className="mr-2"/> Pilih pesanan untuk melihat detail.</p></div>;
+        return (
+            <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
+                <p><FontAwesomeIcon icon={faInfoCircle} className="mr-2"/> Pilih pesanan untuk melihat detail.</p>
+            </div>
+        );
     }
 
+    // Semua fungsi handler tetap ada
     const handleFileChange = (e) => { if (e.target.files && e.target.files.length > 0) setProofFile(e.target.files[0]); };
     const handleUpload = async () => { if (!proofFile) return; setIsUploading(true); await onUploadProof(transaction.id, proofFile); setProofFile(null); setIsUploading(false); };
     const handleCompleteClick = () => { if (transaction.order_type === 'beli' && !transaction.admin_proof_url) { alert('Harap unggah bukti transfer koin sebelum menyelesaikan pesanan ini.'); return; } onUpdateStatus(transaction.id, 'completed'); };
 
     const canBeProcessed = transaction.status === 'awaiting_confirmation';
     const canBeFinalized = ['awaiting_confirmation', 'processing'].includes(transaction.status);
-
-    // --- LOGIKA PEMBACAAN DATA YANG BENAR ---
+    
+    // Fungsi render detail pembayaran juga tetap ada
     const renderPaymentDetails = () => {
-        // Tampilkan hanya untuk order 'jual' dan jika ada info pembayaran
         if (transaction.order_type === 'jual' && transaction.user_payment_info) {
             try {
-                // 1. Ubah string JSON menjadi objek JavaScript yang bisa digunakan
                 const paymentInfo = JSON.parse(transaction.user_payment_info);
-
-                // 2. Ambil data dari objek yang sudah di-parse
                 const fullName = paymentInfo.fullName || '(nama tidak ada)';
                 const details = paymentInfo.details || '';
-
-                // 3. Pisahkan Metode (BANK/E-WALLET) dari nomornya
                 const detailParts = details.split(':');
                 const paymentMethod = detailParts[0]?.trim() || '(metode tidak ada)';
                 const accountNumber = detailParts.slice(1).join(':').trim() || '(nomor tidak ada)';
@@ -86,54 +84,50 @@ const OrderDetailPanel = ({ transaction, onUpdateStatus, onUploadProof, currentU
                     </div>
                 );
             } catch (error) {
-                // Jika parsing gagal (untuk data yang mungkin formatnya salah total)
                 console.error("Gagal mem-parsing user_payment_info:", error);
-                return (
-                    <div className="text-xs text-red-400">Gagal membaca detail pembayaran user. Data mungkin rusak.</div>
-                );
+                return <div className="text-xs text-red-400">Gagal membaca detail pembayaran user.</div>;
             }
         }
         return null;
     };
-    // --- AKHIR LOGIKA PEMBACAAN DATA ---
 
     return (
         <div className="bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg h-full flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-light-border dark:border-dark-border">
+            <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-light-border dark:border-dark-border">
                 <h3 className="text-lg font-bold">Detail Pesanan #{transaction.id.substring(0, 8)}</h3>
-                <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">&times;</button>
+                <button onClick={onClose} className="text-gray-400 hover:text-white text-xl lg:hidden">&times;</button>
             </div>
-            <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                
-                {renderPaymentDetails()}
 
-                {transaction.order_type === 'beli' && (
-                    <div className="space-y-2">
-                        <h4 className="font-bold text-sm flex items-center gap-2"><FontAwesomeIcon icon={faWallet} /> Alamat Wallet User</h4>
-                        <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg break-all font-mono">
-                            {transaction.wallet_address}
+            <div className="flex-grow flex flex-col overflow-hidden">
+                <div className="flex-shrink-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    {renderPaymentDetails()}
+                    {transaction.order_type === 'beli' && (
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-sm flex items-center gap-2"><FontAwesomeIcon icon={faWallet} /> Alamat Wallet User</h4>
+                            <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg break-all font-mono">{transaction.wallet_address}</div>
                         </div>
+                    )}
+                    <hr className="border-light-border dark:border-dark-border"/>
+                    <div className="text-sm space-y-2">
+                        <p><strong>User ID:</strong> <span className="font-mono text-xs">{transaction.user_id}</span></p>
+                        <div className="flex justify-between"><span>Bukti User:</span> {transaction.proof_url ? <a href={transaction.proof_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
+                        <div className="flex justify-between"><span>Bukti Admin:</span> {transaction.admin_proof_url ? <a href={transaction.admin_proof_url} target="_blank" rel="noopener noreferrer" className="btn-success text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
                     </div>
-                )}
+                    <div className="flex items-center gap-2 pt-2">
+                        <input type="file" onChange={handleFileChange} className="input-file text-xs w-full"/>
+                        <button onClick={handleUpload} disabled={!proofFile || isUploading} className="btn-primary p-2">{isUploading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUpload}/>}</button>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-4">
+                        {canBeProcessed && <button onClick={() => onUpdateStatus(transaction.id, 'processing')} className="btn-primary w-full text-sm"><FontAwesomeIcon icon={faPlayCircle} className="mr-2"/> Proses Pesanan</button>}
+                        {canBeFinalized && (<div className="flex gap-2"><button onClick={handleCompleteClick} className="btn-success w-full text-sm"><FontAwesomeIcon icon={faCheck} className="mr-2"/> Selesaikan</button><button onClick={() => onUpdateStatus(transaction.id, 'rejected')} className="btn-danger w-full text-sm"><FontAwesomeIcon icon={faTimes} className="mr-2"/> Tolak</button></div>)}
+                    </div>
+                </div>
 
-                <hr className="border-light-border dark:border-dark-border"/>
-
-                <div className="text-sm space-y-2">
-                    <p><strong>User ID:</strong> <span className="font-mono text-xs">{transaction.user_id}</span></p>
-                    <div className="flex justify-between"><span>Bukti User:</span> {transaction.proof_url ? <a href={transaction.proof_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
-                    <div className="flex justify-between"><span>Bukti Admin:</span> {transaction.admin_proof_url ? <a href={transaction.admin_proof_url} target="_blank" rel="noopener noreferrer" className="btn-success text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                    <input type="file" onChange={handleFileChange} className="input-file text-xs w-full"/>
-                    <button onClick={handleUpload} disabled={!proofFile || isUploading} className="btn-primary p-2">{isUploading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUpload}/>}</button>
-                </div>
-                <div className="flex flex-col gap-2 pt-4">
-                    {canBeProcessed && <button onClick={() => onUpdateStatus(transaction.id, 'processing')} className="btn-primary w-full text-sm"><FontAwesomeIcon icon={faPlayCircle} className="mr-2"/> Proses Pesanan</button>}
-                    {canBeFinalized && (<div className="flex gap-2"><button onClick={handleCompleteClick} className="btn-success w-full text-sm"><FontAwesomeIcon icon={faCheck} className="mr-2"/> Selesaikan</button><button onClick={() => onUpdateStatus(transaction.id, 'rejected')} className="btn-danger w-full text-sm"><FontAwesomeIcon icon={faTimes} className="mr-2"/> Tolak</button></div>)}
-                </div>
-                <div className="pt-4">
-                    <h4 className="font-bold mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faComments}/> Obrolan</h4>
-                    <TransactionChat transactionId={transaction.id} currentUser={currentUser} />
+                <div className="flex-grow flex flex-col p-4 pt-2 overflow-hidden">
+                     <h4 className="font-bold mb-2 flex items-center gap-2 flex-shrink-0"><FontAwesomeIcon icon={faComments}/> Obrolan</h4>
+                    <div className="flex-grow overflow-hidden">
+                       <TransactionChat transactionId={transaction.id} currentUser={currentUser} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -146,6 +140,7 @@ export default function PageAdminOrderBook({ currentUser }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Fungsi fetchData tetap ada
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -159,14 +154,13 @@ export default function PageAdminOrderBook({ currentUser }) {
     useEffect(() => {
         fetchData();
         const channel = supabase.channel('realtime-admin-transactions').on('postgres_changes', { event: '*', schema: 'public', table: 'warung_transactions' }, (payload) => {
-            if (selectedTx && payload.new.id === selectedTx.id) {
-                setSelectedTx(payload.new);
-            }
+            if (selectedTx && payload.new.id === selectedTx.id) { setSelectedTx(payload.new); }
             fetchData();
         }).subscribe();
         return () => supabase.removeChannel(channel);
     }, [fetchData, selectedTx]);
 
+    // Fungsi handleUpdateStatus tetap ada
     const handleUpdateStatus = async (id, status) => {
         const originalTransactions = [...transactions];
         const updatedTransactions = transactions.map(tx => tx.id === id ? { ...tx, status: status } : tx);
@@ -180,6 +174,7 @@ export default function PageAdminOrderBook({ currentUser }) {
         }
     };
 
+    // Fungsi handleUploadProof tetap ada
     const handleUploadProof = async (txId, file) => {
         if (!file) return;
         const filePath = `admin_proofs/${txId}-${Date.now()}-${file.name}`;
@@ -196,15 +191,29 @@ export default function PageAdminOrderBook({ currentUser }) {
     };
     
     return (
-        <section className="page-content space-y-6 py-8">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold flex items-center gap-3"><FontAwesomeIcon icon={faBook}/> Buku Order Admin</h1>
-                <Link to="/admin" className="btn-secondary text-sm"><FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Kembali ke Dashboard</Link>
+        <section className="page-content flex flex-col h-screen py-8">
+            <div className="flex-shrink-0 mb-6">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold flex items-center gap-3"><FontAwesomeIcon icon={faBook}/> Buku Order Admin</h1>
+                    <Link to="/admin" className="btn-secondary text-sm"><FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Kembali ke Dashboard</Link>
+                </div>
             </div>
-            <main className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
-                {isLoading ? (<div className="lg:col-span-2 text-center p-8"><FontAwesomeIcon icon={faSpinner} spin size="2x" /><p>Memuat data...</p></div>) 
-                : error ? (<div className="lg:col-span-2 bg-red-500/10 text-red-400 p-4 rounded-lg">Error: {error}</div>) 
-                : (<><OrderListTable transactions={transactions} onSelectTransaction={setSelectedTx} selectedTxId={selectedTx?.id} /><OrderDetailPanel transaction={selectedTx} onUpdateStatus={handleUpdateStatus} onUploadProof={handleUploadProof} currentUser={currentUser} onClose={() => setSelectedTx(null)} /></>)}
+            
+            <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
+                {isLoading ? (
+                    <div className="lg:col-span-2 text-center p-8"><FontAwesomeIcon icon={faSpinner} spin size="2x" /><p>Memuat data...</p></div>
+                ) : error ? (
+                    <div className="lg:col-span-2 bg-red-500/10 text-red-400 p-4 rounded-lg">Error: {error}</div>
+                ) : (
+                    <>
+                        <div className={`flex-col h-full overflow-y-auto custom-scrollbar ${selectedTx ? 'hidden lg:flex' : 'flex'}`}>
+                             <OrderListTable transactions={transactions} onSelectTransaction={setSelectedTx} selectedTxId={selectedTx?.id} />
+                        </div>
+                        <div className={`flex-col h-full overflow-hidden ${selectedTx ? 'flex' : 'hidden lg:flex'}`}>
+                            <OrderDetailPanel transaction={selectedTx} onUpdateStatus={handleUpdateStatus} onUploadProof={handleUploadProof} currentUser={currentUser} onClose={() => setSelectedTx(null)} />
+                        </div>
+                    </>
+                )}
             </main>
         </section>
     );
