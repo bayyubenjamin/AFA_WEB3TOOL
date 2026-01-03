@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faArrowLeft, faSpinner, faCheck, faTimes, faUpload,
     faExternalLinkAlt, faBook, faComments, faInfoCircle, faPlayCircle,
-    faWallet, faLandmark
+    faWallet, faLandmark, faCube
 } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
@@ -27,7 +27,10 @@ const OrderListTable = ({ transactions, onSelectTransaction, selectedTxId }) => 
                     <tr key={tx.id} onClick={() => onSelectTransaction(tx)} className={`border-b border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer ${selectedTxId === tx.id ? 'bg-primary/10' : ''}`}>
                         <td className="px-4 py-3 text-xs">{new Date(tx.created_at).toLocaleString('id-ID')}</td>
                         <td className="px-4 py-3">
-                            <span className={`font-bold ${tx.order_type === 'beli' ? 'text-green-500' : 'text-red-500'}`}>{tx.order_type?.toUpperCase()} {tx.token_symbol}</span>
+                            <div className="flex items-center gap-2">
+                                <span className={`font-bold ${tx.order_type === 'beli' ? 'text-green-500' : 'text-red-500'}`}>{tx.order_type?.toUpperCase()} {tx.token_symbol}</span>
+                                <span className="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">{tx.network}</span>
+                            </div>
                             <div>Rp {Number(tx.amount_idr).toLocaleString('id-ID')}</div>
                             <div className="text-xs text-gray-500 font-mono" title={tx.user_id}>User: {tx.user_id?.substring(0, 8)}...</div>
                         </td>
@@ -100,23 +103,61 @@ const OrderDetailPanel = ({ transaction, onUpdateStatus, onUploadProof, currentU
 
             <div className="flex-grow flex flex-col overflow-hidden">
                 <div className="flex-shrink-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    
+                    {/* --- BAGIAN BARU: DISPLAY ASET LENGKAP --- */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <h4 className="text-xs font-bold uppercase text-gray-500 mb-3 tracking-wider flex items-center gap-2">
+                             <FontAwesomeIcon icon={faCube} /> Aset Transaksi
+                        </h4>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Aset (Token)</div>
+                                <div className="text-2xl font-bold text-primary">{transaction.token_symbol}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xs text-gray-500 mb-1">Jaringan (Chain)</div>
+                                <div className="text-lg font-bold bg-light-bg dark:bg-dark-bg px-2 py-1 rounded border border-light-border dark:border-dark-border">
+                                    {transaction.network || 'Mainnet'}
+                                </div>
+                            </div>
+                        </div>
+                        {transaction.amount_token && (
+                            <div className="mt-3 pt-3 border-t border-primary/10 flex justify-between items-center">
+                                <span className="text-xs text-gray-500">Jumlah Aset:</span>
+                                <span className="font-mono font-bold">{transaction.amount_token} {transaction.token_symbol}</span>
+                            </div>
+                        )}
+                        <div className="mt-1 pt-2 flex justify-between items-center">
+                             <span className="text-xs text-gray-500">Nilai Rupiah:</span>
+                             <span className="font-bold text-green-500">Rp {Number(transaction.amount_idr).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                    {/* --- AKHIR BAGIAN BARU --- */}
+
                     {renderPaymentDetails()}
+                    
                     {transaction.order_type === 'beli' && (
                         <div className="space-y-2">
                             <h4 className="font-bold text-sm flex items-center gap-2"><FontAwesomeIcon icon={faWallet} /> Alamat Wallet User</h4>
-                            <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg break-all font-mono">{transaction.wallet_address}</div>
+                            <div className="text-xs p-3 bg-light-bg dark:bg-dark-bg rounded-lg break-all font-mono border border-light-border dark:border-dark-border">
+                                {transaction.wallet_address}
+                            </div>
                         </div>
                     )}
+                    
                     <hr className="border-light-border dark:border-dark-border"/>
+                    
                     <div className="text-sm space-y-2">
                         <p><strong>User ID:</strong> <span className="font-mono text-xs">{transaction.user_id}</span></p>
                         <div className="flex justify-between"><span>Bukti User:</span> {transaction.proof_url ? <a href={transaction.proof_url} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
                         <div className="flex justify-between"><span>Bukti Admin:</span> {transaction.admin_proof_url ? <a href={transaction.admin_proof_url} target="_blank" rel="noopener noreferrer" className="btn-success text-xs">Lihat <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/></a> : <span>Belum ada</span>}</div>
                     </div>
+                    
                     <div className="flex items-center gap-2 pt-2">
                         <input type="file" onChange={handleFileChange} className="input-file text-xs w-full"/>
                         <button onClick={handleUpload} disabled={!proofFile || isUploading} className="btn-primary p-2">{isUploading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUpload}/>}</button>
                     </div>
+                    
                     <div className="flex flex-col gap-2 pt-4">
                         {canBeProcessed && <button onClick={() => onUpdateStatus(transaction.id, 'processing')} className="btn-primary w-full text-sm"><FontAwesomeIcon icon={faPlayCircle} className="mr-2"/> Proses Pesanan</button>}
                         {canBeFinalized && (<div className="flex gap-2"><button onClick={handleCompleteClick} className="btn-success w-full text-sm"><FontAwesomeIcon icon={faCheck} className="mr-2"/> Selesaikan</button><button onClick={() => onUpdateStatus(transaction.id, 'rejected')} className="btn-danger w-full text-sm"><FontAwesomeIcon icon={faTimes} className="mr-2"/> Tolak</button></div>)}
