@@ -1,33 +1,9 @@
 import { http, createConfig, createStorage } from 'wagmi';
+import { base, baseSepolia, optimismSepolia } from 'wagmi/chains'; // [HIGH IMPACT] Gunakan definisi official
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 
-const optimismSepolia = {
-  id: 11155420,
-  name: 'OP Sepolia',
-  nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://sepolia.optimism.io'] },
-  },
-  blockExplorers: {
-    default: { name: 'Etherscan', url: 'https://sepolia-optimism.etherscan.io' },
-  },
-  testnet: true,
-};
-
-const baseSepolia = {
-  id: 84532,
-  name: 'Base Sepolia',
-  nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://sepolia.base.org'] },
-  },
-  blockExplorers: {
-    default: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
-  },
-  testnet: true,
-};
-
-// --- PENAMBAHAN JARINGAN PHAROS TESTNET ---
+// --- DEFINISI JARINGAN CUSTOM (PHAROS) ---
+// Kita define manual karena belum ada di library standar
 const pharosTestnet = {
   id: 688688,
   name: 'Pharos Testnet',
@@ -51,27 +27,40 @@ const metadata = {
 };
 
 export const config = createConfig({
-  // Tambahkan pharosTestnet ke dalam array chains
-  chains: [optimismSepolia, baseSepolia, pharosTestnet],
+  // [BASE ECOSYSTEM FOCUS]
+  // 1. Urutan sangat penting! Base diletakkan paling depan agar jadi default network.
+  // 2. Kita tambahkan 'base' (Mainnet) agar siap production.
+  chains: [base, baseSepolia, optimismSepolia, pharosTestnet],
 
+  // [HIGH IMPACT] SSR: true sangat krusial untuk Next.js/Vercel agar tidak error saat reload
+  ssr: true, 
+  
   connectors: [
+    // [BASE OPTIMIZATION] Coinbase Wallet sangat smooth di jaringan Base (Smart Wallet)
+    coinbaseWallet({
+      appName: metadata.name,
+      appLogoUrl: metadata.icons[0],
+      preference: 'all', // Mendukung Smart Wallet & EOA
+    }),
     walletConnect({
       projectId: walletConnectProjectId,
       metadata,
       showQrModal: false,
     }),
     injected({ shimDisconnect: true }),
-    coinbaseWallet({
-      appName: metadata.name,
-      appLogoUrl: metadata.icons[0],
-    }),
   ],
-  storage: createStorage({ storage: window.localStorage }),
+  
+  // Storage logic aman untuk SSR
+  storage: createStorage({  
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined, 
+  }),
 
-  // Tambahkan transport untuk pharosTestnet
   transports: {
-    [optimismSepolia.id]: http(),
+    // Wagmi akan otomatis mencari RPC terbaik untuk chain official (Base/OP)
+    // Tapi kita bisa override jika punya API Key Alchemy/Infura untuk performa lebih ngebut
+    [base.id]: http(),
     [baseSepolia.id]: http(),
+    [optimismSepolia.id]: http(),
     [pharosTestnet.id]: http(),
   },
 });
