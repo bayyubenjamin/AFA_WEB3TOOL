@@ -1,10 +1,9 @@
 // src/App.jsx
-// Kode ini menggunakan struktur asli Anda dan hanya menambahkan rute yang diperlukan.
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { Toaster, toast } from 'sonner'; // <-- UPDATE: Import sonner untuk notifikasi
 
 // Komponen-komponen Anda
 import Header from "./components/Header";
@@ -32,8 +31,7 @@ import PageAdminWarung from './components/PageAdminWarung';
 import PageAdminOrderBook from './components/PageAdminOrderBook';
 import PageUserOrder from './components/PageUserOrder';
 import PageAdminRekening from './components/PageAdminRekening';
-// --- PENAMBAHAN IMPORT BARU ---
-import KebijakanLayanan from './components/KebijakanLayanan'; // <-- IMPORT BARU
+import KebijakanLayanan from './components/KebijakanLayanan';
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -92,6 +90,20 @@ export default function App() {
   const { disconnect } = useDisconnect();
   const { address } = useAccount();
 
+  // --- UPDATE: Effect untuk memantau status jaringan ---
+  useEffect(() => {
+    const handleOnline = () => toast.success(language === 'id' ? "Kembali Online!" : "Back Online!");
+    const handleOffline = () => toast.error(language === 'id' ? "Koneksi Internet Terputus!" : "Internet Connection Lost!");
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [language]);
+
   useEffect(() => {
     setLoadingInitialSession(true);
     const handleSessionUpdate = async (session) => {
@@ -107,6 +119,8 @@ export default function App() {
 
           const appUser = mapSupabaseDataToAppUserForApp(session.user, profile);
           setCurrentUser(appUser);
+          // Optional: Notifikasi selamat datang
+          // toast.success(`Welcome back, ${appUser.username}!`);
         } catch (error) {
           console.error("[Auth] Gagal mengambil profil:", error);
           setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null));
@@ -161,12 +175,18 @@ export default function App() {
   const handleMarkAirdropsAsSeen = () => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); };
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
   useEffect(() => { const updateOnlineCount = () => { const min = 15, max = 42; setOnlineUsers(Math.floor(Math.random() * (max - min + 1)) + min); }; updateOnlineCount(); const intervalId = setInterval(updateOnlineCount, 7000); return () => clearInterval(intervalId); }, []);
-  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin", 'admin/rekening': "Pengaturan Rekening", 'kebijakan-layanan': "Kebijakan & Layanan" }; // <-- PENAMBAHAN JUDUL BARU
-  const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book", 'admin/rekening': "Payment Settings", 'kebijakan-layanan': "Policy & Terms" }; // <-- PENAMBAHAN JUDUL BARU
+  useEffect(() => { const path = location.pathname.split('/')[1] || 'home'; const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'admin-warung': "Admin Warung", 'order-admin': "Buku Order Admin", 'admin/rekening': "Pengaturan Rekening", 'kebijakan-layanan': "Kebijakan & Layanan" }; 
+  const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'admin-warung': "Admin Market", 'order-admin': "Admin Order Book", 'admin/rekening': "Payment Settings", 'kebijakan-layanan': "Policy & Terms" }; 
   const currentTitles = language === 'id' ? titles_id : titles_en; setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); }, [location, language]);
   useEffect(() => { if (loadingInitialSession) return; if (pageContentRef.current) { const el = pageContentRef.current; el.classList.remove("content-enter-active", "content-enter"); void el.offsetWidth; el.classList.add("content-enter"); const timer = setTimeout(() => el.classList.add("content-enter-active"), 50); return () => clearTimeout(timer); } }, [location.pathname, loadingInitialSession]);
   
-  const handleLogout = async () => { await supabase.auth.signOut(); disconnect(); localStorage.clear(); window.location.href = '/login'; };
+  const handleLogout = async () => { 
+      await supabase.auth.signOut(); 
+      disconnect(); 
+      localStorage.clear(); 
+      window.location.href = '/login'; 
+      // toast.info("Logout successful"); 
+  };
   const handleUpdateUserInApp = (updatedUserData) => { setCurrentUser(updatedUserData); };
   
   const userForHeader = currentUser || defaultGuestUserForApp;
@@ -189,6 +209,9 @@ export default function App() {
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
+      {/* --- UPDATE: Menambahkan Toaster untuk notifikasi global --- */}
+      <Toaster position="top-center" richColors closeButton />
+
       {showNav && <Header title={headerTitle} currentUser={userForHeader} onLogout={handleLogout} navigateTo={navigate} onlineUsers={onlineUsers} isHeaderVisible={isHeaderVisible} hasNewAirdropNotification={hasNewAirdropNotification} />}
 
       <main ref={pageContentRef} onScroll={handleScroll} className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter space-y-6 transition-all ${mainPaddingBottomClass} overflow-y-auto custom-scrollbar`}>
@@ -210,7 +233,6 @@ export default function App() {
             <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={handleOpenWalletModal} />} />
             
-            {/* --- RUTE BARU DI SINI --- */}
             <Route path="/kebijakan-layanan" element={<KebijakanLayanan />} />
 
             {/* --- GRUP ROUTE WARUNG KRIPTO --- */}
