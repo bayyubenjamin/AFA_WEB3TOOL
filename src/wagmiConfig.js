@@ -1,66 +1,51 @@
-import { http, createConfig, createStorage } from 'wagmi';
-import { base, baseSepolia, optimismSepolia } from 'wagmi/chains'; // [HIGH IMPACT] Gunakan definisi official
-import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
+import { cookieStorage, createStorage, http } from 'wagmi'
+import { mainnet, bsc, polygon, arbitrum, optimism, base, zksync, linea } from 'wagmi/chains'
+import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors'
 
-// --- DEFINISI JARINGAN CUSTOM (PHAROS) ---
-// Kita define manual karena belum ada di library standar
-const pharosTestnet = {
-  id: 688688,
-  name: 'Pharos Testnet',
-  nativeCurrency: { name: 'Pharos', symbol: 'PHAROS', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://testnet.dplabs-internal.com'] },
-  },
-  blockExplorers: {
-    default: { name: 'Pharosscan', url: 'https://testnet.pharosscan.xyz' },
-  },
-  testnet: true,
-};
+// 1. Get projectId at https://cloud.walletconnect.com
+// Menggunakan Project ID existing atau public
+export const walletConnectProjectId = '4d85918712392765b2e95a0448100570'
 
-export const walletConnectProjectId = '06468097f9a134a428194c7a2e0eb940';
-
+// 2. Create wagmiConfig
 const metadata = {
-  name: 'AFA Web3Tool',
-  description: 'AFA Web3Tool - Airdrop For All',
-  url: 'https://afatestweb.vercel.app',
-  icons: ['https://ik.imagekit.io/5spt6gb2z/IMG_2894.jpeg']
-};
+  name: 'AFA Web3 Dashboard',
+  description: 'Comprehensive Web3 Airdrop & Community Management Tool',
+  url: 'https://airdropforall.app', 
+  icons: ['https://airdropforall.app/assets/logo.png'] 
+}
 
-export const config = createConfig({
-  // [BASE ECOSYSTEM FOCUS]
-  // 1. Urutan sangat penting! Base diletakkan paling depan agar jadi default network.
-  // 2. Kita tambahkan 'base' (Mainnet) agar siap production.
-  chains: [base, baseSepolia, optimismSepolia, pharosTestnet],
+// Chain configurations 
+const chains = [mainnet, bsc, polygon, arbitrum, optimism, base, zksync, linea]
 
-  // [HIGH IMPACT] SSR: true sangat krusial untuk Next.js/Vercel agar tidak error saat reload
-  ssr: true, 
-  
+export const config = defaultWagmiConfig({
+  chains,
+  projectId: walletConnectProjectId,
+  metadata,
+  ssr: true,
+  storage: createStorage({
+    storage: cookieStorage
+  }),
+  transports: {
+    [mainnet.id]: http(),
+    [bsc.id]: http(),
+    [polygon.id]: http(),
+    [arbitrum.id]: http(),
+    [optimism.id]: http(),
+    [base.id]: http(),
+    [zksync.id]: http(),
+    [linea.id]: http(),
+  },
   connectors: [
-    // [BASE OPTIMIZATION] Coinbase Wallet sangat smooth di jaringan Base (Smart Wallet)
-    coinbaseWallet({
-      appName: metadata.name,
-      appLogoUrl: metadata.icons[0],
-      preference: 'all', // Mendukung Smart Wallet & EOA
-    }),
-    walletConnect({
-      projectId: walletConnectProjectId,
-      metadata,
-      showQrModal: false,
+    walletConnect({ 
+      projectId: walletConnectProjectId, 
+      metadata, 
+      showQrModal: false 
     }),
     injected({ shimDisconnect: true }),
-  ],
-  
-  // Storage logic aman untuk SSR
-  storage: createStorage({  
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined, 
-  }),
-
-  transports: {
-    // Wagmi akan otomatis mencari RPC terbaik untuk chain official (Base/OP)
-    // Tapi kita bisa override jika punya API Key Alchemy/Infura untuk performa lebih ngebut
-    [base.id]: http(),
-    [baseSepolia.id]: http(),
-    [optimismSepolia.id]: http(),
-    [pharosTestnet.id]: http(),
-  },
-});
+    coinbaseWallet({
+      appName: metadata.name,
+      appLogoUrl: metadata.icons[0]
+    })
+  ]
+})
