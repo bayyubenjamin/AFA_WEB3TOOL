@@ -5,13 +5,18 @@ import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { Toaster, toast } from 'sonner';
 
-// --- KOMPONEN UTAMA (Eager Load) ---
+// --- KOMPONEN UTAMA (Eager Load - Agar langsung tampil) ---
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BackToTopButton from './components/BackToTopButton';
 
-// --- PAGE COMPONENTS (Lazy Load untuk Optimasi Performa) ---
-const PageHome = lazy(() => import("./components/PageHome"));
+// --- HALAMAN KRITIS (Eager Load - Mencegah Blank Screen di Awal) ---
+// Kita load halaman Home & Login secara langsung untuk stabilitas
+import PageHome from "./components/PageHome";
+import PageLogin from "./components/PageLogin";
+
+// --- HALAMAN SEKUNDER (Lazy Load - Optimasi Performa) ---
+// Menggunakan import() dinamis agar bundle awal kecil
 const PageMyWork = lazy(() => import("./components/PageMyWork"));
 const PageAirdrops = lazy(() => import("./components/PageAirdrops"));
 const PageAdminAirdrops = lazy(() => import("./components/PageAdminAirdrops"));
@@ -23,7 +28,6 @@ const PageEvents = lazy(() => import('./components/PageEvents'));
 const PageEventDetail = lazy(() => import('./components/PageEventDetail'));
 const PageAdminEvents = lazy(() => import('./components/PageAdminEvents'));
 const PageAdminDashboard = lazy(() => import('./components/PageAdminDashboard'));
-const PageLogin = lazy(() => import("./components/PageLogin"));
 const PageRegister = lazy(() => import("./components/PageRegister"));
 const PageAfaIdentity = lazy(() => import('./components/PageAfaIdentity'));
 const PageWarungKripto = lazy(() => import('./components/PageWarungKripto'));
@@ -37,12 +41,56 @@ const KebijakanLayanan = lazy(() => import('./components/KebijakanLayanan'));
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner, faCircleNotch } from "@fortawesome/free-solid-svg-icons"; // Pastikan faCircleNotch diimport
+import { faSpinner, faCircleNotch, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons"; 
 import { useLanguage } from "./context/LanguageContext";
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
-// --- DATA & HELPER FUNCTIONS ---
+// --- ERROR BOUNDARY CLASS ---
+// Ini adalah jaring pengaman terakhir. Jika ada komponen error, 
+// aplikasi tidak akan blank putih, tapi menampilkan pesan error.
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught Error:", error, errorInfo);
+    this.setState({ error, errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50 text-gray-800">
+          <FontAwesomeIcon icon={faTriangleExclamation} className="text-5xl text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Terjadi Kesalahan / Something went wrong</h1>
+          <p className="text-center mb-6 max-w-md">
+            Aplikasi mengalami masalah saat memuat. Silakan refresh halaman atau coba lagi nanti.
+          </p>
+          <div className="bg-gray-200 p-4 rounded text-xs font-mono w-full max-w-2xl overflow-auto border border-gray-300">
+            <p className="font-bold text-red-600">{this.state.error && this.state.error.toString()}</p>
+            <br />
+            <pre>{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            Refresh Halaman
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
@@ -65,13 +113,11 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
-// --- INTERNAL COMPONENT: LOADING SPINNER ---
-// Didefinisikan di sini agar tidak perlu file baru
 const InternalLoadingSpinner = ({ text, fullScreen = false }) => (
   <div className={`flex flex-col items-center justify-center ${fullScreen ? 'fixed inset-0 z-[9999] bg-white/90 dark:bg-black/90 backdrop-blur-sm' : 'py-20 h-full w-full'}`}>
     <div className="relative">
-      <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping blur-sm"></div>
-      <FontAwesomeIcon icon={faCircleNotch} spin className="text-4xl sm:text-5xl text-primary relative z-10" />
+      <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping blur-sm"></div>
+      <FontAwesomeIcon icon={faCircleNotch} spin className="text-4xl sm:text-5xl text-blue-500 relative z-10" />
     </div>
     <p className="mt-4 text-sm font-semibold text-gray-600 dark:text-gray-300 animate-pulse tracking-wider">
       {text || 'LOADING...'}
@@ -99,7 +145,6 @@ export default function App() {
   const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
-  // 1. Network Status
   useEffect(() => {
     const handleOnline = () => toast.success(language === 'id' ? "Kembali Online!" : "Back Online!");
     const handleOffline = () => toast.error(language === 'id' ? "Koneksi Internet Terputus!" : "Internet Connection Lost!");
@@ -111,7 +156,6 @@ export default function App() {
     };
   }, [language]);
 
-  // 2. Auth & Session Logic
   useEffect(() => {
     setLoadingInitialSession(true);
     
@@ -138,7 +182,6 @@ export default function App() {
     };
 
     const initAuth = async () => {
-        // Cek Telegram WebApp Data
         if (window.Telegram?.WebApp?.initData) {
             try {
                 window.Telegram.WebApp.ready();
@@ -156,7 +199,6 @@ export default function App() {
             }
         }
         
-        // Cek Sesi Supabase Biasa
         const { data: { session } } = await supabase.auth.getSession();
         handleSessionUpdate(session);
     };
@@ -170,7 +212,6 @@ export default function App() {
     return () => subscription?.unsubscribe();
   }, []);
 
-  // 3. Scroll & UI Interactions
   const handleScroll = useCallback((event) => {
       const currentScrollY = event.currentTarget.scrollTop;
       const SCROLL_UP_THRESHOLD = 60;
@@ -206,7 +247,6 @@ export default function App() {
       setShowBackToTop(false);
   };
 
-  // 4. Notifications & Titles
   const checkAirdropNotifications = useCallback(async () => {
       try {
           const lastVisit = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
@@ -255,64 +295,69 @@ export default function App() {
   const showNav = !noNavRoutes.some(route => location.pathname.startsWith(route));
 
   return (
-    <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
-      <Toaster position="top-center" richColors closeButton />
+    <ErrorBoundary>
+      <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
+        <Toaster position="top-center" richColors closeButton />
 
-      {showNav && (
-        <Header 
-            title={headerTitle} 
-            currentUser={userForHeader} 
-            onLogout={handleLogout} 
-            navigateTo={navigate} 
-            onlineUsers={onlineUsers} 
-            isHeaderVisible={isHeaderVisible} 
-            hasNewAirdropNotification={hasNewAirdropNotification} 
-        />
-      )}
-
-      <main 
-        ref={pageContentRef} 
-        onScroll={handleScroll} 
-        className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter transition-all ${showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6'} overflow-y-auto custom-scrollbar`}
-      >
-        {!loadingInitialSession ? (
-          <Suspense fallback={<InternalLoadingSpinner text={language === 'id' ? 'Memuat Halaman...' : 'Loading Page...'} />}>
-              <Routes>
-                <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-                <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
-                <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={() => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); }} />} />
-                <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
-                <Route path="/airdrops/:airdropSlug/update/*" element={<PageManageUpdate currentUser={userForHeader} />} />
-                <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
-                <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
-                <Route path="/events/*" element={<PageEvents currentUser={userForHeader} />} />
-                <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
-                <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
-                <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
-                <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
-                <Route path="/warung-kripto/*" element={<PageWarungKripto currentUser={userForHeader} />} />
-                
-                {currentUser?.role === 'admin' && (
-                    <>
-                        <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
-                        <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
-                        <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
-                        <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
-                        <Route path="/admin/rekening" element={<PageAdminRekening />} />
-                    </>
-                )}
-                
-                <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={setCurrentUser} onOpenWalletModal={openWalletModal} />} />
-                <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
-              </Routes>
-          </Suspense>
-        ) : (
-             <InternalLoadingSpinner fullScreen text={language === 'id' ? 'Menyiapkan Sesi...' : 'Initializing Session...'} />
+        {showNav && (
+          <Header 
+              title={headerTitle} 
+              currentUser={userForHeader} 
+              onLogout={handleLogout} 
+              navigateTo={navigate} 
+              onlineUsers={onlineUsers} 
+              isHeaderVisible={isHeaderVisible} 
+              hasNewAirdropNotification={hasNewAirdropNotification} 
+          />
         )}
-      </main>
 
-      {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
-      <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
-    </div>
+        <main 
+          ref={pageContentRef} 
+          onScroll={handleScroll} 
+          className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter transition-all ${showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6'} overflow-y-auto custom-scrollbar`}
+        >
+          {!loadingInitialSession ? (
+            <Suspense fallback={<InternalLoadingSpinner text={language === 'id' ? 'Memuat Halaman...' : 'Loading Page...'} />}>
+                <Routes>
+                  {/* PageHome dan PageLogin diload biasa agar lebih stabil */}
+                  <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+                  <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+                  
+                  {/* Halaman lainnya Lazy Load */}
+                  <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
+                  <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={() => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); }} />} />
+                  <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
+                  <Route path="/airdrops/:airdropSlug/update/*" element={<PageManageUpdate currentUser={userForHeader} />} />
+                  <Route path="/airdrops/:airdropSlug" element={<AirdropDetailPage currentUser={userForHeader} />} />
+                  <Route path="/forum" element={<PageForum currentUser={userForHeader} />} />
+                  <Route path="/events/*" element={<PageEvents currentUser={userForHeader} />} />
+                  <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
+                  <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
+                  <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
+                  <Route path="/warung-kripto/*" element={<PageWarungKripto currentUser={userForHeader} />} />
+                  
+                  {currentUser?.role === 'admin' && (
+                      <>
+                          <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
+                          <Route path="/admin/events" element={<PageAdminEvents currentUser={userForHeader} />} />
+                          <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
+                          <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
+                          <Route path="/admin/rekening" element={<PageAdminRekening />} />
+                      </>
+                  )}
+                  
+                  <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={setCurrentUser} onOpenWalletModal={openWalletModal} />} />
+                  <Route path="*" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
+                </Routes>
+            </Suspense>
+          ) : (
+              <InternalLoadingSpinner fullScreen text={language === 'id' ? 'Menyiapkan Sesi...' : 'Initializing Session...'} />
+          )}
+        </main>
+
+        {showNav && <BottomNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />}
+        <BackToTopButton show={showBackToTop} onClick={scrollToTop} />
+      </div>
+    </ErrorBoundary>
   );
 }
