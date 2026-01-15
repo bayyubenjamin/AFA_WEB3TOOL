@@ -5,13 +5,12 @@ import { useDisconnect, useAccount } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { Toaster, toast } from 'sonner';
 
-// Components (Eager Load - Komponen Kritis)
+// --- KOMPONEN UTAMA (Eager Load) ---
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import BackToTopButton from './components/BackToTopButton';
-import LoadingSpinner from './components/LoadingSpinner'; // Asumsi ada komponen ini, atau gunakan fallback inline
 
-// Pages (Lazy Load - Code Splitting untuk Performa)
+// --- PAGE COMPONENTS (Lazy Load untuk Optimasi Performa) ---
 const PageHome = lazy(() => import("./components/PageHome"));
 const PageMyWork = lazy(() => import("./components/PageMyWork"));
 const PageAirdrops = lazy(() => import("./components/PageAirdrops"));
@@ -38,11 +37,12 @@ const KebijakanLayanan = lazy(() => import('./components/KebijakanLayanan'));
 
 import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faCircleNotch } from "@fortawesome/free-solid-svg-icons"; // Pastikan faCircleNotch diimport
 import { useLanguage } from "./context/LanguageContext";
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
+// --- DATA & HELPER FUNCTIONS ---
 const defaultGuestUserForApp = {
   id: null, name: "Guest User", username: "Guest User", email: null,
   avatar_url: `https://placehold.co/100x100/F97D3C/FFF8F0?text=G`,
@@ -65,11 +65,24 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
   };
 };
 
+// --- INTERNAL COMPONENT: LOADING SPINNER ---
+// Didefinisikan di sini agar tidak perlu file baru
+const InternalLoadingSpinner = ({ text, fullScreen = false }) => (
+  <div className={`flex flex-col items-center justify-center ${fullScreen ? 'fixed inset-0 z-[9999] bg-white/90 dark:bg-black/90 backdrop-blur-sm' : 'py-20 h-full w-full'}`}>
+    <div className="relative">
+      <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping blur-sm"></div>
+      <FontAwesomeIcon icon={faCircleNotch} spin className="text-4xl sm:text-5xl text-primary relative z-10" />
+    </div>
+    <p className="mt-4 text-sm font-semibold text-gray-600 dark:text-gray-300 animate-pulse tracking-wider">
+      {text || 'LOADING...'}
+    </p>
+  </div>
+);
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingInitialSession, setLoadingInitialSession] = useState(true);
   const [headerTitle, setHeaderTitle] = useState("AIRDROP FOR ALL");
-  const [userAirdrops, setUserAirdrops] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [hasNewAirdropNotification, setHasNewAirdropNotification] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -86,21 +99,19 @@ export default function App() {
   const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
-  // Network Status Monitoring
+  // 1. Network Status
   useEffect(() => {
     const handleOnline = () => toast.success(language === 'id' ? "Kembali Online!" : "Back Online!");
     const handleOffline = () => toast.error(language === 'id' ? "Koneksi Internet Terputus!" : "Internet Connection Lost!");
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, [language]);
 
-  // Auth & Session Management
+  // 2. Auth & Session Logic
   useEffect(() => {
     setLoadingInitialSession(true);
     
@@ -127,7 +138,7 @@ export default function App() {
     };
 
     const initAuth = async () => {
-        // Telegram Auth Check
+        // Cek Telegram WebApp Data
         if (window.Telegram?.WebApp?.initData) {
             try {
                 window.Telegram.WebApp.ready();
@@ -145,7 +156,7 @@ export default function App() {
             }
         }
         
-        // Standard Auth Check
+        // Cek Sesi Supabase Biasa
         const { data: { session } } = await supabase.auth.getSession();
         handleSessionUpdate(session);
     };
@@ -159,7 +170,7 @@ export default function App() {
     return () => subscription?.unsubscribe();
   }, []);
 
-  // UI Interactions (Scroll, Header, BackToTop)
+  // 3. Scroll & UI Interactions
   const handleScroll = useCallback((event) => {
       const currentScrollY = event.currentTarget.scrollTop;
       const SCROLL_UP_THRESHOLD = 60;
@@ -181,7 +192,6 @@ export default function App() {
       
       lastScrollY.current = currentScrollY;
       
-      // Debounce BackToTop visibility
       if (backToTopTimeoutRef.current) clearTimeout(backToTopTimeoutRef.current);
       if (currentScrollY > 400) {
           setShowBackToTop(true);
@@ -196,7 +206,7 @@ export default function App() {
       setShowBackToTop(false);
   };
 
-  // Business Logic
+  // 4. Notifications & Titles
   const checkAirdropNotifications = useCallback(async () => {
       try {
           const lastVisit = localStorage.getItem(LS_AIRDROPS_LAST_VISIT_KEY);
@@ -204,20 +214,13 @@ export default function App() {
               setHasNewAirdropNotification(true);
               return;
           }
-          
           const { data } = await supabase
             .from('airdrops')
-            .select('created_at, AirdropUpdates(created_at)')
-            .gt('created_at', lastVisit) // Optimasi query: hanya ambil yg baru
+            .select('created_at')
+            .gt('created_at', lastVisit)
             .limit(1); 
-
-          // Jika ada data baru atau update baru (logika sederhana)
-          if (data && data.length > 0) {
-             setHasNewAirdropNotification(true);
-          } else {
-             // Deep check jika query simple tidak cukup (opsional)
-             setHasNewAirdropNotification(false);
-          }
+          if (data && data.length > 0) setHasNewAirdropNotification(true);
+          else setHasNewAirdropNotification(false);
       } catch (err) {
           console.error("Notif check failed", err);
       }
@@ -225,7 +228,6 @@ export default function App() {
 
   useEffect(() => { checkAirdropNotifications(); }, [checkAirdropNotifications]);
 
-  // Page Titles & Transitions
   useEffect(() => {
     const titles = language === 'id' 
         ? { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar" } 
@@ -234,10 +236,9 @@ export default function App() {
     const path = location.pathname.split('/')[1] || 'home';
     setHeaderTitle(titles[path] || "AFA WEB3TOOL");
 
-    // Animation trigger
     if (pageContentRef.current) {
         pageContentRef.current.classList.remove("content-enter-active");
-        void pageContentRef.current.offsetWidth; // Trigger reflow
+        void pageContentRef.current.offsetWidth;
         pageContentRef.current.classList.add("content-enter-active");
     }
   }, [location, language]);
@@ -252,13 +253,6 @@ export default function App() {
   const userForHeader = currentUser || defaultGuestUserForApp;
   const noNavRoutes = ['/admin', '/login', '/register', '/login-telegram'];
   const showNav = !noNavRoutes.some(route => location.pathname.startsWith(route));
-
-  // Loading Fallback Component
-  const PageLoader = () => (
-    <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-primary" />
-    </div>
-  );
 
   return (
     <div className="app-container font-sans h-screen flex flex-col overflow-hidden">
@@ -282,7 +276,7 @@ export default function App() {
         className={`flex-grow ${showNav ? 'pt-[var(--header-height)]' : ''} px-4 content-enter transition-all ${showNav ? 'pb-[var(--bottomnav-height)] md:pb-6' : 'pb-6'} overflow-y-auto custom-scrollbar`}
       >
         {!loadingInitialSession ? (
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<InternalLoadingSpinner text={language === 'id' ? 'Memuat Halaman...' : 'Loading Page...'} />}>
               <Routes>
                 <Route path="/" element={<PageHome currentUser={userForHeader} navigate={navigate} />} />
                 <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
@@ -313,10 +307,7 @@ export default function App() {
               </Routes>
           </Suspense>
         ) : (
-             <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-light-bg dark:bg-dark-bg">
-                <FontAwesomeIcon icon={faSpinner} spin size="2x" className="mb-3 text-primary" />
-                <span className="text-gray-800 dark:text-dark-text">{language === 'id' ? 'Memuat Sesi...' : 'Loading Session...'}</span>
-            </div>
+             <InternalLoadingSpinner fullScreen text={language === 'id' ? 'Menyiapkan Sesi...' : 'Initializing Session...'} />
         )}
       </main>
 
