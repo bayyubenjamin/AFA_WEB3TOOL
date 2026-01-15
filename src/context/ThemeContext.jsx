@@ -1,24 +1,24 @@
 // src/context/ThemeContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  // Default ke 'dark', atau ambil dari localStorage jika ada
+  // Mengambil tema dari localStorage atau mendeteksi preferensi sistem OS
   const [theme, setTheme] = useState(() => {
     const storedTheme = localStorage.getItem('appTheme');
-    return storedTheme || 'light';
+    if (storedTheme) return storedTheme;
+    
+    // Fallback ke preferensi sistem jika tidak ada simpanan lokal
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
     const root = window.document.documentElement;
     
-    // Hapus class lama dan tambahkan class baru
-    if (theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      root.classList.add('dark');
-    }
+    // Hapus kedua class untuk memastikan bersih sebelum menambah yang baru
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
     
     // Simpan preferensi tema
     localStorage.setItem('appTheme', theme);
@@ -28,7 +28,12 @@ export const ThemeProvider = ({ children }) => {
     setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
-  const value = { theme, toggleTheme };
+  // OPTIMASI: Menggunakan useMemo agar value tidak berubah di setiap render
+  // kecuali state theme benar-benar berubah.
+  const value = useMemo(() => ({
+    theme,
+    toggleTheme
+  }), [theme]);
 
   return (
     <ThemeContext.Provider value={value}>
@@ -38,5 +43,9 @@ export const ThemeProvider = ({ children }) => {
 };
 
 export const useTheme = () => {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
 };
