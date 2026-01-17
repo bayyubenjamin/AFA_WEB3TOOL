@@ -2,6 +2,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 // Font imports
 import '@fontsource/fredoka/400.css';
@@ -11,10 +13,7 @@ import '@fontsource/fredoka/700.css';
 import '@fontsource/baloo-2';
 import '@fontsource/quicksand';
 
-// Styles
 import "./styles/style.css";
-
-// Components & Contexts
 import App from "./App.jsx";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
@@ -25,27 +24,49 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config as wagmiConfig, walletConnectProjectId } from './wagmiConfig';
 
-// 1. Inisialisasi Query Client di luar render
+// --- Global Error Boundary ---
+class GlobalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Global Error Caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#333', fontFamily: 'sans-serif' }}>
+          <FontAwesomeIcon icon={faTriangleExclamation} size="3x" style={{color: '#ef4444', marginBottom: '1rem'}} />
+          <h1>Oops! Aplikasi Gagal Memuat.</h1>
+          <p>Terjadi kesalahan kritis pada sistem.</p>
+          <pre style={{ background: '#f3f4f6', padding: '10px', borderRadius: '5px', overflow: 'auto', textAlign: 'left', margin: '20px auto', maxWidth: '600px', fontSize: '12px' }}>
+            {this.state.error?.toString()}
+          </pre>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+          >
+            Muat Ulang Halaman
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const queryClient = new QueryClient();
 
-// 2. Featured Wallets (Opsional)
-const featuredWalletIds = [
-  'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
-  '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875DA31A0', // Trust Wallet
-  'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3CFb6b3a38bd033AA', // Coinbase
-];
-
-// 3. ROBUST WEB3MODAL INITIALIZATION
-// Membungkus ini dalam try-catch sangat penting. Jika projectId salah/kosong,
-// fungsi ini biasanya throw error yang mematikan seluruh aplikasi (White Screen).
+// Inisialisasi Web3Modal
 try {
-  if (!walletConnectProjectId) {
-    console.warn("⚠️ WalletConnect Project ID is missing. Web3 features may not work.");
-  } else {
+  if (walletConnectProjectId) {
     createWeb3Modal({
-      wagmiConfig: wagmiConfig,
+      wagmiConfig,
       projectId: walletConnectProjectId,
-      featuredWalletIds,
       themeMode: 'dark',
       themeVariables: {
         '--w3m-color-mix': '#0a0a1a',
@@ -53,44 +74,29 @@ try {
         '--w3m-accent': '#7f5af0'
       }
     });
-    console.log("✅ Web3Modal initialized successfully");
   }
 } catch (error) {
-  console.error("❌ Failed to initialize Web3Modal:", error);
-  // Aplikasi tetap lanjut render meskipun Web3 gagal
+  console.error("Warning: Web3Modal init failed (Check Project ID)", error);
 }
 
-// 4. Safe Rendering
 const rootElement = document.getElementById("root");
 
-if (!rootElement) {
-  console.error("❌ Critical Error: Root element with id 'root' not found in DOM.");
-} else {
-  try {
-    ReactDOM.createRoot(rootElement).render(
-      <React.StrictMode>
-        <BrowserRouter>
-          {/* WagmiProvider harus di level teratas untuk hook useAccount dll */}
-          <WagmiProvider config={wagmiConfig}>
-            <QueryClientProvider client={queryClient}>
-              <ThemeProvider>
-                <LanguageProvider>
-                   <App />
-                </LanguageProvider>
-              </ThemeProvider>
-            </QueryClientProvider>
-          </WagmiProvider>
-        </BrowserRouter>
-      </React.StrictMode>
-    );
-    console.log("🚀 Application mounted successfully");
-  } catch (renderError) {
-    console.error("❌ Error during React mounting:", renderError);
-    // Fallback manual jika React hancur total
-    rootElement.innerHTML = `<div style="color:red; padding:20px; text-align:center;">
-      <h1>Application Error</h1>
-      <p>Gagal memuat aplikasi. Cek console browser untuk detail.</p>
-      <pre>${renderError.message}</pre>
-    </div>`;
-  }
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <GlobalErrorBoundary>
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <LanguageProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </LanguageProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </GlobalErrorBoundary>
+    </React.StrictMode>
+  );
 }

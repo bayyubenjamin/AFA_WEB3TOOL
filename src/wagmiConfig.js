@@ -1,13 +1,11 @@
+// src/wagmiConfig.js
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
 import { cookieStorage, createStorage, http } from 'wagmi'
 import { mainnet, bsc, polygon, arbitrum, optimism, base, zksync, linea } from 'wagmi/chains'
-import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors'
 
-// 1. Get projectId at https://cloud.walletconnect.com
-// Menggunakan Project ID existing atau public
-export const walletConnectProjectId = '4d85918712392765b2e95a0448100570'
+// Pastikan Project ID ada. Jika tidak, gunakan string kosong untuk mencegah crash impor (meski nanti koneksi gagal)
+export const walletConnectProjectId = '4d85918712392765b2e95a0448100570' || 'example_id';
 
-// 2. Create wagmiConfig
 const metadata = {
   name: 'AFA Web3 Dashboard',
   description: 'Comprehensive Web3 Airdrop & Community Management Tool',
@@ -15,37 +13,41 @@ const metadata = {
   icons: ['https://airdropforall.app/assets/logo.png'] 
 }
 
-// Chain configurations 
-const chains = [mainnet, bsc, polygon, arbitrum, optimism, base, zksync, linea]
+const chains = [mainnet, bsc, polygon, arbitrum, optimism, base, zksync, linea];
 
-export const config = defaultWagmiConfig({
-  chains,
-  projectId: walletConnectProjectId,
-  metadata,
-  ssr: true,
-  storage: createStorage({
-    storage: cookieStorage
-  }),
-  transports: {
-    [mainnet.id]: http(),
-    [bsc.id]: http(),
-    [polygon.id]: http(),
-    [arbitrum.id]: http(),
-    [optimism.id]: http(),
-    [base.id]: http(),
-    [zksync.id]: http(),
-    [linea.id]: http(),
-  },
-  connectors: [
-    walletConnect({ 
-      projectId: walletConnectProjectId, 
-      metadata, 
-      showQrModal: false 
+// Buat config dengan try-catch block implisit atau default value
+let wagmiConfig;
+
+try {
+  wagmiConfig = defaultWagmiConfig({
+    chains,
+    projectId: walletConnectProjectId,
+    metadata,
+    ssr: true,
+    storage: createStorage({
+      storage: cookieStorage
     }),
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({
-      appName: metadata.name,
-      appLogoUrl: metadata.icons[0]
-    })
-  ]
-})
+    transports: {
+      [mainnet.id]: http(),
+      [bsc.id]: http(),
+      [polygon.id]: http(),
+      [arbitrum.id]: http(),
+      [optimism.id]: http(),
+      [base.id]: http(),
+      [zksync.id]: http(),
+      [linea.id]: http(),
+    },
+    // Opsi auth email dimatikan defaultnya di v5 jika tidak diset
+    enableEmail: true 
+  });
+} catch (error) {
+  console.error("Error creating Wagmi Config:", error);
+  // Fallback config minimal agar app tidak crash total
+  wagmiConfig = defaultWagmiConfig({
+    chains,
+    projectId: walletConnectProjectId,
+    metadata,
+  });
+}
+
+export const config = wagmiConfig;
