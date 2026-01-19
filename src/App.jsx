@@ -4,10 +4,9 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useDisconnect } from 'wagmi';
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { Toaster, toast } from 'sonner';
-import { supabase } from './supabaseClient'; // Import supabase yang sudah diamankan
+import { supabase } from './supabaseClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleNotch, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons"; 
-import PageQuestCenter from './components/PageQuestCenter';
 import { useLanguage } from "./context/LanguageContext";
 
 // --- KOMPONEN UTAMA (Eager Load) ---
@@ -35,6 +34,9 @@ const PageWarungKripto = lazy(() => import('./components/PageWarungKripto'));
 const PageAdminWarung = lazy(() => import('./components/PageAdminWarung'));
 const PageAdminOrderBook = lazy(() => import('./components/PageAdminOrderBook'));
 const PageAdminRekening = lazy(() => import('./components/PageAdminRekening'));
+
+// --- TAMBAHAN BARU: Quest Center ---
+const PageQuestCenter = lazy(() => import("./components/PageQuestCenter"));
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
@@ -67,7 +69,6 @@ const InternalLoadingSpinner = ({ text, fullScreen = false }) => (
   </div>
 );
 
-// Tampilan jika Supabase Error
 const EnvErrorState = () => (
   <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
     <FontAwesomeIcon icon={faTriangleExclamation} className="text-5xl text-yellow-500 mb-4" />
@@ -77,7 +78,6 @@ const EnvErrorState = () => (
 );
 
 export default function App() {
-  // Jika Supabase null (karena config error), langsung render error state
   if (!supabase) return <EnvErrorState />;
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -90,7 +90,6 @@ export default function App() {
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
-  const scrollUpStartPosRef = useRef(null);
 
   const { language } = useLanguage();
   const location = useLocation();
@@ -98,7 +97,6 @@ export default function App() {
   const { open: openWalletModal } = useWeb3Modal();
   const { disconnect } = useDisconnect();
 
-  // --- AUTH INITIALIZATION ---
   useEffect(() => {
     let mounted = true;
 
@@ -110,19 +108,16 @@ export default function App() {
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
-            // PGRST116 = No rows found (user belum ada profil)
             if (error && error.code !== 'PGRST116') throw error;
             return mapSupabaseDataToAppUserForApp(session.user, data);
         } catch (error) {
             console.error("[Auth] Fetch profile error:", error);
-            // Return user basic jika fetch profile gagal
             return mapSupabaseDataToAppUserForApp(session.user, null);
         }
     };
 
     const initAuth = async () => {
         try {
-            // Telegram Auth Logic
             if (window.Telegram?.WebApp?.initData) {
                 window.Telegram.WebApp.ready();
                 const initData = window.Telegram.WebApp.initData;
@@ -136,7 +131,6 @@ export default function App() {
                 }
             }
             
-            // Standard Session Check
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
 
@@ -146,7 +140,6 @@ export default function App() {
             }
         } catch (err) {
             console.error("Auth Init Error:", err);
-            // Jangan crash, set guest user
             if (mounted) setCurrentUser(defaultGuestUserForApp);
         } finally {
             if (mounted) setLoadingInitialSession(false);
@@ -169,7 +162,6 @@ export default function App() {
     };
   }, []);
 
-  // --- SCROLL HANDLER ---
   const handleScroll = useCallback((event) => {
       const currentScrollY = event.currentTarget.scrollTop;
       if (currentScrollY < 80) {
@@ -194,7 +186,6 @@ export default function App() {
       pageContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- NOTIFICATION CHECK ---
   useEffect(() => {
     const checkNotif = async () => {
       try {
@@ -203,7 +194,6 @@ export default function App() {
             setHasNewAirdropNotification(true);
             return;
         }
-        // Pastikan tabel airdrops ada sebelum query
         const { count, error } = await supabase
             .from('airdrops')
             .select('*', { count: 'exact', head: true })
@@ -217,12 +207,11 @@ export default function App() {
     if (supabase) checkNotif();
   }, []);
 
-  // --- ROUTER & HEADER ---
   useEffect(() => {
     const path = location.pathname.split('/')[1] || 'home';
     const titles = language === 'id' 
-        ? { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum", profile: "Profil", admin: "Admin" } 
-        : { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrops", forum: "Forum", profile: "Profile", admin: "Admin" };
+        ? { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum", profile: "Profil", admin: "Admin", quests: "Pusat Misi" } 
+        : { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrops", forum: "Forum", profile: "Profile", admin: "Admin", quests: "Quest Center" };
     setHeaderTitle(titles[path] || "AFA WEB3TOOL");
   }, [location, language]);
 
@@ -267,7 +256,9 @@ export default function App() {
                 <Route path="/login" element={<PageLogin currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
                 <Route path="/register" element={<PageRegister currentUser={currentUser} onOpenWalletModal={openWalletModal} />} />
                 
-                {/* Protected Routes Wrapper could be added here */}
+                {/* --- TAMBAHAN RUTE QUEST CENTER --- */}
+                <Route path="/quests" element={<PageQuestCenter currentUser={userForHeader} />} />
+                
                 <Route path="/my-work" element={<PageMyWork currentUser={userForHeader} />} />
                 <Route path="/airdrops" element={<PageAirdrops currentUser={userForHeader} onEnterPage={() => { localStorage.setItem(LS_AIRDROPS_LAST_VISIT_KEY, new Date().toISOString()); setHasNewAirdropNotification(false); }} />} />
                 <Route path="/airdrops/postairdrops" element={<PageAdminAirdrops currentUser={userForHeader} />} />
@@ -277,7 +268,6 @@ export default function App() {
                 <Route path="/events/*" element={<PageEvents currentUser={userForHeader} />} />
                 <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
                 <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
-                <Route path="/quests" element={<PageQuestCenter currentUser={user} />} />
                 <Route path="/warung-kripto/*" element={<PageWarungKripto currentUser={userForHeader} />} />
                 
                 {currentUser?.role === 'admin' && (
