@@ -7,6 +7,7 @@ import { Toaster, toast } from 'sonner';
 import { supabase } from './supabaseClient'; // Import supabase yang sudah diamankan
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleNotch, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons"; 
+import PageQuestCenter from './components/PageQuestCenter';
 import { useLanguage } from "./context/LanguageContext";
 
 // --- KOMPONEN UTAMA (Eager Load) ---
@@ -276,6 +277,7 @@ export default function App() {
                 <Route path="/events/*" element={<PageEvents currentUser={userForHeader} />} />
                 <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
                 <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
+                <Route path="/quests" element={<PageQuestCenter currentUser={user} />} />
                 <Route path="/warung-kripto/*" element={<PageWarungKripto currentUser={userForHeader} />} />
                 
                 {currentUser?.role === 'admin' && (
