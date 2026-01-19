@@ -86,3 +86,4 @@
 │   ├── services/         # API & Supabase logic
 │   └── wagmiConfig.js    # Web3 Configuration
 └── vercel.json           # Deployment Headers & Rules
+ 
