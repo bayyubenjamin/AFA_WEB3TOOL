@@ -4,7 +4,7 @@ import DiamondABI from "../contracts/AFAIdentityDiamondABI.json";
 
 // Mengambil address dari environment variable untuk keamanan
 // Fallback ke address hardcoded hanya jika env tidak terbaca (untuk development)
-const DIAMOND_ADDRESS = import.meta.env.VITE_DIAMOND_ADDRESS || "0x8611E3C3F991C989fEF0427998062f77c9D0A2F1";
+const DIAMOND_ADDRESS = import.meta.env.VITE_DIAMOND_ADDRESS || "0x91D6e01e871598CfD88734247F164f31461D6E5A";
 
 export function useDiamondContract() {
   const provider = useMemo(() => {
