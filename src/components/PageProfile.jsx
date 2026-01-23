@@ -19,10 +19,13 @@ import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
+// UPDATE: Hanya menyisakan Base Mainnet dengan Contract Baru
 const contractConfig = {
-    11155420: { address: '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1', abi: AfaIdentityABI, name: "OP Sepolia" },
-    84532: { address: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf', abi: AfaIdentityABI, name: "Base Sepolia" },
-    688688: { address: '0x68703AD7183007fB56f749A2BF46a15f0286d11b', abi: AfaIdentityABI, name: "Pharos Testnet" }
+    8453: { 
+        address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', 
+        abi: AfaIdentityABI, 
+        name: "Base Mainnet" 
+    }
 };
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
@@ -43,7 +46,7 @@ const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName })
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2">
                         <FontAwesomeIcon icon={faEthereum} className="text-2xl text-white/80" />
-                        <span className="text-xs font-mono text-white/50 tracking-widest uppercase">{networkName || 'UNKNOWN NET'}</span>
+                        <span className="text-xs font-mono text-white/50 tracking-widest uppercase">{networkName || 'BASE'}</span>
                     </div>
                     {isPremium ? (
                         <div className="flex items-center gap-1.5 bg-yellow-400/20 border border-yellow-400/50 px-3 py-1 rounded-full backdrop-blur-md">
@@ -154,7 +157,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     
     // Config Derived State
     const { address: contractAddress, abi, name: networkName } = useMemo(() => {
-        return contractConfig[chainId] || { address: null, abi: null, name: "Unknown" };
+        // Fallback ke Base Mainnet jika chainId undefined atau tidak cocok
+        return contractConfig[chainId] || contractConfig[8453];
     }, [chainId]);
 
     // --- CONTRACT READS ---
@@ -264,10 +268,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         } finally {
             setLoading(false);
         }
-    };
-
-    const mapSupabaseDataToAppUser = (authUser, profileData) => {
-        // ... (Keep existing logic if needed, but onUpdateUser usually handles simple merges)
     };
 
     if (!isLoggedIn) return <div className="p-10 text-center">Please Log In</div>;

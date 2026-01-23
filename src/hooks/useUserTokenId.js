@@ -1,60 +1,28 @@
-import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
-import AfaIdentityABI from "../contracts/AFAIdentityDiamondABI.json";
+import { useReadContract, useAccount } from 'wagmi';
+import { afaIdentityAddress } from '../contracts';
+import DiamondABI from '../contracts/AFAIdentityDiamondABI.json';
 
-const MAX_TOKEN_ID = 100; // update sesuai jumlah max NFT
+export const useUserTokenId = () => {
+  const { address, isConnected } = useAccount();
 
-export function useUserTokenId(address, contractAddress, userHasNFT) {
-  const [tokenId, setTokenId] = useState(null);
-  const [isFetchingTokenId, setIsFetchingTokenId] = useState(false);
-
-  // Cek apakah contract punya fungsi tokenOfOwnerByIndex (via ABI)
-  const hasTokenOfOwnerByIndex = AfaIdentityABI.some(
-    fn => fn.name === "tokenOfOwnerByIndex"
-  );
-
-  // Wagmi read untuk tokenOfOwnerByIndex
-  const { data: tokenIdDirect } = useReadContract({
-    address: contractAddress,
-    abi: AfaIdentityABI,
-    functionName: "tokenOfOwnerByIndex",
-    args: [address, 0],
-    enabled: !!address && !!userHasNFT && hasTokenOfOwnerByIndex,
+  // Membaca 'tokenIdOf' atau fungsi serupa di Smart Contract Anda
+  // Asumsi fungsi di kontrak bernama 'tokenIdOf' atau 'getTokenId'
+  // Sesuaikan 'functionName' dengan nama fungsi asli di ABI/Kontrak Anda
+  const { data: tokenId, isError, isLoading, refetch } = useReadContract({
+    address: afaIdentityAddress,
+    abi: DiamondABI,
+    functionName: 'tokenIdOf', // Pastikan nama fungsi ini benar di ABI
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isConnected, // Hanya jalan jika wallet connect
+    }
   });
 
-  useEffect(() => {
-    if (hasTokenOfOwnerByIndex && tokenIdDirect) {
-      setTokenId(Number(tokenIdDirect));
-      setIsFetchingTokenId(false);
-      return;
-    }
-
-    // Fallback: loop ownerOf
-    let canceled = false;
-    async function findTokenId() {
-      if (!address || !userHasNFT) return;
-      setIsFetchingTokenId(true);
-      for (let i = 1; i <= MAX_TOKEN_ID; i++) {
-        try {
-          const { data: owner } = await useReadContract({
-            address: contractAddress,
-            abi: AfaIdentityABI,
-            functionName: "ownerOf",
-            args: [i],
-          });
-          if (owner && owner.toLowerCase() === address.toLowerCase()) {
-            if (!canceled) setTokenId(i);
-            break;
-          }
-        } catch (e) {/* ignore */}
-      }
-      setIsFetchingTokenId(false);
-    }
-    if (!hasTokenOfOwnerByIndex && userHasNFT) findTokenId();
-    return () => {
-      canceled = true;
-    };
-  }, [address, contractAddress, userHasNFT, hasTokenOfOwnerByIndex, tokenIdDirect]);
-
-  return { tokenId, isFetchingTokenId };
-}
+  return {
+    tokenId: tokenId ? tokenId.toString() : null,
+    hasIdentity: !!tokenId && tokenId.toString() !== '0',
+    loading: isLoading,
+    error: isError,
+    refetch
+  };
+};
