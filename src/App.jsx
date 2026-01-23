@@ -277,7 +277,7 @@ export default function App() {
                 <Route path="/events/*" element={<PageEvents currentUser={userForHeader} />} />
                 <Route path="/events/:eventSlug" element={<PageEventDetail currentUser={userForHeader} />} />
                 <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} onOpenWalletModal={openWalletModal} />} />
-                <Route path="/quests" element={<PageQuestCenter currentUser={user} />} />
+                <Route path="/quests" element={<PageQuestCenter currentUser={userForHeader} />} />
                 <Route path="/warung-kripto/*" element={<PageWarungKripto currentUser={userForHeader} />} />
                 
                 {currentUser?.role === 'admin' && (
