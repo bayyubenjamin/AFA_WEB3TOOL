@@ -430,14 +430,14 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                                      <FontAwesomeIcon icon={feedback.type === 'error' ? faTimesCircle : faCheckCircle} />
                                      <span className="break-all">{feedback.message}</span>
                                  </div>
-                            )}
-                            {feedback.hash && currentNetwork?.explorer && (
+                             )}
+                             {feedback.hash && currentNetwork?.explorer && (
                                  <div className="text-xs text-center text-gray-400">
                                      <a href={`${currentNetwork.explorer}/tx/${feedback.hash}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
                                          View Transaction on Explorer
                                      </a>
                                  </div>
-                            )}
+                             )}
                         </div>
                     </div>
                 </div>
