@@ -90,8 +90,7 @@ export default function App() {
   const lastScrollY = useRef(0);
   const pageContentRef = useRef(null);
   const backToTopTimeoutRef = useRef(null);
-  const scrollUpStartPosRef = useRef(null);
-
+  
   const { language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -102,27 +101,34 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
 
-    const fetchProfile = async (session) => {
-        if (!session?.user) return null;
+    // Helper: Fetch Profile and Update State
+    const fetchProfileAndSetUser = async (session) => {
+        if (!session?.user) {
+            if (mounted) setCurrentUser(defaultGuestUserForApp);
+            return;
+        }
         try {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
+            
             // PGRST116 = No rows found (user belum ada profil)
             if (error && error.code !== 'PGRST116') throw error;
-            return mapSupabaseDataToAppUserForApp(session.user, data);
+            
+            const user = mapSupabaseDataToAppUserForApp(session.user, data);
+            if (mounted) setCurrentUser(user);
         } catch (error) {
             console.error("[Auth] Fetch profile error:", error);
-            // Return user basic jika fetch profile gagal
-            return mapSupabaseDataToAppUserForApp(session.user, null);
+            // Return user basic jika fetch profile gagal tapi session ada
+            if (mounted) setCurrentUser(mapSupabaseDataToAppUserForApp(session.user, null));
         }
     };
 
     const initAuth = async () => {
         try {
-            // Telegram Auth Logic
+            // 1. Handle Telegram Auth Logic (Priority)
             if (window.Telegram?.WebApp?.initData) {
                 window.Telegram.WebApp.ready();
                 const initData = window.Telegram.WebApp.initData;
@@ -136,31 +142,34 @@ export default function App() {
                 }
             }
             
-            // Standard Session Check
+            // 2. Standard Session Check
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
 
-            if (mounted) {
-                const user = await fetchProfile(session);
-                setCurrentUser(user);
-            }
+            // 3. Set User Data
+            await fetchProfileAndSetUser(session);
+
         } catch (err) {
             console.error("Auth Init Error:", err);
             // Jangan crash, set guest user
             if (mounted) setCurrentUser(defaultGuestUserForApp);
         } finally {
+            // 4. CRITICAL: Matikan loading state hanya di sini
             if (mounted) setLoadingInitialSession(false);
         }
     };
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // 5. Setup Listener (Hanya update data, jangan trigger loading full screen)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!mounted) return;
-        setLoadingInitialSession(true);
-        const user = await fetchProfile(session);
-        setCurrentUser(user);
-        setLoadingInitialSession(false);
+        
+        // Kita hanya update user jika ada perubahan signifikan
+        // INITIAL_SESSION seringkali redundant dengan initAuth di atas
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+             await fetchProfileAndSetUser(session);
+        }
     });
 
     return () => {
