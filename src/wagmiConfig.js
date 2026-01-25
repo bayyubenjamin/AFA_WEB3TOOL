@@ -1,46 +1,28 @@
 // src/wagmiConfig.js
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
-import { cookieStorage, createStorage, http } from 'wagmi'
-import { base } from 'wagmi/chains' // Hanya import Base
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+import { base } from 'wagmi/chains';
 
-// Pastikan Project ID ada.
-export const walletConnectProjectId = '4d85918712392765b2e95a0448100570' || 'example_id';
+// 1. Ganti dengan Project ID Anda dari cloud.walletconnect.com
+// Jika string kosong, modal akan loading selamanya atau error
+export const walletConnectProjectId = '4d85918712392765b2e95a0448100570'; 
 
+// 2. Metadata Project (Wajib agar tidak dianggap spam oleh wallet)
 const metadata = {
-  name: 'AFA Web3 Dashboard',
-  description: 'Comprehensive Web3 Airdrop & Community Management Tool',
-  url: 'https://airdropforall.app', 
-  icons: ['https://airdropforall.app/assets/logo.png'] 
-}
+  name: 'AFA Web3Tool',
+  description: 'AFA Web3Tool Platform',
+  url: 'https://afa-web3tool.vercel.app', // Ganti dengan URL produksi Anda
+  icons: ['https://avatars.githubusercontent.com/u/37784886']
+};
 
-// Hanya masukkan base ke dalam array chains
 const chains = [base];
 
-let wagmiConfig;
-
-try {
-  wagmiConfig = defaultWagmiConfig({
-    chains,
-    projectId: walletConnectProjectId,
-    metadata,
-    ssr: true,
-    storage: createStorage({
-      storage: cookieStorage
-    }),
-    transports: {
-      // Hanya definisikan transport untuk Base
-      [base.id]: http(),
-    },
-    enableEmail: true 
-  });
-} catch (error) {
-  console.error("Error creating Wagmi Config:", error);
-  // Fallback config
-  wagmiConfig = defaultWagmiConfig({
-    chains,
-    projectId: walletConnectProjectId,
-    metadata,
-  });
-}
-
-export const config = wagmiConfig;
+// 3. Gunakan defaultWagmiConfig untuk setup otomatis
+export const config = defaultWagmiConfig({
+  chains,
+  projectId: walletConnectProjectId,
+  metadata,
+  enableWalletConnect: true, // Optional - true by default
+  enableInjected: true, // Optional - true by default
+  enableEIP6963: true, // Optional - true by default
+  enableCoinbase: true, // Optional - true by default
+});
