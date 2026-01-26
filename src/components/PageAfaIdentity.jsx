@@ -17,17 +17,15 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// --- PENAMBAHAN KONFIGURASI PHAROS TESTNET ---
+// --- KONFIGURASI HANYA BASE MAINNET ---
 const contractConfig = {
-    11155420: { address: '0x8611E3C3F991C989fEF0427998062f77c9D0A2F1', abi: AfaIdentityABI },
-    84532: { address: '0x36b1e78A718D77Cae16E1922Baaea2a555f77dcf', abi: AfaIdentityABI },
-    688688: { address: '0x68703AD7183007fB56f749A2BF46a15f0286d11b', abi: AfaIdentityABI } // Pharos Testnet
+    8453: { address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', abi: AfaIdentityABI } // Base Mainnet
 };
+
 const NFT_IMAGE_URL = 'https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif';
+
 const chainInfo = {
-    11155420: { name: "OP Sepolia", color: "bg-red-500", explorer: "https://sepolia-optimism.etherscan.io" },
-    84532: { name: "Base Sepolia", color: "bg-blue-500", explorer: "https://sepolia.basescan.org" },
-    688688: { name: "Pharos Testnet", color: "bg-green-500", explorer: "https://testnet.pharosscan.xyz" } // Pharos Testnet
+    8453: { name: "Base Mainnet", color: "bg-blue-600", explorer: "https://basescan.org" }
 };
 
 // =================================================================================
@@ -178,7 +176,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const [feedback, setFeedback] = useState({ message: '', type: '', hash: null });
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [tokenId, setTokenId] = useState(undefined);
-    const [selectedChainId, setSelectedChainId] = useState(11155420);
+    // Default ke Base Mainnet (8453)
+    const [selectedChainId, setSelectedChainId] = useState(8453);
 
     const { data: hash, writeContract, error: writeError, reset: resetWriteContract } = useWriteContract();
     const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
