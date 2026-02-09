@@ -1,147 +1,163 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
-import AuthForm from './AuthForm';
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { useAccount, useDisconnect, useSignMessage } from "wagmi";
+import AuthForm from "./AuthForm";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { toast } from 'sonner';
 
 const getTranslations = (lang) => (lang === 'id' ? translationsId : translationsEn);
+const SIGN_MESSAGE = "Selamat datang di AFA Web3Tool! Tanda tangani pesan ini untuk membuktikan kepemilikan wallet dan melanjutkan.";
 
-export default function PageLogin({ currentUser, onOpenWalletModal }) { 
+export default function PageLogin({ currentUser }) {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
-
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
-  // State untuk Telegram dihapus
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-
-  const { address, isConnected, chainId } = useAccount();
+  const { open } = useWeb3Modal();
+  const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
 
-  const clearMessages = useCallback(() => { setError(null); setSuccessMessage(null); }, []);
+  // State untuk Email & Password Login
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // State untuk Loading & Error
+  const [loading, setLoading] = useState(false);
+  const [isWalletActionLoading, setIsWalletActionLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Redirect jika sudah login
   useEffect(() => {
     if (currentUser && currentUser.id) {
       navigate('/');
     }
   }, [currentUser, navigate]);
 
+  // --- HANDLER: Login Email & Password ---
   const handleLogin = async (e) => {
     e.preventDefault();
-    clearMessages();
     setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
-      if (error) throw error;
-      
-      sessionStorage.removeItem('explicitlyLoggedOut');
+    setError(null);
 
-      setSuccessMessage(t.loginSuccess || "Login berhasil!");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success("Login berhasil!");
       navigate('/');
     } catch (err) {
-      setError(err.message || "Gagal login.");
+      console.error("Login error:", err);
+      setError(err.message || "Gagal login. Periksa email dan password Anda.");
     } finally {
       setLoading(false);
     }
   };
-  
+
+  // --- HANDLER: Login Wallet (Connect + Sign) ---
   const handleWalletLogin = async () => {
-    if (!address || !chainId) {
-        setError("Wallet tidak terhubung atau chainId tidak ditemukan.");
+    // 1. Buka Modal Wallet jika belum connect
+    if (!isConnected) {
+      try {
+        await open();
+      } catch (err) {
+        console.error("Wallet modal error:", err);
         return;
-    }
-    clearMessages();
-    setIsWalletActionLoading(true);
-
-    try {
-        const messageToSign = `Logging in with wallet: ${address}`;
-        const signature = await signMessageAsync({ message: messageToSign });
-        
-        const { data: functionData, error: functionError } = await supabase.functions.invoke(
-            'login-with-wallet',
-            {
-                body: {
-                    address,
-                    signature,
-                    chainId: `0x${chainId.toString(16)}`
-                }
-            }
-        );
-
-        if (functionError) throw new Error(functionError.message);
-        if (functionData.error) throw new Error(functionData.error);
-
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: functionData.access_token,
-          refresh_token: functionData.refresh_token
-        });
-        
-        if (sessionError) throw sessionError;
-
-        sessionStorage.removeItem('explicitlyLoggedOut');
-        setSuccessMessage("Berhasil login dengan wallet!");
-        navigate('/');
-
-    } catch (err) {
-        console.error("Wallet login error:", err);
-        setError(err.message || "Gagal login dengan wallet.");
-        disconnect();
-    } finally {
-        setIsWalletActionLoading(false);
+      }
+    } else {
+      // 2. Jika sudah connect, lakukan Signature Login
+      startWalletSignatureFlow();
     }
   };
 
-  // Fungsi handleTelegramAuth dihapus
-
+  // Effect untuk mendeteksi koneksi wallet baru lalu otomatis memicu signature
   useEffect(() => {
-      if (isConnected && address && !isWalletActionLoading) {
-          handleWalletLogin();
-      }
-  }, [isConnected, address]);
+    if (isConnected && address && !currentUser && !isWalletActionLoading) {
+        // Opsional: Beri jeda sedikit atau trigger manual via tombol jika UX dirasa mengganggu
+        // Di sini kita trigger manual via tombol di AuthForm, tapi jika user barusan connect via modal,
+        // kita bisa panggil fungsi sign di sini atau biarkan user klik "Login with Wallet" lagi.
+        // Agar konsisten dengan PageRegister, kita biarkan user klik tombol / handler mentrigger flow.
+    }
+  }, [isConnected, address, currentUser]);
+
+  const startWalletSignatureFlow = async () => {
+    if (!address) return;
+    setError(null);
+    setIsWalletActionLoading(true);
+    
+    try {
+      // Minta tanda tangan user
+      const signature = await signMessageAsync({ message: SIGN_MESSAGE });
+      
+      // Kirim ke Edge Function untuk verifikasi dan login
+      const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { 
+        body: { address, signature } 
+      });
+
+      if (functionError) throw new Error(functionError.message);
+      if (session?.error) throw new Error(session.error);
+
+      // Set session di client
+      const { error: sessionError } = await supabase.auth.setSession(session);
+      if (sessionError) throw sessionError;
+
+      toast.success("Login wallet berhasil!");
+      navigate('/');
+    } catch (err) {
+      console.error("Wallet login error:", err);
+      setError(err.message || "Gagal login dengan wallet.");
+      disconnect(); // Disconnect jika gagal agar bisa coba lagi
+    } finally {
+      setIsWalletActionLoading(false);
+    }
+  };
 
   return (
-    <section className="page-content space-y-6 md:space-y-8 py-6">
-       <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center">
-        <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-        Kembali ke Beranda
-      </Link>
+    <section className="page-content space-y-6 md:space-y-8 py-6 min-h-screen flex flex-col justify-center items-center">
+      <div className="w-full max-w-lg">
+        <Link to="/" className="text-sm text-primary hover:underline mb-6 inline-flex items-center self-start">
+          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+          Kembali ke Beranda
+        </Link>
 
-       {error && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center">{error}</div>}
-       {successMessage && <div className="max-w-lg mx-auto p-4 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center">{successMessage}</div>}
+        {error && (
+          <div className="p-4 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center border border-red-500/30">
+            {error}
+          </div>
+        )}
 
-      <div className="max-w-lg mx-auto">
         <AuthForm
           isLoginForm={true}
           onFormSubmit={handleLogin}
-          onWalletLogin={onOpenWalletModal} 
+          onWalletLogin={handleWalletLogin} // Menggunakan handler logic yang lebih lengkap
           loading={loading}
           isWalletActionLoading={isWalletActionLoading}
           t={t}
-          loginEmail={loginEmail}
+          // Props untuk Login Form
+          loginEmail={loginEmail} 
           setLoginEmail={setLoginEmail}
-          loginPassword={loginPassword}
+          loginPassword={loginPassword} 
           setLoginPassword={setLoginPassword}
-          showPassword={showPassword}
+          showPassword={showPassword} 
           setShowPassword={setShowPassword}
-          // Prop untuk Telegram dihapus dari AuthForm
         />
-         <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
-           {t.noAccountYet}{" "}
-           <Link to="/register" className="font-semibold text-primary hover:underline">
-             {t.signupHere}
-           </Link>
-         </p>
+
+        <p className="text-center text-sm text-light-subtle dark:text-gray-400 mt-6">
+          {t.dontHaveAccount || "Belum punya akun?"}{" "}
+          <Link to="/register" className="font-semibold text-primary hover:underline">
+            {t.registerHere || "Daftar di sini"}
+          </Link>
+        </p>
       </div>
     </section>
   );
