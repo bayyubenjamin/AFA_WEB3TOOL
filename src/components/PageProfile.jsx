@@ -18,7 +18,7 @@ import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
 // --- STACKS IMPORTS ---
 import { useConnect } from "@stacks/connect-react";
-import { showConnect } from "@stacks/connect";
+import { stacksNetwork } from "../wagmiConfig"; // Import network dari config yang sudah abang buat
 
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
@@ -36,16 +36,12 @@ const getTranslations = (lang) => (lang === 'id' ? translationsId : translations
 
 // --- HELPER COMPONENTS ---
 
-// 1. Digital Identity Card Component (High Impact Visual)
+// 1. Digital Identity Card Component
 const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName }) => {
     return (
         <div className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] duration-300 group">
-            {/* Background Gradient */}
             <div className={`absolute inset-0 bg-gradient-to-br ${isPremium ? 'from-slate-900 via-yellow-900/40 to-slate-900 border-2 border-yellow-500/50' : 'from-slate-800 via-blue-900/20 to-slate-900 border border-slate-700'}`}></div>
-            
-            {/* Holographic Effect Overlay */}
             <div className="absolute inset-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
-            
             <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2">
@@ -63,7 +59,6 @@ const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName })
                         </div>
                     )}
                 </div>
-
                 <div className="flex items-end gap-4">
                     <div className="relative">
                         <img src={user.avatar_url || "https://via.placeholder.com/100"} alt="Avatar" className="w-16 h-16 rounded-xl object-cover border-2 border-white/20 shadow-lg" />
@@ -76,7 +71,6 @@ const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName })
                         <p className="text-xs font-mono text-white/50">@{user.username}</p>
                     </div>
                 </div>
-
                 <div className="flex justify-between items-end border-t border-white/10 pt-4 mt-2">
                     <div>
                         <p className="text-[10px] text-white/40 uppercase tracking-wider">Valid Until</p>
@@ -94,7 +88,6 @@ const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName })
     );
 };
 
-// 2. Profile Section Container
 const ProfileSection = ({ title, icon, children, className }) => (
     <div className={`bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 ${className}`}>
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-5 pb-3 border-b border-slate-200 dark:border-slate-700 flex items-center">
@@ -105,7 +98,6 @@ const ProfileSection = ({ title, icon, children, className }) => (
     </div>
 );
 
-// 3. Simple Stat Card
 const StatCard = ({ icon, label, value, subtext }) => (
     <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center transition-all hover:border-primary/50 group">
         <div className="h-10 w-10 mx-auto mb-3 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-sm">
@@ -117,7 +109,6 @@ const StatCard = ({ icon, label, value, subtext }) => (
     </div>
 );
 
-// 4. Input Field (Required for Modal)
 const InputField = React.memo(({ id, type = "text", label, value, onChange, icon, placeholder, parentLoading }) => (
     <div>
         <label htmlFor={id} className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{label}</label>
@@ -153,24 +144,22 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const [copySuccess, setCopySuccess] = useState('');
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [stacksAddress, setStacksAddress] = useState(null); // State tambahan untuk simpan address stacks
     
     // Wagmi Hooks
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
     const chainId = useChainId();
 
-    // Stacks Hook
+    // --- STACKS CONNECT HOOK ---
     const { doOpenAuth } = useConnect();
     
     // Config Derived State
     const { address: contractAddress, abi, name: networkName } = useMemo(() => {
-        // Fallback ke Base Mainnet jika chainId undefined atau tidak cocok
         return contractConfig[chainId] || contractConfig[8453];
     }, [chainId]);
 
     // --- CONTRACT READS ---
-    
-    // 1. Balance Check
     const { data: balance } = useReadContract({
         address: contractAddress,
         abi: abi,
@@ -179,7 +168,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         enabled: !!currentUser?.address && !!contractAddress,
     });
 
-    // 2. Token ID
     const { data: tokenId } = useReadContract({
         address: contractAddress,
         abi: abi,
@@ -188,7 +176,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
     });
 
-    // 3. Subscription Status (High Impact)
     const { data: isPremium } = useReadContract({
         address: contractAddress,
         abi: abi,
@@ -197,7 +184,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         enabled: !!tokenId,
     });
 
-    // 4. Expiration Date (High Impact)
     const { data: premiumExpiration } = useReadContract({
         address: contractAddress,
         abi: abi,
@@ -207,10 +193,8 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     });
 
     // --- LOGIC ---
-
     const hasNFT = balance && Number(balance) > 0;
     
-    // Hitung sisa hari subscription
     const daysRemaining = useMemo(() => {
         if (!premiumExpiration) return 0;
         const now = Math.floor(Date.now() / 1000);
@@ -219,17 +203,14 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         return diff > 0 ? Math.ceil(diff / (60 * 60 * 24)) : 0;
     }, [premiumExpiration]);
 
-    // Copy Handler
     const handleCopy = (text, label = "Copied!") => {
         navigator.clipboard.writeText(text);
         setCopySuccess(label);
         setTimeout(() => setCopySuccess(''), 2000);
     };
 
-    // Helper: Reset messages
     const clearMessages = () => { setError(null); setSuccessMessage(null); };
 
-    // Initialize Edit Form
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
@@ -237,24 +218,29 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     }, [currentUser, isLoggedIn]);
 
-    // --- STACKS CONNECT LOGIC ---
+    // --- PERBAIKAN STACKS CONNECT LOGIC ---
     const handleStacksConnect = () => {
-        showConnect({
+        doOpenAuth({
             appDetails: {
                 name: "AFA Web3Tool",
                 icon: "https://avatars.githubusercontent.com/u/37784886",
             },
-            onFinish: () => {
-                console.log("Stacks Wallet Terkoneksi!");
+            onFinish: (data) => {
+                // Ambil alamat wallet dari data session
+                const stxAddress = data.userSession.loadUserData().profile.stxAddress.mainnet;
+                setStacksAddress(stxAddress);
                 setSuccessMessage("Stacks Wallet Connected!");
+                console.log("Stacks Wallet Terkoneksi:", stxAddress);
+                
+                // Optional: Abang bisa simpan stxAddress ini ke database Supabase abang di sini
             },
             onCancel: () => {
+                setError("Stacks connection cancelled");
                 console.log("Koneksi dibatalkan");
             },
         });
     };
 
-    // Handle Update Profile (Supabase)
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         clearMessages();
@@ -262,7 +248,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         try {
             const profileUpdate = {
                 name: editName,
-                username: editName, // Sync username with name for simplicity
+                username: editName, 
                 avatar_url: editAvatarUrl,
                 updated_at: new Date()
             };
@@ -295,13 +281,11 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
     if (!isLoggedIn) return <div className="p-10 text-center">Please Log In</div>;
 
-    // --- RENDER ---
     return (
         <section className="page-content py-8 max-w-7xl mx-auto">
             {/* Header / Identity Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
                 
-                {/* Kolom Kiri: Digital Identity Card (High Impact) */}
                 <div className="lg:col-span-4 xl:col-span-3">
                     <div className="sticky top-24">
                         {hasNFT ? (
@@ -352,10 +336,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                     </div>
                 </div>
 
-                {/* Kolom Kanan: Detail User & Stats */}
                 <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6">
-                    
-                    {/* Welcome & Edit Section */}
                     <div className="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
@@ -381,7 +362,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         </div>
                     </div>
 
-                    {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard icon={faStar} label="Points Earned" value={currentUser.stats?.points || 0} subtext="Total accumulation" />
                         <StatCard icon={faTrophy} label="Rank" value="#42" subtext="Top 5% Global" />
@@ -389,7 +369,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         <StatCard icon={faClipboardCheck} label="Tasks Done" value={userAirdrops.length} subtext="Last 30 Days" />
                     </div>
 
-                    {/* Referral Section */}
                     <ProfileSection title="Referral Program" icon={faShareNodes} className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-100 dark:border-indigo-800">
                         <div className="flex flex-col md:flex-row items-center gap-6">
                             <div className="flex-grow">
@@ -425,7 +404,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         </div>
                     </ProfileSection>
 
-                    {/* Security & Connections */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ProfileSection title="Connected Accounts" icon={faShieldHalved}>
                             <div className="space-y-4">
@@ -440,16 +418,23 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                     <span className="text-xs text-green-500 font-bold"><FontAwesomeIcon icon={faShieldHalved}/> Secured</span>
                                 </div>
                                 
-                                {/* Stacks Connection UI */}
+                                {/* UI Stacks Terkoneksi */}
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
                                         <div className="text-sm">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
-                                            <p className="text-xs text-slate-500">Mainnet</p>
+                                            <p className="text-xs text-slate-500">
+                                                {stacksAddress ? `${stacksAddress.slice(0,6)}...${stacksAddress.slice(-4)}` : 'Mainnet'}
+                                            </p>
                                         </div>
                                     </div>
-                                    <button onClick={handleStacksConnect} className="text-xs text-primary font-bold hover:underline">Connect</button>
+                                    <button 
+                                        onClick={handleStacksConnect} 
+                                        className={`text-xs font-bold hover:underline ${stacksAddress ? 'text-green-500' : 'text-primary'}`}
+                                    >
+                                        {stacksAddress ? 'Connected' : 'Connect'}
+                                    </button>
                                 </div>
 
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
@@ -507,14 +492,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </button>
                         </div>
 
-                        {error && (
-                            <div className="p-3 mb-4 text-sm text-red-300 bg-red-800/50 rounded-lg text-center border border-red-800">
-                                {error}
-                            </div>
-                        )}
-                        {successMessage && !error && (
-                            <div className="p-3 mb-4 text-sm text-green-300 bg-green-800/50 rounded-lg text-center border border-green-800">
-                                {successMessage}
+                        {(error || successMessage) && (
+                            <div className={`p-3 mb-4 text-sm rounded-lg text-center border ${error ? 'text-red-300 bg-red-800/50 border-red-800' : 'text-green-300 bg-green-800/50 border-green-800'}`}>
+                                {error || successMessage}
                             </div>
                         )}
 
