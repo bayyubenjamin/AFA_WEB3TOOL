@@ -105,6 +105,13 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
           <Link to="/forum" className="p-2 w-10 h-10 flex logo-bp:hidden items-center justify-center header-interactive-item">
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
+
+          {/* PERBAIKAN: Menambahkan tombol Profil di tampilan mobile jika user login */}
+          {currentUser?.id && (
+            <Link to="/profile" className="p-2 w-10 h-10 flex logo-bp:hidden items-center justify-center header-interactive-item" aria-label="Profile">
+              <FontAwesomeIcon icon={faUserCircle} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
+            </Link>
+          )}
          
           <div className="relative" ref={menuRef}>
             <button onClick={toggleOptionsMenu} className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item" aria-label="Menu">
