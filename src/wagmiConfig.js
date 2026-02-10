@@ -2,15 +2,15 @@
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { base } from 'wagmi/chains';
 
-// PERBAIKAN: Pada Stacks.js versi 7.x, gunakan HIRO_MAINNET
-// Class StacksMainnet sudah tidak diekspor secara langsung di versi terbaru
-import { HIRO_MAINNET } from '@stacks/network';
+// PERBAIKAN: Gunakan StacksMainnet sebagai class
+import { StacksMainnet } from '@stacks/network';
 
 // Ganti Project ID ini dengan milik Anda dari cloud.walletconnect.com jika masih loading
 export const walletConnectProjectId = '4d85918712392765b2e95a0448100570';
 
-// Inisialisasi Network Stacks menggunakan objek network yang sudah disediakan
-export const stacksNetwork = HIRO_MAINNET; 
+// Inisialisasi Network Stacks sebagai instance baru
+// Pastikan menggunakan kata kunci 'new'
+export const stacksNetwork = new StacksMainnet(); 
 
 const metadata = {
   name: 'AFA Web3Tool',
