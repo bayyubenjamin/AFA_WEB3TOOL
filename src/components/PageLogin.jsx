@@ -19,7 +19,8 @@ export default function PageLogin({ currentUser }) {
   const { language } = useLanguage();
   const t = getTranslations(language).profilePage || {};
   const { open } = useWeb3Modal();
-  const { address, isConnected } = useAccount();
+  // PERBAIKAN 1: Ambil object 'chain' dari useAccount
+  const { address, isConnected, chain } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
 
@@ -83,7 +84,7 @@ export default function PageLogin({ currentUser }) {
   // Effect untuk mendeteksi koneksi wallet baru lalu otomatis memicu signature
   useEffect(() => {
     if (isConnected && address && !currentUser && !isWalletActionLoading) {
-       // Opsional: Auto-trigger bisa ditambahkan disini
+       // Opsional: Auto-trigger bisa ditambahkan disini jika diinginkan
     }
   }, [isConnected, address, currentUser]);
 
@@ -93,12 +94,25 @@ export default function PageLogin({ currentUser }) {
     setIsWalletActionLoading(true);
     
     try {
+      // PERBAIKAN 2: Validasi chain
+      if (!chain || !chain.id) {
+        throw new Error("Jaringan tidak terdeteksi. Pastikan wallet terhubung.");
+      }
+
+      // PERBAIKAN 3: Konversi Chain ID ke format Hex (0x...) sesuai yang diminta Edge Function
+      const chainIdHex = `0x${chain.id.toString(16)}`;
+
       // Minta tanda tangan user
       const signature = await signMessageAsync({ message: SIGN_MESSAGE });
       
       // Kirim ke Edge Function untuk verifikasi dan login
+      // PERBAIKAN 4: Sertakan 'chainId' dalam body request
       const { data: session, error: functionError } = await supabase.functions.invoke('login-with-wallet', { 
-        body: { address, signature } 
+        body: { 
+          address, 
+          signature,
+          chainId: chainIdHex 
+        } 
       });
 
       if (functionError) throw new Error(functionError.message);
@@ -112,6 +126,7 @@ export default function PageLogin({ currentUser }) {
       navigate('/');
     } catch (err) {
       console.error("Wallet login error:", err);
+      // Menampilkan pesan error yang lebih spesifik jika ada
       setError(err.message || "Gagal login dengan wallet.");
       disconnect(); // Disconnect jika gagal agar bisa coba lagi
     } finally {
