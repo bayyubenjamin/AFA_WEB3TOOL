@@ -16,6 +16,10 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
+// --- STACKS IMPORTS ---
+import { useConnect } from "@stacks/connect-react";
+import { showConnect } from "@stacks/connect";
+
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
@@ -154,6 +158,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
     const chainId = useChainId();
+
+    // Stacks Hook
+    const { doOpenAuth } = useConnect();
     
     // Config Derived State
     const { address: contractAddress, abi, name: networkName } = useMemo(() => {
@@ -230,6 +237,23 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     }, [currentUser, isLoggedIn]);
 
+    // --- STACKS CONNECT LOGIC ---
+    const handleStacksConnect = () => {
+        showConnect({
+            appDetails: {
+                name: "AFA Web3Tool",
+                icon: "https://avatars.githubusercontent.com/u/37784886",
+            },
+            onFinish: () => {
+                console.log("Stacks Wallet Terkoneksi!");
+                setSuccessMessage("Stacks Wallet Connected!");
+            },
+            onCancel: () => {
+                console.log("Koneksi dibatalkan");
+            },
+        });
+    };
+
     // Handle Update Profile (Supabase)
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
@@ -238,7 +262,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         try {
             const profileUpdate = {
                 name: editName,
-                username: editName, // Sync username with name for simplicity or keep separate if needed
+                username: editName, // Sync username with name for simplicity
                 avatar_url: editAvatarUrl,
                 updated_at: new Date()
             };
@@ -252,7 +276,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
             if (updateError) throw updateError;
 
-            // Update local state in parent
             const updatedUserMap = {
                 ...currentUser,
                 name: data.name || data.username,
@@ -290,7 +313,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                 networkName={networkName}
                             />
                         ) : (
-                            // Placeholder Card jika belum punya NFT
                             <div className="w-full aspect-[1.58/1] rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center p-6">
                                 <FontAwesomeIcon icon={faIdCard} className="text-4xl text-slate-400 mb-3" />
                                 <p className="text-sm font-bold text-slate-500">No Identity Found</p>
@@ -298,7 +320,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </div>
                         )}
 
-                        {/* Subscription Call to Action */}
                         <div className="mt-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Subscription Status</span>
@@ -311,12 +332,11 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                 )}
                             </div>
                             
-                            {/* Progress Bar Masa Aktif */}
                             {isPremium && (
                                 <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mb-4 overflow-hidden">
                                     <div 
                                         className={`h-full rounded-full ${daysRemaining < 7 ? 'bg-red-500' : 'bg-green-500'}`} 
-                                        style={{ width: `${Math.min((daysRemaining / 30) * 100, 100)}%` }} // Asumsi 1 bulan max utk visual
+                                        style={{ width: `${Math.min((daysRemaining / 30) * 100, 100)}%` }}
                                     ></div>
                                 </div>
                             )}
@@ -361,7 +381,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         </div>
                     </div>
 
-                    {/* Stats Grid (High Impact Layout) */}
+                    {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard icon={faStar} label="Points Earned" value={currentUser.stats?.points || 0} subtext="Total accumulation" />
                         <StatCard icon={faTrophy} label="Rank" value="#42" subtext="Top 5% Global" />
@@ -369,7 +389,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         <StatCard icon={faClipboardCheck} label="Tasks Done" value={userAirdrops.length} subtext="Last 30 Days" />
                     </div>
 
-                    {/* Referral Section (Growth Feature) */}
+                    {/* Referral Section */}
                     <ProfileSection title="Referral Program" icon={faShareNodes} className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-100 dark:border-indigo-800">
                         <div className="flex flex-col md:flex-row items-center gap-6">
                             <div className="flex-grow">
@@ -405,7 +425,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         </div>
                     </ProfileSection>
 
-                    {/* Security & Connections (Condensed) */}
+                    {/* Security & Connections */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ProfileSection title="Connected Accounts" icon={faShieldHalved}>
                             <div className="space-y-4">
@@ -419,6 +439,19 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                     </div>
                                     <span className="text-xs text-green-500 font-bold"><FontAwesomeIcon icon={faShieldHalved}/> Secured</span>
                                 </div>
+                                
+                                {/* Stacks Connection UI */}
+                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
+                                        <div className="text-sm">
+                                            <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
+                                            <p className="text-xs text-slate-500">Mainnet</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={handleStacksConnect} className="text-xs text-primary font-bold hover:underline">Connect</button>
+                                </div>
+
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded bg-sky-100 text-sky-500 flex items-center justify-center"><FontAwesomeIcon icon={faTelegram}/></div>
@@ -439,7 +472,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         <ProfileSection title="Wallet Management" icon={faWallet}>
                             <div className="text-center">
                                 <div className="mb-4">
-                                    <p className="text-xs text-slate-500 mb-1">Primary Wallet</p>
+                                    <p className="text-xs text-slate-500 mb-1">Primary Wallet (Base)</p>
                                     <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg break-all">
                                         {currentUser.address || "No wallet connected"}
                                     </p>
@@ -460,7 +493,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 </div>
             </div>
 
-            {/* Modal Edit Profile (Fully Restored) */}
+            {/* Modal Edit Profile */}
             {showEditProfileModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
                     <div className="modal-content bg-white dark:bg-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700">
