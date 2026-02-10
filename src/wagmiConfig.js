@@ -1,15 +1,14 @@
 // src/wagmiConfig.js
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 import { base } from 'wagmi/chains';
-// PERBAIKAN: Impor dari @stacks/network dengan cara ini
-import { StacksMainnet } from '@stacks/network'; 
+
+// PERBAIKAN: Gunakan impor dari sub-modul network
+import { StacksMainnet } from '@stacks/network';
 
 // Ganti Project ID ini dengan milik Anda dari cloud.walletconnect.com jika masih loading
 export const walletConnectProjectId = '4d85918712392765b2e95a0448100570';
 
 // Inisialisasi Network Stacks
-// Jika StacksMainnet tetap error, coba gunakan: new StacksMainnet() 
-// atau pastikan versi @stacks/network Anda sudah benar
 export const stacksNetwork = new StacksMainnet();
 
 const metadata = {
@@ -21,6 +20,7 @@ const metadata = {
 
 const chains = [base];
 
+// Gunakan defaultWagmiConfig agar list wallet otomatis ter-load
 export const config = defaultWagmiConfig({
   chains,
   projectId: walletConnectProjectId,
