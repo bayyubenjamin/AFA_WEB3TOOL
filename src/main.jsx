@@ -5,6 +5,9 @@ import { BrowserRouter } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
+// Stacks Imports
+import { Connect } from '@stacks/connect-react';
+
 // Font imports
 import '@fontsource/fredoka/400.css';
 import '@fontsource/fredoka/500.css';
@@ -24,7 +27,6 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config as wagmiConfig, walletConnectProjectId } from './wagmiConfig';
 
-// --- Global Error Boundary ---
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -61,7 +63,6 @@ class GlobalErrorBoundary extends React.Component {
 
 const queryClient = new QueryClient();
 
-// Inisialisasi Web3Modal
 try {
   if (walletConnectProjectId) {
     createWeb3Modal({
@@ -87,13 +88,28 @@ if (rootElement) {
       <GlobalErrorBoundary>
         <WagmiProvider config={wagmiConfig}>
           <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-              <LanguageProvider>
-                <BrowserRouter>
-                  <App />
-                </BrowserRouter>
-              </LanguageProvider>
-            </ThemeProvider>
+            {/* Wrapper Connect untuk Stacks Wallet */}
+            <Connect
+              authOptions={{
+                appDetails: {
+                  name: 'AFA Web3Tool',
+                  icon: 'https://avatars.githubusercontent.com/u/37784886',
+                },
+                redirectTo: '/',
+                onFinish: () => {
+                  window.location.reload();
+                },
+                userSession: null // Secara default akan mengelola session sendiri jika null
+              }}
+            >
+              <ThemeProvider>
+                <LanguageProvider>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </LanguageProvider>
+              </ThemeProvider>
+            </Connect>
           </QueryClientProvider>
         </WagmiProvider>
       </GlobalErrorBoundary>
