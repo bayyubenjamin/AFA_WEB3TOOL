@@ -18,7 +18,7 @@ import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
 // --- STACKS IMPORTS ---
 import { useConnect } from "@stacks/connect-react";
-import { stacksNetwork } from "../wagmiConfig"; // Import network dari config yang sudah abang buat
+import { stacksNetwork } from "../wagmiConfig";
 
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
@@ -36,7 +36,6 @@ const getTranslations = (lang) => (lang === 'id' ? translationsId : translations
 
 // --- HELPER COMPONENTS ---
 
-// 1. Digital Identity Card Component
 const IdentityCard = ({ user, tokenId, isPremium, expirationDate, networkName }) => {
     return (
         <div className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] duration-300 group">
@@ -144,11 +143,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const [copySuccess, setCopySuccess] = useState('');
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    const [stacksAddress, setStacksAddress] = useState(null); // State tambahan untuk simpan address stacks
     
     // Wagmi Hooks
     const { address, isConnected } = useAccount();
-    const { disconnect } = useDisconnect();
     const chainId = useChainId();
 
     // --- STACKS CONNECT HOOK ---
@@ -218,24 +215,42 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     }, [currentUser, isLoggedIn]);
 
-    // --- PERBAIKAN STACKS CONNECT LOGIC ---
+    // --- PERBAIKAN STACKS CONNECT DENGAN PERSISTENCE ---
     const handleStacksConnect = () => {
         doOpenAuth({
             appDetails: {
                 name: "AFA Web3Tool",
                 icon: "https://avatars.githubusercontent.com/u/37784886",
             },
-            onFinish: (data) => {
-                // Ambil alamat wallet dari data session
+            onFinish: async (data) => {
                 const stxAddress = data.userSession.loadUserData().profile.stxAddress.mainnet;
-                setStacksAddress(stxAddress);
-                setSuccessMessage("Stacks Wallet Connected!");
-                console.log("Stacks Wallet Terkoneksi:", stxAddress);
-                
-                // Optional: Abang bisa simpan stxAddress ini ke database Supabase abang di sini
+                setLoading(true);
+                try {
+                    // Update ke Supabase menggunakan kolom baru 'stacks_address'
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            stacks_address: stxAddress,
+                            updated_at: new Date()
+                        })
+                        .eq('id', currentUser.id);
+
+                    if (updateError) throw updateError;
+
+                    // Update state lokal agar UI langsung berubah tanpa refresh
+                    onUpdateUser({ 
+                        ...currentUser, 
+                        stacks_address: stxAddress 
+                    });
+                    
+                    setSuccessMessage("Stacks Wallet Linked Successfully!");
+                } catch (err) {
+                    setError("Failed to save Stacks wallet: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
             },
             onCancel: () => {
-                setError("Stacks connection cancelled");
                 console.log("Koneksi dibatalkan");
             },
         });
@@ -283,9 +298,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
     return (
         <section className="page-content py-8 max-w-7xl mx-auto">
-            {/* Header / Identity Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
-                
                 <div className="lg:col-span-4 xl:col-span-3">
                     <div className="sticky top-24">
                         {hasNFT ? (
@@ -418,22 +431,22 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                     <span className="text-xs text-green-500 font-bold"><FontAwesomeIcon icon={faShieldHalved}/> Secured</span>
                                 </div>
                                 
-                                {/* UI Stacks Terkoneksi */}
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
                                         <div className="text-sm">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
                                             <p className="text-xs text-slate-500">
-                                                {stacksAddress ? `${stacksAddress.slice(0,6)}...${stacksAddress.slice(-4)}` : 'Mainnet'}
+                                                {currentUser.stacks_address ? `${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}` : 'Mainnet'}
                                             </p>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={handleStacksConnect} 
-                                        className={`text-xs font-bold hover:underline ${stacksAddress ? 'text-green-500' : 'text-primary'}`}
+                                        disabled={loading}
+                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-green-500' : 'text-primary'}`}
                                     >
-                                        {stacksAddress ? 'Connected' : 'Connect'}
+                                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (currentUser.stacks_address ? 'Linked' : 'Connect')}
                                     </button>
                                 </div>
 
