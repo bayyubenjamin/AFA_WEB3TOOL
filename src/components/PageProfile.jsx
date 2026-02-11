@@ -1,27 +1,29 @@
 // src/components/PageProfile.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faEdit, faUser, faTimes, faSave, faImage, faSpinner,
-    faClipboardCheck, faStar, faWallet, faCopy, 
-    faSignOutAlt, faEnvelope, faShieldHalved, faCrown, faIdCard,
-    faTrophy, faUsers, faShareNodes, faClock
+    faChartSimple, faClipboardCheck, faStar, faWallet, faCopy, faLink, faUnlink,
+    faSignOutAlt, faEnvelope, faLock, faShieldHalved, faGear, faCrown, faArrowUp, faIdCard,
+    faTrophy, faChartLine, faUsers, faShareNodes, faClock
 } from "@fortawesome/free-solid-svg-icons";
-import { faTelegram, faXTwitter, faEthereum } from '@fortawesome/free-brands-svg-icons';
-import { Link } from "react-router-dom";
+import { faTelegram, faDiscord, faXTwitter, faEthereum } from '@fortawesome/free-brands-svg-icons';
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
 // --- STACKS IMPORTS ---
 import { useConnect } from "@stacks/connect-react";
+import { stacksNetwork } from "../wagmiConfig";
 
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
+// UPDATE: Hanya menyisakan Base Mainnet dengan Contract Baru
 const contractConfig = {
     8453: { 
         address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', 
@@ -142,26 +144,54 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     
-    // STATE PENTING: Local State untuk Stacks Address agar update instant
-    const [localStacksAddress, setLocalStacksAddress] = useState(currentUser?.stacks_address || "");
-
-    // Wagmi Hooks (EVM)
-    const { chainId } = useAccount();
+    // Wagmi Hooks
+    const { address, isConnected } = useAccount();
+    const chainId = useChainId();
 
     // --- STACKS CONNECT HOOK ---
     const { doOpenAuth } = useConnect();
     
     // Config Derived State
-    const { name: networkName } = useMemo(() => {
+    const { address: contractAddress, abi, name: networkName } = useMemo(() => {
         return contractConfig[chainId] || contractConfig[8453];
     }, [chainId]);
 
-    // Mock Values for NFT (Fallback)
-    const tokenId = 0;
-    const isPremium = false;
-    const premiumExpiration = 0;
-    const hasNFT = false; // Set false default jika belum baca kontrak
+    // --- CONTRACT READS ---
+    const { data: balance } = useReadContract({
+        address: contractAddress,
+        abi: abi,
+        functionName: 'balanceOf',
+        args: [currentUser?.address],
+        enabled: !!currentUser?.address && !!contractAddress,
+    });
 
+    const { data: tokenId } = useReadContract({
+        address: contractAddress,
+        abi: abi,
+        functionName: 'tokenOfOwnerByIndex',
+        args: [currentUser?.address, 0],
+        enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
+    });
+
+    const { data: isPremium } = useReadContract({
+        address: contractAddress,
+        abi: abi,
+        functionName: 'isPremium',
+        args: [tokenId],
+        enabled: !!tokenId,
+    });
+
+    const { data: premiumExpiration } = useReadContract({
+        address: contractAddress,
+        abi: abi,
+        functionName: 'getPremiumExpiration',
+        args: [tokenId],
+        enabled: !!tokenId,
+    });
+
+    // --- LOGIC ---
+    const hasNFT = balance && Number(balance) > 0;
+    
     const daysRemaining = useMemo(() => {
         if (!premiumExpiration) return 0;
         const now = Math.floor(Date.now() / 1000);
@@ -171,7 +201,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     }, [premiumExpiration]);
 
     const handleCopy = (text, label = "Copied!") => {
-        if(!text) return;
         navigator.clipboard.writeText(text);
         setCopySuccess(label);
         setTimeout(() => setCopySuccess(''), 2000);
@@ -179,83 +208,50 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
     const clearMessages = () => { setError(null); setSuccessMessage(null); };
 
-    // SINKRONISASI: Jika data currentUser dari props berubah (misal dari fetch ulang), update local state
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
             setEditAvatarUrl(currentUser.avatar_url || "");
-            if (currentUser.stacks_address) {
-                setLocalStacksAddress(currentUser.stacks_address);
-            }
         }
     }, [currentUser, isLoggedIn]);
 
-    // --- FUNGSI UTAMA: CONNECT STACKS (DIPERBAIKI) ---
+    // --- PERBAIKAN STACKS CONNECT DENGAN PERSISTENCE ---
     const handleStacksConnect = () => {
-        clearMessages();
         doOpenAuth({
             appDetails: {
                 name: "AFA Web3Tool",
-                icon: window.location.origin + "/assets/logo.png",
+                icon: "https://avatars.githubusercontent.com/u/37784886",
             },
             onFinish: async (data) => {
+                const stxAddress = data.userSession.loadUserData().profile.stxAddress.mainnet;
                 setLoading(true);
                 try {
-                    // 1. Ambil data user session
-                    const userData = data.userSession.loadUserData();
-                    
-                    // DEBUG: Cek console untuk memastikan data wallet ada
-                    console.log("Stacks Connection Data:", userData);
-
-                    // 2. Ambil address dengan Fallback yang kuat
-                    let stxAddress = null;
-                    if (userData.profile && userData.profile.stxAddress) {
-                        // Prioritas Mainnet, fallback ke Testnet
-                        stxAddress = userData.profile.stxAddress.mainnet || userData.profile.stxAddress.testnet;
-                    }
-                    
-                    if (!stxAddress) {
-                        throw new Error("Alamat Wallet Stacks tidak ditemukan. Pastikan wallet sudah terinisialisasi.");
-                    }
-
-                    console.log("Stacks Address Found:", stxAddress);
-
-                    // 3. UPDATE INSTANT KE UI (State Lokal)
-                    // Ini kunci agar tombol langsung berubah tanpa menunggu Supabase
-                    setLocalStacksAddress(stxAddress);
-
-                    // 4. Update ke Supabase
+                    // Update ke Supabase menggunakan kolom baru 'stacks_address'
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ 
                             stacks_address: stxAddress,
-                            updated_at: new Date().toISOString()
+                            updated_at: new Date()
                         })
                         .eq('id', currentUser.id);
 
                     if (updateError) throw updateError;
 
-                    // 5. Update State Global (Parent)
-                    const updatedUser = { 
+                    // Update state lokal agar UI langsung berubah tanpa refresh
+                    onUpdateUser({ 
                         ...currentUser, 
                         stacks_address: stxAddress 
-                    };
-                    onUpdateUser(updatedUser);
+                    });
                     
-                    setSuccessMessage("Stacks Wallet Linked: " + stxAddress.slice(0, 6) + "...");
-                    
+                    setSuccessMessage("Stacks Wallet Linked Successfully!");
                 } catch (err) {
-                    console.error("Stacks Connect Error:", err);
-                    setError("Gagal menghubungkan Stacks: " + (err.message || "Unknown error"));
-                    
-                    // Reset local state jika gagal
-                    setLocalStacksAddress(currentUser.stacks_address || ""); 
+                    setError("Failed to save Stacks wallet: " + err.message);
                 } finally {
                     setLoading(false);
                 }
             },
             onCancel: () => {
-                console.log("Koneksi Stacks dibatalkan user");
+                console.log("Koneksi dibatalkan");
             },
         });
     };
@@ -269,7 +265,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 name: editName,
                 username: editName, 
                 avatar_url: editAvatarUrl,
-                updated_at: new Date().toISOString()
+                updated_at: new Date()
             };
 
             const { data, error: updateError } = await supabase
@@ -283,9 +279,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
             const updatedUserMap = {
                 ...currentUser,
-                name: data?.name || editName,
-                avatar_url: data?.avatar_url || editAvatarUrl,
-                username: data?.username || editName
+                name: data.name || data.username,
+                avatar_url: data.avatar_url,
+                username: data.username
             };
             onUpdateUser(updatedUserMap);
             
@@ -421,124 +417,73 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                         </div>
                     </ProfileSection>
 
-                    {/* --- WALLET MANAGEMENT SECTION --- */}
-                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                        <ProfileSection title="Wallet Management" icon={faWallet}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4">
-                                {/* PRIMARY WALLET (EVM) */}
-                                <div className="text-center relative md:border-r border-slate-200 dark:border-slate-700 md:pr-4">
-                                    <div className="mb-4">
-                                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600 dark:text-blue-400">
-                                            <FontAwesomeIcon icon={faEthereum} className="text-2xl" />
-                                        </div>
-                                        <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Primary Wallet (Base)</p>
-                                        <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg mx-auto max-w-[240px]">
-                                            <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                {currentUser.address || "No wallet connected"}
-                                            </p>
-                                            {currentUser.address && (
-                                                <button onClick={() => handleCopy(currentUser.address)} className="text-slate-400 hover:text-primary">
-                                                    <FontAwesomeIcon icon={faCopy} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {currentUser.address ? (
-                                        <button onClick={onOpenWalletModal} className="w-full md:w-auto px-6 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                            Change Wallet
-                                        </button>
-                                    ) : (
-                                        <button onClick={onOpenWalletModal} className="w-full md:w-auto px-6 btn-primary py-2 rounded-lg text-sm shadow-lg shadow-primary/30">
-                                            Connect EVM Wallet
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* SECONDARY WALLET (STACKS) - MENGGUNAKAN LOCAL STATE (localStacksAddress) */}
-                                <div className="text-center md:pl-4">
-                                    <div className="mb-4">
-                                        <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600 dark:text-orange-400 font-bold">
-                                            STX
-                                        </div>
-                                        <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Secondary Wallet (Stacks)</p>
-                                        <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg mx-auto max-w-[240px]">
-                                            <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                {localStacksAddress || "Not connected"}
-                                            </p>
-                                            {localStacksAddress && (
-                                                <button onClick={() => handleCopy(localStacksAddress)} className="text-slate-400 hover:text-primary">
-                                                    <FontAwesomeIcon icon={faCopy} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* LOGIC TOMBOL BERDASARKAN LOCAL STATE */}
-                                    {localStacksAddress ? (
-                                        <button 
-                                            onClick={handleStacksConnect} 
-                                            disabled={loading}
-                                            className="w-full md:w-auto px-6 py-2 border border-orange-500/30 text-orange-600 dark:text-orange-400 rounded-lg text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-                                        >
-                                            {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Update Stacks Wallet"}
-                                        </button>
-                                    ) : (
-                                        <button 
-                                            onClick={handleStacksConnect} 
-                                            disabled={loading}
-                                            className="w-full md:w-auto px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm shadow-lg shadow-orange-500/30 transition-colors"
-                                        >
-                                            {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Connect Stacks"}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </ProfileSection>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ProfileSection title="Connected Accounts" icon={faShieldHalved}>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded bg-blue-100 text-blue-500 flex items-center justify-center"><FontAwesomeIcon icon={faEnvelope}/></div>
                                         <div className="text-sm">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Email</p>
-                                            <p className="text-xs text-slate-500">{currentUser.email ? "Linked" : "Not Linked"}</p>
+                                            <p className="text-xs text-slate-500">{currentUser.email || "Not Linked"}</p>
                                         </div>
                                     </div>
-                                    {currentUser.email && <span className="text-xs text-green-500 font-bold"><FontAwesomeIcon icon={faShieldHalved}/></span>}
+                                    <span className="text-xs text-green-500 font-bold"><FontAwesomeIcon icon={faShieldHalved}/> Secured</span>
                                 </div>
                                 
-                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-sky-100 text-sky-500 flex items-center justify-center"><FontAwesomeIcon icon={faTelegram}/></div>
-                                        <div className="text-sm">
-                                            <p className="font-bold text-slate-700 dark:text-slate-200">Telegram</p>
-                                            <p className="text-xs text-slate-500">{currentUser.telegram_user_id ? "Linked" : "Not Linked"}</p>
-                                        </div>
-                                    </div>
-                                    {!currentUser.telegram_user_id && (
-                                        <a href="https://t.me/afaweb3tool_bot" className="text-xs text-primary hover:underline">Link</a>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
                                         <div className="text-sm">
-                                            <p className="font-bold text-slate-700 dark:text-slate-200">Stacks</p>
-                                            <p className="text-xs text-slate-500">{localStacksAddress ? "Linked" : "Not Linked"}</p>
+                                            <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
+                                            <p className="text-xs text-slate-500">
+                                                {currentUser.stacks_address ? `${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}` : 'Mainnet'}
+                                            </p>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={handleStacksConnect} 
                                         disabled={loading}
-                                        className={`text-xs font-bold hover:underline ${localStacksAddress ? 'text-green-500' : 'text-primary'}`}
+                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-green-500' : 'text-primary'}`}
                                     >
-                                        {localStacksAddress ? 'Update' : 'Link'}
+                                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (currentUser.stacks_address ? 'Linked' : 'Connect')}
                                     </button>
                                 </div>
+
+                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-sky-100 text-sky-500 flex items-center justify-center"><FontAwesomeIcon icon={faTelegram}/></div>
+                                        <div className="text-sm">
+                                            <p className="font-bold text-slate-700 dark:text-slate-200">Telegram</p>
+                                            <p className="text-xs text-slate-500">{currentUser.telegram_user_id || "Not Linked"}</p>
+                                        </div>
+                                    </div>
+                                    {currentUser.telegram_user_id ? (
+                                        <button className="text-xs text-red-400 hover:text-red-500">Unlink</button>
+                                    ) : (
+                                        <a href="https://t.me/afaweb3tool_bot" className="text-xs text-primary hover:underline">Link Now</a>
+                                    )}
+                                </div>
+                            </div>
+                        </ProfileSection>
+
+                        <ProfileSection title="Wallet Management" icon={faWallet}>
+                            <div className="text-center">
+                                <div className="mb-4">
+                                    <p className="text-xs text-slate-500 mb-1">Primary Wallet (Base)</p>
+                                    <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg break-all">
+                                        {currentUser.address || "No wallet connected"}
+                                    </p>
+                                </div>
+                                {currentUser.address ? (
+                                    <button onClick={onOpenWalletModal} className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                        Change Wallet
+                                    </button>
+                                ) : (
+                                    <button onClick={onOpenWalletModal} className="w-full btn-primary py-2 rounded-lg text-sm">
+                                        Connect Wallet
+                                    </button>
+                                )}
                             </div>
                         </ProfileSection>
                     </div>
