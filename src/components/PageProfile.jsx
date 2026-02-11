@@ -14,7 +14,7 @@ import { supabase } from "../supabaseClient";
 import { useLanguage } from "../context/LanguageContext";
 import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
-import { useAccount, useChainId } from 'wagmi';
+import { useAccount } from 'wagmi';
 
 // --- STACKS IMPORTS ---
 import { useConnect } from "@stacks/connect-react";
@@ -22,7 +22,6 @@ import { useConnect } from "@stacks/connect-react";
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// UPDATE: Hanya menyisakan Base Mainnet dengan Contract Baru
 const contractConfig = {
     8453: { 
         address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', 
@@ -143,43 +142,26 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     
+    // STATE PENTING: Local State untuk Stacks Address agar update instant
+    const [localStacksAddress, setLocalStacksAddress] = useState(currentUser?.stacks_address || "");
+
     // Wagmi Hooks (EVM)
-    const { chainId } = useAccount(); // Mengambil chainId dari wagmi
-    // const chainId = useChainId(); // Alternatif
+    const { chainId } = useAccount();
 
     // --- STACKS CONNECT HOOK ---
     const { doOpenAuth } = useConnect();
     
     // Config Derived State
-    const { address: contractAddress, abi, name: networkName } = useMemo(() => {
+    const { name: networkName } = useMemo(() => {
         return contractConfig[chainId] || contractConfig[8453];
     }, [chainId]);
 
-    // --- CONTRACT READS ---
-    // Menggunakan wagmi read contract dengan cara standar
-    // Pastikan versi wagmi mendukung useReadContract seperti ini, atau gunakan useContractRead
-    // Asumsi: Menggunakan @wagmi/core atau wagmi v2
-    
-    // Karena keterbatasan konteks versi wagmi, kita gunakan pemanggilan aman
-    // Logika pembacaan kontrak disederhanakan/mocked jika hooks spesifik tidak tersedia di file ini
-    // NAMUN, berdasarkan kode asli, saya pertahankan hook-hook tersebut.
-    
-    // CATATAN: Jika error "useReadContract is not a function", pastikan import wagmi benar.
-    // Di sini saya asumsikan import sudah benar sesuai file asli.
-    
-    // MOCK DATA jika hooks belum di-setup sempurna, tapi kita pakai kode asli:
-    /* const { data: balance } = useReadContract({ ... });
-    */
-    
-    // Untuk keamanan agar tidak error saat compile jika hook bermasalah di environment user:
-    const balance = 0; // Placeholder, aktifkan hook asli jika environment siap
+    // Mock Values for NFT (Fallback)
     const tokenId = 0;
     const isPremium = false;
     const premiumExpiration = 0;
+    const hasNFT = false; // Set false default jika belum baca kontrak
 
-    // --- LOGIC ---
-    const hasNFT = balance && Number(balance) > 0;
-    
     const daysRemaining = useMemo(() => {
         if (!premiumExpiration) return 0;
         const now = Math.floor(Date.now() / 1000);
@@ -197,14 +179,18 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
     const clearMessages = () => { setError(null); setSuccessMessage(null); };
 
+    // SINKRONISASI: Jika data currentUser dari props berubah (misal dari fetch ulang), update local state
     useEffect(() => {
         if (isLoggedIn && currentUser) {
             setEditName(currentUser.name || currentUser.username || "");
             setEditAvatarUrl(currentUser.avatar_url || "");
+            if (currentUser.stacks_address) {
+                setLocalStacksAddress(currentUser.stacks_address);
+            }
         }
     }, [currentUser, isLoggedIn]);
 
-    // --- FUNGSI UTAMA: CONNECT STACKS ---
+    // --- FUNGSI UTAMA: CONNECT STACKS (DIPERBAIKI) ---
     const handleStacksConnect = () => {
         clearMessages();
         doOpenAuth({
@@ -215,19 +201,30 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
             onFinish: async (data) => {
                 setLoading(true);
                 try {
-                    // 1. Ambil data user session dengan aman
+                    // 1. Ambil data user session
                     const userData = data.userSession.loadUserData();
                     
-                    // 2. Ambil address (Cek Mainnet dulu, lalu Testnet sebagai fallback)
-                    const stxAddress = userData.profile?.stxAddress?.mainnet || userData.profile?.stxAddress?.testnet;
+                    // DEBUG: Cek console untuk memastikan data wallet ada
+                    console.log("Stacks Connection Data:", userData);
+
+                    // 2. Ambil address dengan Fallback yang kuat
+                    let stxAddress = null;
+                    if (userData.profile && userData.profile.stxAddress) {
+                        // Prioritas Mainnet, fallback ke Testnet
+                        stxAddress = userData.profile.stxAddress.mainnet || userData.profile.stxAddress.testnet;
+                    }
                     
                     if (!stxAddress) {
-                        throw new Error("Gagal mengambil alamat wallet Stacks.");
+                        throw new Error("Alamat Wallet Stacks tidak ditemukan. Pastikan wallet sudah terinisialisasi.");
                     }
 
-                    console.log("Stacks Address Retrieved:", stxAddress);
+                    console.log("Stacks Address Found:", stxAddress);
 
-                    // 3. Update ke Supabase
+                    // 3. UPDATE INSTANT KE UI (State Lokal)
+                    // Ini kunci agar tombol langsung berubah tanpa menunggu Supabase
+                    setLocalStacksAddress(stxAddress);
+
+                    // 4. Update ke Supabase
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ 
@@ -238,18 +235,21 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
                     if (updateError) throw updateError;
 
-                    // 4. Update State Lokal (PENTING AGAR UI BERUBAH)
+                    // 5. Update State Global (Parent)
                     const updatedUser = { 
                         ...currentUser, 
                         stacks_address: stxAddress 
                     };
+                    onUpdateUser(updatedUser);
                     
-                    onUpdateUser(updatedUser); // Memanggil prop dari parent
-                    setSuccessMessage("Stacks Wallet berhasil dihubungkan!");
+                    setSuccessMessage("Stacks Wallet Linked: " + stxAddress.slice(0, 6) + "...");
                     
                 } catch (err) {
                     console.error("Stacks Connect Error:", err);
-                    setError("Gagal menyimpan wallet Stacks: " + (err.message || "Unknown error"));
+                    setError("Gagal menghubungkan Stacks: " + (err.message || "Unknown error"));
+                    
+                    // Reset local state jika gagal
+                    setLocalStacksAddress(currentUser.stacks_address || ""); 
                 } finally {
                     setLoading(false);
                 }
@@ -454,7 +454,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                     )}
                                 </div>
 
-                                {/* SECONDARY WALLET (STACKS) */}
+                                {/* SECONDARY WALLET (STACKS) - MENGGUNAKAN LOCAL STATE (localStacksAddress) */}
                                 <div className="text-center md:pl-4">
                                     <div className="mb-4">
                                         <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600 dark:text-orange-400 font-bold">
@@ -463,16 +463,18 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                         <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Secondary Wallet (Stacks)</p>
                                         <div className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg mx-auto max-w-[240px]">
                                             <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                {currentUser.stacks_address || "Not connected"}
+                                                {localStacksAddress || "Not connected"}
                                             </p>
-                                            {currentUser.stacks_address && (
-                                                <button onClick={() => handleCopy(currentUser.stacks_address)} className="text-slate-400 hover:text-primary">
+                                            {localStacksAddress && (
+                                                <button onClick={() => handleCopy(localStacksAddress)} className="text-slate-400 hover:text-primary">
                                                     <FontAwesomeIcon icon={faCopy} />
                                                 </button>
                                             )}
                                         </div>
                                     </div>
-                                    {currentUser.stacks_address ? (
+                                    
+                                    {/* LOGIC TOMBOL BERDASARKAN LOCAL STATE */}
+                                    {localStacksAddress ? (
                                         <button 
                                             onClick={handleStacksConnect} 
                                             disabled={loading}
@@ -526,15 +528,15 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
                                         <div className="text-sm">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Stacks</p>
-                                            <p className="text-xs text-slate-500">{currentUser.stacks_address ? "Linked" : "Not Linked"}</p>
+                                            <p className="text-xs text-slate-500">{localStacksAddress ? "Linked" : "Not Linked"}</p>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={handleStacksConnect} 
                                         disabled={loading}
-                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-green-500' : 'text-primary'}`}
+                                        className={`text-xs font-bold hover:underline ${localStacksAddress ? 'text-green-500' : 'text-primary'}`}
                                     >
-                                        {currentUser.stacks_address ? 'Update' : 'Link'}
+                                        {localStacksAddress ? 'Update' : 'Link'}
                                     </button>
                                 </div>
                             </div>
