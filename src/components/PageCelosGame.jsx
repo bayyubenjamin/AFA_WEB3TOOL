@@ -4,7 +4,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { toast } from 'sonner'; 
 
 // Address Smart Contract (Ganti jika Anda men-deploy ulang)
-const CONTRACT_ADDRESS = "0x8c8328162F53A4241875193B4203A25d290B9B13"; 
+const CONTRACT_ADDRESS = "0x5e861d8CEa4c5Ea51Ef3bCc59599ecC6fC103D5d"; 
 import CeloTapGameABI from '../contracts/CeloTapGameABI.json';
 
 const PageCelosGame = () => {
