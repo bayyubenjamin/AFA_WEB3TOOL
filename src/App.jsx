@@ -23,6 +23,7 @@ import PageAfaIdentity from './components/PageAfaIdentity';
 import PageWarungKripto from './components/PageWarungKripto';
 import PageUserOrder from './components/PageUserOrder';
 import KebijakanLayanan from './components/KebijakanLayanan';
+import PageCelosGame from './components/PageCelosGame';
 
 // --- HALAMAN AUTH ---
 import PageLogin from "./components/PageLogin";
@@ -44,6 +45,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from "./context/LanguageContext";
 import { Toaster } from 'sonner'; // Tambahan untuk notifikasi toast
+
 
 const LS_AIRDROPS_LAST_VISIT_KEY = 'airdropsLastVisitTimestamp';
 
@@ -337,6 +339,7 @@ export default function App() {
             <Route path="/login-telegram" element={<PageLoginWithTelegram />} />
             <Route path="/auth/telegram/callback" element={<TelegramAuthCallback />} />
             <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} onUpdateUser={handleUpdateUserInApp} userAirdrops={userAirdrops} onOpenWalletModal={handleOpenWalletModal} />} />
+            <Route path="/celos-game" element={<PageCelosGame />} />
 
             {/* WARUNG KRIPTO */}
             <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
