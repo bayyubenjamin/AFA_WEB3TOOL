@@ -1,3 +1,4 @@
+// src/hooks/useBaseNetwork.js (atau buat useCeloNetwork.js)
 import { useAccount, useNetwork, useSwitchNetwork } from 'wagmi';
 
 export const useBaseNetwork = () => {
@@ -5,7 +6,9 @@ export const useBaseNetwork = () => {
   const { switchNetwork } = useSwitchNetwork();
   const { isConnected } = useAccount();
 
-  const isWrongNetwork = isConnected && chain?.id !== 8453; // 8453 is Base ID
+  const isWrongNetwork = isConnected && chain?.id !== 8453;
+  // Tambahan untuk Celo (ID Celo adalah 42220)
+  const isNotCelo = isConnected && chain?.id !== 42220;
 
   const switchToBase = () => {
     if (switchNetwork) {
@@ -13,9 +16,17 @@ export const useBaseNetwork = () => {
     }
   };
 
+  const switchToCelo = () => {
+    if (switchNetwork) {
+      switchNetwork(42220); // ID Jaringan Celo Mainnet
+    }
+  };
+
   return {
     isWrongNetwork,
+    isNotCelo,
     currentChainId: chain?.id,
-    switchToBase
+    switchToBase,
+    switchToCelo
   };
 };
