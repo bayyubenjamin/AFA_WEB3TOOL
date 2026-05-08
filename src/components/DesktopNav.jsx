@@ -14,6 +14,8 @@ export default function DesktopNav({ currentUser, hasNewAirdropNotification }) {
     { to: '/events', label_id: 'Event', label_en: 'Events', isPrivate: false },
     { to: '/airdrops', label_id: 'Airdrop', label_en: 'Airdrops', isPrivate: false, hasNotif: hasNewAirdropNotification },
     { to: '/my-work', label_id: 'Garapanku', label_en: 'My Work', isPrivate: false },
+    // --- PENAMBAHAN: Menu Celos Game ---
+    { to: '/celos-game', label_id: 'Game Celo', label_en: 'Celo Game', isPrivate: false },
     // --- PERBAIKAN: Menu Profil Ditambahkan Kembali ---
     { to: '/profile', label_id: 'Profil', label_en: 'Profile', isPrivate: false }, 
   ];
