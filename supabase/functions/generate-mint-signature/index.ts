@@ -47,11 +47,12 @@ serve(async (req) => {
       ["AFA_MINT:", ethers.getAddress(userAddress), userNonce]
     )
 
-    // --- UPDATE: Menambahkan Base Mainnet (8453) ---
+    // --- UPDATE: Menambahkan Celo Mainnet (42220) ---
     const verifierKeys: Record<string, string | undefined> = {
       '11155420': Deno.env.get('OP_SEPOLIA_VERIFIER_PK'),
       '84532': Deno.env.get('BASE_SEPOLIA_VERIFIER_PK'),
-      '8453': Deno.env.get('BASE_MAINNET_VERIFIER_PK'), // <--- INI YANG PENTING
+      '8453': Deno.env.get('BASE_MAINNET_VERIFIER_PK'),
+      '42220': Deno.env.get('CELO_MAINNET_VERIFIER_PK'), // <--- TAMBAHKAN INI UNTUK CELO
     };
 
     const verifierPrivateKey = verifierKeys[chainId.toString()];
