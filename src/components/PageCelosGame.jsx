@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { toast } from 'react-hot-toast';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+// Menggunakan sonner sesuai dengan standar App.jsx Anda
+import { toast } from 'sonner'; 
 
-// Ganti dengan Address Smart Contract yang baru di-deploy di Celo
-const CONTRACT_ADDRESS = "0x..."; 
+// Address Smart Contract di Celo (Pastikan sudah sesuai)
+const CONTRACT_ADDRESS = "0x897939634C242b598687a0349880F53F08B9F517"; 
 import CeloTapGameABI from '../contracts/CeloTapGameABI.json';
 
 const PageCelosGame = () => {
@@ -11,7 +12,12 @@ const PageCelosGame = () => {
   const [isTapping, setIsTapping] = useState(false);
 
   // Hook untuk memanggil fungsi Write (tap)
-  const { writeContract, isPending, isSuccess } = useWriteContract();
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
+
+  // Hook untuk menunggu konfirmasi transaksi dari blockchain
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   // Read: Total global taps
   const { data: totalTaps, refetch: refetchTotal } = useReadContract({
@@ -26,7 +32,9 @@ const PageCelosGame = () => {
     abi: CeloTapGameABI,
     functionName: 'getUserTaps',
     args: address ? [address] : undefined,
-    enabled: !!address,
+    query: {
+      enabled: !!address,
+    }
   });
 
   // Read: Leaderboard
@@ -36,16 +44,24 @@ const PageCelosGame = () => {
     functionName: 'getLeaderboard',
   });
 
-  // Refresh data setiap kali tx sukses
+  // Effect untuk menangani error saat kirim transaksi
   useEffect(() => {
-    if (isSuccess) {
+    if (writeError) {
+      toast.error(writeError.shortMessage || 'Transaction rejected');
+      setIsTapping(false);
+    }
+  }, [writeError]);
+
+  // Effect untuk refresh data setiap kali transaksi dikonfirmasi (Confirmed)
+  useEffect(() => {
+    if (isConfirmed) {
       refetchTotal();
       refetchUser();
       refetchLeaderboard();
       setIsTapping(false);
-      toast.success('Tap Transaction Confirmed!');
+      toast.success('Tap Transaction Confirmed on Celo!');
     }
-  }, [isSuccess]);
+  }, [isConfirmed, refetchTotal, refetchUser, refetchLeaderboard]);
 
   const handleTap = async () => {
     if (!isConnected) {
@@ -63,7 +79,7 @@ const PageCelosGame = () => {
     } catch (error) {
       console.error(error);
       setIsTapping(false);
-      toast.error('Transaction Failed');
+      toast.error('Failed to initiate transaction');
     }
   };
 
@@ -71,6 +87,9 @@ const PageCelosGame = () => {
     if (!addr) return '';
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
+
+  // Status loading tombol
+  const isLoading = isPending || isConfirming || isTapping;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md mt-16 pb-24">
@@ -81,18 +100,20 @@ const PageCelosGame = () => {
           <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 mb-2">
             CELOS TAP GAME
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Tap on Celo Network. Ultra low gas fees!</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm italic">
+            "Tap on Celo Network. Ultra low gas fees!"
+          </p>
         </div>
 
         {/* Score Board */}
         <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-900 p-4 rounded-xl mb-8 border border-gray-200 dark:border-gray-700">
-          <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Taps</p>
+          <div className="text-center flex-1">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Your Taps</p>
             <p className="text-2xl font-bold text-green-500">{userTaps ? userTaps.toString() : '0'}</p>
           </div>
           <div className="w-px h-10 bg-gray-200 dark:bg-gray-700"></div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Global Taps</p>
+          <div className="text-center flex-1">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Global Taps</p>
             <p className="text-2xl font-bold text-blue-500">{totalTaps ? totalTaps.toString() : '0'}</p>
           </div>
         </div>
@@ -101,50 +122,54 @@ const PageCelosGame = () => {
         <div className="flex justify-center mb-10">
           <button
             onClick={handleTap}
-            disabled={isPending || isTapping}
-            className={`w-48 h-48 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transform transition-all duration-200 
-              ${isPending || isTapping ? 'bg-gray-400 scale-95 cursor-not-allowed' : 'bg-gradient-to-br from-green-400 to-green-600 hover:scale-105 active:scale-95'}
+            disabled={isLoading}
+            className={`w-48 h-48 rounded-full shadow-2xl flex items-center justify-center transform transition-all duration-200 border-8 border-white dark:border-gray-700
+              ${isLoading 
+                ? 'bg-gray-400 scale-95 cursor-not-allowed opacity-70' 
+                : 'bg-gradient-to-br from-green-400 to-green-600 hover:scale-105 active:scale-90 shadow-green-500/20'}
             `}
           >
-            <span className="text-white text-5xl font-black drop-shadow-md tracking-wider">
-              {isPending || isTapping ? '...' : 'TAP'}
+            <span className="text-white text-4xl font-black drop-shadow-md tracking-wider">
+              {isConfirming ? 'WAITING...' : isPending ? 'SIGNING...' : 'TAP'}
             </span>
           </button>
         </div>
 
         {/* Leaderboard Section */}
         <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-            🏆 Top 10 Leaderboard
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+            🏆 <span>Top 10 Leaderboard</span>
           </h2>
           <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-            {leaderboard && leaderboard.map((player, index) => {
-              // Abaikan alamat default (0x00...00)
-              if (player.who === "0x0000000000000000000000000000000000000000" && player.taps.toString() === "0") {
-                 return null;
-              }
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-800 last:border-0 ${player.who === address ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`font-bold w-6 text-center ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
-                      #{index + 1}
-                    </span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
-                      {truncateAddress(player.who)}
-                      {player.who === address && <span className="ml-2 text-xs text-green-500">(You)</span>}
-                    </span>
+            {leaderboard && leaderboard.length > 0 && leaderboard[0].taps.toString() !== "0" ? (
+              leaderboard.map((player, index) => {
+                if (player.who === "0x0000000000000000000000000000000000000000") return null;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-800 last:border-0 
+                      ${player.who === address ? 'bg-green-500/10 border-l-4 border-l-green-500' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`font-bold w-6 text-center ${
+                        index === 0 ? 'text-yellow-500' : 
+                        index === 1 ? 'text-gray-400' : 
+                        index === 2 ? 'text-amber-600' : 'text-gray-500'
+                      }`}>
+                        #{index + 1}
+                      </span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
+                        {truncateAddress(player.who)}
+                        {player.who === address && <span className="ml-2 text-[10px] bg-green-500 text-white px-1 rounded">YOU</span>}
+                      </span>
+                    </div>
+                    <span className="font-bold text-gray-900 dark:text-white">{player.taps.toString()}</span>
                   </div>
-                  <span className="font-bold text-gray-900 dark:text-white">{player.taps.toString()}</span>
-                </div>
-              );
-            })}
-            
-            {(!leaderboard || leaderboard[0].taps.toString() === "0") && (
-              <div className="p-4 text-center text-sm text-gray-500">
+                );
+              })
+            ) : (
+              <div className="p-8 text-center text-sm text-gray-500 italic">
                 Belum ada pemain. Jadilah yang pertama!
               </div>
             )}
