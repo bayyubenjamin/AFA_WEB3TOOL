@@ -6,6 +6,8 @@ import { faBars, faGlobe, faShareAlt, faSignInAlt, faSignOutAlt, faSun, faMoon, 
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import DesktopNav from './DesktopNav';
+// TAMBAHAN: Impor hook MiniPay
+import { useMiniPay } from "../hooks/useMiniPay"; 
 
 const ADMIN_USER_ID = 'e866df86-3206-4019-890f-01a61b989f15';
 
@@ -16,6 +18,9 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.id === ADMIN_USER_ID;
   const navigate = useNavigate();
+
+  // TAMBAHAN: Panggil hook MiniPay untuk auto-connect
+  const { isMiniPay, isConnected, address } = useMiniPay();
 
   const toggleOptionsMenu = useCallback(() => setIsOptionsMenuOpen(prev => !prev), []);
 
@@ -30,7 +35,7 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
- 
+  
   const handleLanguageChange = useCallback((lang) => {
     changeLanguage(lang);
     setIsOptionsMenuOpen(false);
@@ -47,7 +52,7 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
     }
     setIsOptionsMenuOpen(false);
   }, []);
- 
+  
   const handleNav = useCallback((path) => {
     if (navigateTo) navigateTo(path);
     else navigate(path);
@@ -93,15 +98,22 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
               </span>
             </div>
           )}
+
+          {/* TAMBAHAN: Indikator visual jika berhasil Auto-Connect di MiniPay */}
+          {isMiniPay && isConnected && (
+            <div className="ml-2 flex items-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-full animate-fade-in whitespace-nowrap">
+              MiniPay {address && `${address.slice(0, 4)}...${address.slice(-4)}`}
+            </div>
+          )}
         </div>
 
         <h1 className="text-xl sm:text-2xl mx-4 text-center header-title-premium truncate max-w-[50%]">
           {title}
         </h1>
-       
+        
         <div className="flex-1 flex justify-end items-center gap-2">
           <DesktopNav currentUser={currentUser} hasNewAirdropNotification={hasNewAirdropNotification} />
-         
+          
           <Link to="/forum" className="p-2 w-10 h-10 flex logo-bp:hidden items-center justify-center header-interactive-item">
             <FontAwesomeIcon icon={faComments} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
           </Link>
@@ -112,12 +124,12 @@ const Header = ({ title, currentUser, onLogout, navigateTo, onlineUsers, isHeade
               <FontAwesomeIcon icon={faUserCircle} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
             </Link>
           )}
-         
+          
           <div className="relative" ref={menuRef}>
             <button onClick={toggleOptionsMenu} className="p-2 w-10 h-10 flex items-center justify-center header-interactive-item" aria-label="Menu">
               <FontAwesomeIcon icon={faBars} className="text-xl text-gray-500 dark:text-dark-subtle hover:text-accent dark:hover:text-accent-dark" />
             </button>
-           
+            
             <div className={`options-menu ${isOptionsMenuOpen ? 'active' : ''}`}>
                 <ul>
                   {menuItems.map((item, index) => (
