@@ -206,11 +206,19 @@ export default function App() {
             <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} />} />
             <Route path="/login" element={<PageLogin />} />
             <Route path="/register" element={<PageRegister />} />
+            
+            {/* Rute Baru yang ditambahkan */}
+            <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
+            <Route path="/warung-kripto/order/:id" element={<PageUserOrder currentUser={userForHeader} />} />
+            <Route path="/kebijakan-layanan" element={<KebijakanLayanan />} />
 
             {currentUser?.role === 'admin' && (
                 <>
                     <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
                     <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
+                    {/* Rute Admin Baru yang ditambahkan */}
+                    <Route path="/admin/rekening" element={<PageAdminRekening currentUser={userForHeader} />} />
+                    <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
                 </>
             )}
 
