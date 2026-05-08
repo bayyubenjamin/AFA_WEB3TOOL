@@ -17,15 +17,17 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// --- KONFIGURASI HANYA BASE MAINNET ---
+// --- KONFIGURASI MULTI-CHAIN ---
 const contractConfig = {
-    8453: { address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', abi: AfaIdentityABI } // Base Mainnet
+    8453: { address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', abi: AfaIdentityABI }, // Base Mainnet
+    42220: { address: '0x8c8328162F53A4241875193B4203A25d290B9B13', abi: AfaIdentityABI } // Celo Mainnet
 };
 
 const NFT_IMAGE_URL = 'https://ik.imagekit.io/5spt6gb2z/Gambar%20GIF.gif';
 
 const chainInfo = {
-    8453: { name: "Base Mainnet", color: "bg-blue-600", explorer: "https://basescan.org" }
+    8453: { name: "Base", color: "bg-blue-600", explorer: "https://basescan.org" },
+    42220: { name: "Celo", color: "bg-green-500", explorer: "https://celoscan.io" } // Pilihan Celo Baru
 };
 
 // =================================================================================
@@ -63,7 +65,7 @@ const PremiumBenefit = ({ icon, text }) => (
     </li>
 );
 
-const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
+const TierOption = ({ tier, label, price, selectedTier, onSelect, symbol }) => (
     <div
         onClick={() => onSelect(tier.id)}
         className={`card p-4 cursor-pointer transition-all duration-200 ${selectedTier === tier.id ? 'border-primary ring-2 ring-primary bg-primary/10' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
@@ -71,7 +73,7 @@ const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
         <div className="flex flex-col items-center text-center">
             <p className="font-bold text-black dark:text-white mb-2">{label}</p>
             {price !== null && price !== undefined ? (
-                <p className="font-semibold text-black dark:text-white text-sm">{ethers.formatEther(price)} ETH</p>
+                <p className="font-semibold text-black dark:text-white text-sm">{ethers.formatEther(price)} {symbol}</p>
             ) : (
                 <FontAwesomeIcon icon={faSpinner} spin className="text-gray-500" />
             )}
@@ -79,8 +81,10 @@ const TierOption = ({ tier, label, price, selectedTier, onSelect }) => (
     </div>
 );
 
-const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnected, onOpenWalletModal, walletMatches, currentUser, contractAddress, abi, isActionLoading }) => {
+const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnected, onOpenWalletModal, walletMatches, currentUser, contractAddress, abi, isActionLoading, chainId }) => {
     const [selectedTier, setSelectedTier] = useState(0);
+
+    const currencySymbol = useMemo(() => chainId === 42220 ? 'CELO' : 'ETH', [chainId]);
 
     const useTierPrice = (tierId) => {
         const { data } = useReadContract({
@@ -88,7 +92,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnecte
             abi: abi,
             functionName: 'getPriceForTier',
             args: [tierId],
-            enabled: !!contractAddress,
+            query: { enabled: !!contractAddress },
         });
         return data;
     };
@@ -137,7 +141,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnecte
     return (
         <div>
             <h3 className="font-bold text-xl text-black dark:text-white mb-2">Premium Membership</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Choose your plan to unlock the full potential.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Choose your plan on {chainInfo[chainId]?.name} to unlock the full potential.</p>
             <div className="p-4 mb-6 rounded-lg bg-gray-500/5 dark:bg-white/5">
                 <h4 className="font-semibold text-black dark:text-white mb-3">Premium Benefits:</h4>
                 <ul className="space-y-2 text-sm">
@@ -149,7 +153,7 @@ const UpgradeView = ({ tokenId, isPremium, expirationDate, onUpgrade, isConnecte
             </div>
             <div className="grid grid-cols-3 gap-4 mb-6">
                 {Tiers.map(tier => (
-                    <TierOption key={tier.id} tier={tier} label={tier.label} price={tier.price} selectedTier={selectedTier} onSelect={setSelectedTier} />
+                    <TierOption key={tier.id} tier={tier} label={tier.label} price={tier.price} selectedTier={selectedTier} onSelect={setSelectedTier} symbol={currencySymbol} />
                 ))}
             </div>
             {renderButton()}
@@ -188,21 +192,21 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     
     const { data: balance, refetch: refetchBalance } = useReadContract({
         address: contractAddress, abi, functionName: 'balanceOf',
-        args: [currentUser?.address], enabled: !!currentUser?.address && !!contractAddress,
+        args: [currentUser?.address], query: { enabled: !!currentUser?.address && !!contractAddress },
     });
     const userHasNFT = useMemo(() => !!balance && Number(balance) > 0, [balance]);
 
     const { data: wagmiTokenId, refetch: refetchTokenId } = useReadContract({
         address: contractAddress, abi, functionName: 'tokenOfOwnerByIndex',
-        args: [currentUser?.address, 0], enabled: !!currentUser?.address && userHasNFT && !!contractAddress,
+        args: [currentUser?.address, 0], query: { enabled: !!currentUser?.address && userHasNFT && !!contractAddress },
     });
     const { data: isPremium, refetch: refetchPremiumStatus } = useReadContract({
         address: contractAddress, abi, functionName: 'isPremium',
-        args: [tokenId], enabled: !!tokenId && !!contractAddress,
+        args: [tokenId], query: { enabled: !!tokenId && !!contractAddress },
     });
     const { data: premiumExpirationTimestamp, refetch: refetchExpiration } = useReadContract({
         address: contractAddress, abi, functionName: 'getPremiumExpiration',
-        args: [tokenId], enabled: !!tokenId && !!contractAddress,
+        args: [tokenId], query: { enabled: !!tokenId && !!contractAddress },
     });
 
     const currentNetwork = useMemo(() => chainInfo[chainId], [chainId]);
@@ -326,7 +330,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
         if (isNetworkMismatched) {
              return (
                  <button onClick={handleSwitchNetwork} disabled={isSwitching} className="btn-warning w-full py-3 text-lg rounded-xl flex items-center justify-center gap-2">
-                     {isSwitching ? (<><FontAwesomeIcon icon={faSpinner} spin /><span>Switching...</span></>) : (`Switch to ${chainInfo[selectedChainId].name}`)}
+                    {isSwitching ? (<><FontAwesomeIcon icon={faSpinner} spin /><span>Switching...</span></>) : (`Switch to ${chainInfo[selectedChainId].name}`)}
                  </button>
              );
         }
@@ -349,7 +353,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                     {isConnected && currentNetwork && (
                         <div className={`flex items-center gap-2 text-xs font-bold text-white px-3 py-1.5 rounded-full ${currentNetwork.color}`}>
                             <FontAwesomeIcon icon={faSatelliteDish} />
-                            <span>{currentNetwork.name}</span>
+                            <span>{currentNetwork.name} Network</span>
                         </div>
                     )}
                 </header>
@@ -395,6 +399,7 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                                 onUpgrade={handleUpgrade} isConnected={isConnected} onOpenWalletModal={onOpenWalletModal}
                                 walletMatches={walletMatches} currentUser={currentUser} contractAddress={contractAddress} abi={abi}
                                 isActionLoading={isActionLoading || isConfirming}
+                                chainId={chainId}
                             />
                         ) : (
                             <div className="card p-6">
