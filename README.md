@@ -5,6 +5,8 @@
 ![Vite](https://img.shields.io/badge/build-vite-646CFF?logo=vite)
 ![Supabase](https://img.shields.io/badge/backend-supabase-3ECF8E?logo=supabase)
 ![PWA Ready](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa)
+![Celo](https://img.shields.io/badge/Network-Celo_Mainnet-35D07F?logo=celo)
+![MiniPay](https://img.shields.io/badge/Wallet-MiniPay_Ready-green)
 
 ![Tool by Airdrop For All](https://ik.imagekit.io/5spt6gb2z/Cuplikan%20layar%20dari%202025-06-29%2022-41-56.png)
 
@@ -20,9 +22,12 @@
 -   **AFA Identity (SBT)**: On-chain identity system using Soul-Bound Tokens (ERC-721) on OP Sepolia.
 -   **Membership Tiers**: Upgradeable NFT mechanics to unlock premium dashboard features.
 -   **Wallet Connect**: Integrated with **Wagmi & Web3Modal** for seamless multi-wallet support.
+-   **Celo & MiniPay Integration**: Native support for Celo Mainnet with a custom hook for seamless, buttonless auto-connect tailored specifically for Opera MiniPay users.
+-   **Multi-Chain & Bitcoin L2 Ready**: Configured for Base network and integrated with Stacks/Hiro for Bitcoin L2 interaction.
 
 ### 📱 User Experience (New)
 -   **Progressive Web App (PWA)**: Installable on Android & iOS. Looks and feels like a native app.
+-   **Native Android App**: Built and wrapped via **Capacitor** allowing for direct Android installation and Play Store deployment.
 -   **Offline Support**: Automatic network detection with smart notifications when connection is lost/restored.
 -   **Multi-language**: Native support for **English** and **Indonesian**.
 -   **Themes**: Customizable Dark/Light mode for visual comfort.
@@ -30,14 +35,21 @@
 ### 🛡️ Security & Auth
 -   **Flexible Login**: Support for **Email/Password**, **Web3 Wallet**, and **Telegram Auth**.
 -   **Account Linking**: Unified profile connecting Web2 (Email/Telegram) and Web3 (Wallet) identities.
+-   **Zero-Knowledge Proofs**: Configured with Vlayer SDK for advanced data privacy and verification.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 -   **Framework**: [React](https://reactjs.org/) (Vite)
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/) + FontAwesome
--   **Web3**: [Wagmi](https://wagmi.sh/) + [Ethers.js](https://ethers.io/) + [Web3Modal](https://web3modal.com/)
+-   **Mobile Wrapper**: [Capacitor](https://capacitorjs.com/) (`@capacitor/android`)
 -   **PWA**: Web Manifest & Service Workers
+
+### Web3 Technologies
+-   **Core**: [Wagmi](https://wagmi.sh/) + [Viem](https://viem.sh/) + [Ethers.js](https://ethers.io/)
+-   **UI & Connectors**: Web3Modal, Injected Providers (MiniPay specific hooks)
+-   **Bitcoin L2**: Stacks Connect React (`@stacks/connect-react`)
+-   **ZK Framework**: Vlayer React & SDK
 
 ### Backend & Infrastructure
 -   **Core**: [Supabase](https://supabase.io/) (Auth, Database, Realtime)
@@ -45,8 +57,8 @@
 -   **Hosting**: [Vercel](https://vercel.com/)
 
 ### Smart Contracts
--   **Network**: Optimism Sepolia
--   **Standard**: ERC-721 (Soul-Bound)
+-   **Networks**: Optimism Sepolia, Celo Mainnet, Base
+-   **Standard**: ERC-721 (Soul-Bound), Custom Diamond Standard implementation
 -   **Language**: Solidity
 
 ## 🚀 Getting Started
@@ -80,9 +92,9 @@
 ├── supabase/             # Edge Functions & Database types
 ├── public/               # Static assets & Manifest
 ├── src/
-│   ├── components/       # UI Components
-│   ├── contracts/        # ABI & Contract Addresses
-│   ├── hooks/            # Custom React Hooks
+│   ├── components/       # UI Components (Header, Auth, Modals, Pages)
+│   ├── contracts/        # ABI & Contract Addresses (AFA Identity, Celo)
+│   ├── hooks/            # Custom React Hooks (useMiniPay, useBaseNetwork)
 │   ├── services/         # API & Supabase logic
-│   └── wagmiConfig.js    # Web3 Configuration
+│   └── wagmiConfig.js    # Web3 Configuration (Chains, Transports, Web3Modal)
 └── vercel.json           # Deployment Headers & Rules
