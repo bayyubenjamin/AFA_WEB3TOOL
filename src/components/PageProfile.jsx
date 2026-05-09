@@ -469,27 +469,26 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                     <div className="flex items-center gap-3 w-full">
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold flex-shrink-0">ST</div>
                                         <div className="text-sm w-full">
-                                            <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
+                                                {/* Tombol dipindah ke sini agar selalu muncul */}
+                                                <Link to="/stacks-analyzer" className="inline-flex w-fit items-center px-2 py-1 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-800/50 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded transition-colors">
+                                                    <FontAwesomeIcon icon={faChartSimple} className="mr-1" /> Analyzer
+                                                </Link>
+                                            </div>
                                             
                                             {currentUser.stacks_address ? (
-                                                <div>
-                                                    <div 
-                                                        className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5" 
-                                                        onClick={() => handleCopy(currentUser.stacks_address, "Stacks Address Copied!")}
-                                                    >
-                                                        <p className="text-xs text-slate-500 truncate max-w-[150px] md:max-w-none">
-                                                            {`${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}`}
-                                                        </p>
-                                                        <FontAwesomeIcon icon={faCopy} className="text-[10px] text-slate-400" />
-                                                    </div>
-                                                    
-                                                    {/* INTEGRASI TOMBOL ANALYZER */}
-                                                    <Link to="/stacks-analyzer" className="inline-block mt-2 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-800/50 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-lg transition-colors">
-                                                        <FontAwesomeIcon icon={faChartSimple} className="mr-1" /> Analyzer
-                                                    </Link>
+                                                <div 
+                                                    className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-1" 
+                                                    onClick={() => handleCopy(currentUser.stacks_address, "Stacks Address Copied!")}
+                                                >
+                                                    <p className="text-xs text-slate-500 truncate max-w-[150px] md:max-w-none">
+                                                        {`${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}`}
+                                                    </p>
+                                                    <FontAwesomeIcon icon={faCopy} className="text-[10px] text-slate-400" />
                                                 </div>
                                             ) : (
-                                                <p className="text-xs text-slate-500">Not Linked</p>
+                                                <p className="text-xs text-slate-500 mt-1">Not Linked</p>
                                             )}
                                         </div>
                                     </div>
