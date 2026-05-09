@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWallet, faSpinner, faArrowLeft, faChartPie, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
-// Import library Stacks
+
+// Perbaikan Import: Menggunakan StacksMainnet dari @stacks/network
 import { openContractCall } from "@stacks/connect";
 import { StacksMainnet } from "@stacks/network"; 
-import { stringAsciiCV } from "@stacks/transactions"; // Tambahkan ini untuk argumen tag
+import { stringAsciiCV } from "@stacks/transactions";
 
 export default function PageStacksAnalyzer({ currentUser }) {
     const [address, setAddress] = useState(currentUser?.stacks_address || "");
@@ -35,48 +36,44 @@ export default function PageStacksAnalyzer({ currentUser }) {
         }
     };
 
-    useEffect(() => {
-        if (address && currentUser?.stacks_address) {
-            // fetchWalletData(address); 
-        }
-    }, []);
-
-    // Fungsi untuk memicu transaksi kontrak Anda
+    // Fungsi untuk memicu transaksi kontrak Anda sebelum menampilkan data
     const handleSearch = async (e) => {
         e.preventDefault();
         setError(null);
-
-        const network = new StacksMainnet(); // Gunakan StacksTestnet() jika sedang testnet
-
-        // Kita bisa menggunakan kata "portfolio-check" atau memasukkan alamat yang sedang dicari sebagai tag
-        const tagArgument = stringAsciiCV("portfolio-check"); 
-
-        const options = {
-            contractAddress: 'SP3GHKMV4GSYNA8WGBX83DACG80K1RRVQZAZMB9J3', // TODO: Ganti dengan alamat deployer kontrak Anda
-            contractName: 'stacks-analyzer',             // TODO: Sesuaikan dengan nama kontrak saat di-deploy
-            functionName: 'analyze',                     // Sesuai dengan nama fungsi di kontrak Anda
-            functionArgs: [tagArgument],                 // Mengirimkan argumen tag string-ascii
-            network,
-            appDetails: {
-                name: 'AFA Web3 Tool',
-                icon: window.location.origin + '/assets/logo.png',
-            },
-            onFinish: data => {
-                console.log('Transaksi berhasil dikirim:', data.txId);
-                setTxStatus("Tx berhasil di-broadcast! Memuat data portofolio...");
-                // Lanjutkan mengambil data setelah user setuju transaksi
-                fetchWalletData(address);
-            },
-            onCancel: () => {
-                console.log('Transaksi dibatalkan pengguna');
-                setError("Otorisasi transaksi dibatalkan. Kami memerlukan persetujuan tx untuk melakukan analisa.");
-            }
-        };
+        setLoading(true);
 
         try {
+            // Inisialisasi network dengan cara yang kompatibel
+            const network = new StacksMainnet(); 
+
+            // Menyiapkan argumen tag (string-ascii 64) sesuai kontrak Anda
+            const tagArgument = stringAsciiCV("portfolio-check"); 
+
+            const options = {
+                contractAddress: 'SP3GHKMV4GSYNA8WGBX83DACG80K1RRVQZAZMB9J3',
+                contractName: 'stacks-analyzer',
+                functionName: 'analyze',
+                functionArgs: [tagArgument],
+                network,
+                appDetails: {
+                    name: 'AFA Web3 Tool',
+                    icon: window.location.origin + '/assets/logo.png',
+                },
+                onFinish: (data) => {
+                    console.log('Transaksi berhasil dikirim:', data.txId);
+                    setTxStatus("Tx berhasil! Memproses data portofolio...");
+                    fetchWalletData(address);
+                },
+                onCancel: () => {
+                    setLoading(false);
+                    setError("Otorisasi transaksi dibatalkan. Persetujuan diperlukan untuk analisa.");
+                }
+            };
+
             await openContractCall(options);
         } catch (err) {
             console.error(err);
+            setLoading(false);
             setError("Gagal memanggil dompet Stacks. Pastikan extension Wallet terpasang.");
         }
     };
@@ -123,8 +120,7 @@ export default function PageStacksAnalyzer({ currentUser }) {
             )}
 
             {balances && !loading && !error && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Kartu Saldo STX */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
                     <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl text-white shadow-lg">
                         <p className="text-orange-100 text-sm font-bold uppercase tracking-wider mb-2">Total Balance (STX)</p>
                         <h2 className="text-4xl font-bold">{stxBalance} <span className="text-xl font-medium">STX</span></h2>
@@ -133,7 +129,6 @@ export default function PageStacksAnalyzer({ currentUser }) {
                         </div>
                     </div>
 
-                    {/* Kartu Detail Token Fungible */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 pb-2 border-b border-slate-200 dark:border-slate-700">
                             Fungible Tokens
