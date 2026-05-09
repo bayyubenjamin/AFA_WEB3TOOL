@@ -3,42 +3,84 @@ import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWallet, faSpinner, faArrowLeft, faChartPie, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
+// Import library Stacks
+import { openContractCall } from "@stacks/connect";
+import { StacksMainnet } from "@stacks/network"; 
+import { stringAsciiCV } from "@stacks/transactions"; // Tambahkan ini untuk argumen tag
 
 export default function PageStacksAnalyzer({ currentUser }) {
     const [address, setAddress] = useState(currentUser?.stacks_address || "");
     const [balances, setBalances] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [txStatus, setTxStatus] = useState("");
 
     const fetchWalletData = async (targetAddress) => {
         if (!targetAddress) return;
         setLoading(true);
         setError(null);
+        setTxStatus("Mengambil data dari API Hiro...");
+        
         try {
-            // Mengambil data saldo dari API Hiro (Stacks Mainnet)
             const res = await fetch(`https://api.mainnet.hiro.so/extended/v1/address/${targetAddress}/balances`);
             if (!res.ok) throw new Error("Gagal mengambil data wallet. Pastikan alamat valid.");
             const data = await res.json();
             setBalances(data);
+            setTxStatus(""); 
         } catch (err) {
             setError(err.message);
+            setTxStatus("");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (address) {
-            fetchWalletData(address);
+        if (address && currentUser?.stacks_address) {
+            // fetchWalletData(address); 
         }
     }, []);
 
-    const handleSearch = (e) => {
+    // Fungsi untuk memicu transaksi kontrak Anda
+    const handleSearch = async (e) => {
         e.preventDefault();
-        fetchWalletData(address);
+        setError(null);
+
+        const network = new StacksMainnet(); // Gunakan StacksTestnet() jika sedang testnet
+
+        // Kita bisa menggunakan kata "portfolio-check" atau memasukkan alamat yang sedang dicari sebagai tag
+        const tagArgument = stringAsciiCV("portfolio-check"); 
+
+        const options = {
+            contractAddress: 'SP3GHKMV4GSYNA8WGBX83DACG80K1RRVQZAZMB9J3', // TODO: Ganti dengan alamat deployer kontrak Anda
+            contractName: 'stacks-analyzer',             // TODO: Sesuaikan dengan nama kontrak saat di-deploy
+            functionName: 'analyze',                     // Sesuai dengan nama fungsi di kontrak Anda
+            functionArgs: [tagArgument],                 // Mengirimkan argumen tag string-ascii
+            network,
+            appDetails: {
+                name: 'AFA Web3 Tool',
+                icon: window.location.origin + '/assets/logo.png',
+            },
+            onFinish: data => {
+                console.log('Transaksi berhasil dikirim:', data.txId);
+                setTxStatus("Tx berhasil di-broadcast! Memuat data portofolio...");
+                // Lanjutkan mengambil data setelah user setuju transaksi
+                fetchWalletData(address);
+            },
+            onCancel: () => {
+                console.log('Transaksi dibatalkan pengguna');
+                setError("Otorisasi transaksi dibatalkan. Kami memerlukan persetujuan tx untuk melakukan analisa.");
+            }
+        };
+
+        try {
+            await openContractCall(options);
+        } catch (err) {
+            console.error(err);
+            setError("Gagal memanggil dompet Stacks. Pastikan extension Wallet terpasang.");
+        }
     };
 
-    // Konversi micro-STX ke STX (1 STX = 1,000,000 micro-STX)
     const stxBalance = balances?.stx?.balance ? (parseInt(balances.stx.balance) / 1000000).toFixed(6) : "0.000000";
 
     return (
@@ -71,6 +113,7 @@ export default function PageStacksAnalyzer({ currentUser }) {
                         {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSearch} />}
                     </button>
                 </form>
+                {txStatus && <p className="text-sm text-primary mt-3 font-semibold animate-pulse">{txStatus}</p>}
             </div>
 
             {error && (
@@ -79,7 +122,7 @@ export default function PageStacksAnalyzer({ currentUser }) {
                 </div>
             )}
 
-            {balances && !loading && (
+            {balances && !loading && !error && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Kartu Saldo STX */}
                     <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl text-white shadow-lg">
