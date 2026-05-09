@@ -466,21 +466,27 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                 </div>
                                 
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
-                                        <div className="text-sm">
+                                    <div className="flex items-center gap-3 w-full">
+                                        <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold flex-shrink-0">ST</div>
+                                        <div className="text-sm w-full">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
                                             
-                                            {/* PERBAIKAN: UI Display Wallet Stacks dan Tombol Salin */}
                                             {currentUser.stacks_address ? (
-                                                <div 
-                                                    className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5" 
-                                                    onClick={() => handleCopy(currentUser.stacks_address, "Stacks Address Copied!")}
-                                                >
-                                                    <p className="text-xs text-slate-500">
-                                                        {`${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}`}
-                                                    </p>
-                                                    <FontAwesomeIcon icon={faCopy} className="text-[10px] text-slate-400" />
+                                                <div>
+                                                    <div 
+                                                        className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5" 
+                                                        onClick={() => handleCopy(currentUser.stacks_address, "Stacks Address Copied!")}
+                                                    >
+                                                        <p className="text-xs text-slate-500 truncate max-w-[150px] md:max-w-none">
+                                                            {`${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}`}
+                                                        </p>
+                                                        <FontAwesomeIcon icon={faCopy} className="text-[10px] text-slate-400" />
+                                                    </div>
+                                                    
+                                                    {/* INTEGRASI TOMBOL ANALYZER */}
+                                                    <Link to="/stacks-analyzer" className="inline-block mt-2 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-800/50 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-lg transition-colors">
+                                                        <FontAwesomeIcon icon={faChartSimple} className="mr-1" /> Analyzer
+                                                    </Link>
                                                 </div>
                                             ) : (
                                                 <p className="text-xs text-slate-500">Not Linked</p>
@@ -488,11 +494,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                         </div>
                                     </div>
                                     
-                                    {/* PERBAIKAN: Tombol Link/Unlink Stacks Wallet */}
                                     <button 
                                         onClick={currentUser.stacks_address ? handleStacksDisconnect : handleStacksConnect} 
                                         disabled={loading}
-                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-red-400 hover:text-red-500' : 'text-primary'}`}
+                                        className={`text-xs font-bold hover:underline ml-2 flex-shrink-0 ${currentUser.stacks_address ? 'text-red-400 hover:text-red-500' : 'text-primary'}`}
                                     >
                                         {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (currentUser.stacks_address ? 'Unlink' : 'Connect')}
                                     </button>
@@ -515,7 +520,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </div>
                         </ProfileSection>
 
-                        {/* PERBAIKAN: Wallet Management EVM dengan Web3Modal */}
                         <ProfileSection title="Wallet Management" icon={faWallet}>
                             <div className="text-center">
                                 <div className="mb-4">

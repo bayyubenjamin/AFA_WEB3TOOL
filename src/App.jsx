@@ -24,6 +24,7 @@ import PageWarungKripto from './components/PageWarungKripto';
 import PageUserOrder from './components/PageUserOrder';
 import KebijakanLayanan from './components/KebijakanLayanan';
 import PageCelosGame from './components/PageCelosGame';
+import PageStacksAnalyzer from './components/PageStacksAnalyzer'; // Integrasi baru
 
 // --- HALAMAN AUTH ---
 import PageLogin from "./components/PageLogin";
@@ -67,6 +68,7 @@ const mapSupabaseDataToAppUserForApp = (authUser, profileData) => {
     telegram_user_id: profileData?.telegram_user_id || null,
     user_metadata: authUser.user_metadata || {},
     role: profileData?.role || 'user',
+    stacks_address: profileData?.stacks_address || null, // Pastikan data Stacks di-map
   };
 };
 
@@ -167,8 +169,8 @@ export default function App() {
 
   useEffect(() => { 
     const path = location.pathname.split('/')[1] || 'home'; 
-    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'celos-game': "Celos Tap Game", 'kebijakan-layanan': "Kebijakan & Layanan" }; 
-    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'celos-game': "Celos Tap Game", 'kebijakan-layanan': "Policy & Terms" }; 
+    const titles_id = { home: "AFA WEB3TOOL", 'my-work': "Garapanku", airdrops: "Daftar Airdrop", forum: "Forum Diskusi", profile: "Profil Saya", events: "Event Spesial", admin: "Admin Dashboard", login: "Login", register: "Daftar", "login-telegram": "Login via Telegram", identity: "Identitas AFA", 'warung-kripto': "Warung Kripto", 'celos-game': "Celos Tap Game", 'kebijakan-layanan': "Kebijakan & Layanan", 'stacks-analyzer': "Stacks Wallet Analyzer" }; 
+    const titles_en = { home: "AFA WEB3TOOL", 'my-work': "My Work", airdrops: "Airdrop List", forum: "Community Forum", profile: "My Profile", events: "Special Events", admin: "Admin Dashboard", login: "Login", register: "Register", "login-telegram": "Login via Telegram", identity: "AFA Identity", 'warung-kripto': "Crypto Market", 'celos-game': "Celos Tap Game", 'kebijakan-layanan': "Policy & Terms", 'stacks-analyzer': "Stacks Wallet Analyzer" }; 
     const currentTitles = language === 'id' ? titles_id : titles_en; 
     setHeaderTitle(currentTitles[path] || "AFA WEB3TOOL"); 
   }, [location, language]);
@@ -204,10 +206,13 @@ export default function App() {
             <Route path="/events" element={<PageEvents currentUser={userForHeader} />} />
             <Route path="/identity" element={<PageAfaIdentity currentUser={userForHeader} />} />
             <Route path="/profile" element={<PageProfile currentUser={userForHeader} onLogout={handleLogout} />} />
+            
+            {/* Integrasi Rute Analyzer */}
+            <Route path="/stacks-analyzer" element={<PageStacksAnalyzer currentUser={userForHeader} />} />
+            
             <Route path="/login" element={<PageLogin />} />
             <Route path="/register" element={<PageRegister />} />
             
-            {/* Rute Baru yang ditambahkan */}
             <Route path="/warung-kripto" element={<PageWarungKripto currentUser={userForHeader} />} />
             <Route path="/warung-kripto/order/:id" element={<PageUserOrder currentUser={userForHeader} />} />
             <Route path="/kebijakan-layanan" element={<KebijakanLayanan />} />
@@ -216,7 +221,6 @@ export default function App() {
                 <>
                     <Route path="/admin" element={<PageAdminDashboard currentUser={userForHeader} />} />
                     <Route path="/admin/warung-jaringan" element={<PageAdminWarung currentUser={userForHeader} />} />
-                    {/* Rute Admin Baru yang ditambahkan */}
                     <Route path="/admin/rekening" element={<PageAdminRekening currentUser={userForHeader} />} />
                     <Route path="/order-admin/buku-order" element={<PageAdminOrderBook currentUser={userForHeader} />} />
                 </>
