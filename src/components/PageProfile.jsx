@@ -16,6 +16,9 @@ import translationsId from "../translations/id.json";
 import translationsEn from "../translations/en.json";
 import { useAccount, useDisconnect, useReadContract, useChainId } from 'wagmi';
 
+// --- TAMBAHAN: Web3Modal Hook ---
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+
 // --- STACKS IMPORTS ---
 import { useConnect } from "@stacks/connect-react";
 import { stacksNetwork } from "../wagmiConfig";
@@ -23,7 +26,6 @@ import { stacksNetwork } from "../wagmiConfig";
 // --- CONTRACT CONFIGURATION ---
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
-// UPDATE: Hanya menyisakan Base Mainnet dengan Contract Baru
 const contractConfig = {
     8453: { 
         address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', 
@@ -130,7 +132,7 @@ const InputField = React.memo(({ id, type = "text", label, value, onChange, icon
 ));
 InputField.displayName = 'InputField';
 
-export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [], onOpenWalletModal }) {
+export default function PageProfile({ currentUser, onUpdateUser, onLogout, userAirdrops = [] }) {
     const { language } = useLanguage();
     const t = getTranslations(language).profilePage || {};
     const isLoggedIn = !!(currentUser && currentUser.id);
@@ -144,9 +146,10 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     
-    // Wagmi Hooks
+    // --- WAGMI & WEB3MODAL HOOKS ---
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
+    const { open } = useWeb3Modal(); // Menggunakan fungsi open langsung dari hook Web3Modal
 
     // --- STACKS CONNECT HOOK ---
     const { doOpenAuth } = useConnect();
@@ -157,20 +160,22 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     }, [chainId]);
 
     // --- CONTRACT READS ---
+    const activeAddress = address || currentUser?.address;
+
     const { data: balance } = useReadContract({
         address: contractAddress,
         abi: abi,
         functionName: 'balanceOf',
-        args: [currentUser?.address],
-        enabled: !!currentUser?.address && !!contractAddress,
+        args: [activeAddress],
+        enabled: !!activeAddress && !!contractAddress,
     });
 
     const { data: tokenId } = useReadContract({
         address: contractAddress,
         abi: abi,
         functionName: 'tokenOfOwnerByIndex',
-        args: [currentUser?.address, 0],
-        enabled: !!currentUser?.address && !!balance && Number(balance) > 0,
+        args: [activeAddress, 0],
+        enabled: !!activeAddress && !!balance && Number(balance) > 0,
     });
 
     const { data: isPremium } = useReadContract({
@@ -201,6 +206,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
     }, [premiumExpiration]);
 
     const handleCopy = (text, label = "Copied!") => {
+        if (!text) return;
         navigator.clipboard.writeText(text);
         setCopySuccess(label);
         setTimeout(() => setCopySuccess(''), 2000);
@@ -215,7 +221,7 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
         }
     }, [currentUser, isLoggedIn]);
 
-    // --- PERBAIKAN STACKS CONNECT DENGAN PERSISTENCE ---
+    // --- MENGHUBUNGKAN DOMPET STACKS ---
     const handleStacksConnect = () => {
         doOpenAuth({
             appDetails: {
@@ -226,7 +232,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 const stxAddress = data.userSession.loadUserData().profile.stxAddress.mainnet;
                 setLoading(true);
                 try {
-                    // Update ke Supabase menggunakan kolom baru 'stacks_address'
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ 
@@ -237,7 +242,6 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
 
                     if (updateError) throw updateError;
 
-                    // Update state lokal agar UI langsung berubah tanpa refresh
                     onUpdateUser({ 
                         ...currentUser, 
                         stacks_address: stxAddress 
@@ -254,6 +258,36 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                 console.log("Koneksi dibatalkan");
             },
         });
+    };
+
+    // --- MEMUTUSKAN KONEKSI DOMPET STACKS ---
+    const handleStacksDisconnect = async () => {
+        if (!window.confirm("Are you sure you want to unlink your Stacks Wallet?")) return;
+        
+        setLoading(true);
+        clearMessages();
+        try {
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                    stacks_address: null,
+                    updated_at: new Date()
+                })
+                .eq('id', currentUser.id);
+
+            if (updateError) throw updateError;
+
+            onUpdateUser({ 
+                ...currentUser, 
+                stacks_address: null 
+            });
+            
+            setSuccessMessage("Stacks Wallet Unlinked Successfully!");
+        } catch (err) {
+            setError("Failed to unlink Stacks wallet: " + err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleUpdateProfile = async (e) => {
@@ -358,9 +392,9 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             <div className="flex items-center gap-3 mt-1 text-slate-500 dark:text-slate-400 text-sm">
                                 <span>@{currentUser.username}</span>
                                 <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
-                                <span className="flex items-center gap-1 cursor-pointer hover:text-primary" onClick={() => handleCopy(currentUser.address)}>
+                                <span className="flex items-center gap-1 cursor-pointer hover:text-primary" onClick={() => handleCopy(activeAddress)}>
                                     <FontAwesomeIcon icon={faWallet} className="text-xs" />
-                                    {currentUser.address ? `${currentUser.address.slice(0,6)}...${currentUser.address.slice(-4)}` : 'No Wallet'}
+                                    {activeAddress ? `${activeAddress.slice(0,6)}...${activeAddress.slice(-4)}` : 'No Wallet'}
                                 </span>
                                 {copySuccess && <span className="text-green-500 text-xs font-bold">{copySuccess}</span>}
                             </div>
@@ -436,17 +470,31 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                                         <div className="w-8 h-8 rounded bg-orange-100 text-orange-500 flex items-center justify-center font-bold">ST</div>
                                         <div className="text-sm">
                                             <p className="font-bold text-slate-700 dark:text-slate-200">Stacks Wallet</p>
-                                            <p className="text-xs text-slate-500">
-                                                {currentUser.stacks_address ? `${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}` : 'Mainnet'}
-                                            </p>
+                                            
+                                            {/* PERBAIKAN: UI Display Wallet Stacks dan Tombol Salin */}
+                                            {currentUser.stacks_address ? (
+                                                <div 
+                                                    className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors mt-0.5" 
+                                                    onClick={() => handleCopy(currentUser.stacks_address, "Stacks Address Copied!")}
+                                                >
+                                                    <p className="text-xs text-slate-500">
+                                                        {`${currentUser.stacks_address.slice(0,6)}...${currentUser.stacks_address.slice(-4)}`}
+                                                    </p>
+                                                    <FontAwesomeIcon icon={faCopy} className="text-[10px] text-slate-400" />
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-500">Not Linked</p>
+                                            )}
                                         </div>
                                     </div>
+                                    
+                                    {/* PERBAIKAN: Tombol Link/Unlink Stacks Wallet */}
                                     <button 
-                                        onClick={handleStacksConnect} 
+                                        onClick={currentUser.stacks_address ? handleStacksDisconnect : handleStacksConnect} 
                                         disabled={loading}
-                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-green-500' : 'text-primary'}`}
+                                        className={`text-xs font-bold hover:underline ${currentUser.stacks_address ? 'text-red-400 hover:text-red-500' : 'text-primary'}`}
                                     >
-                                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (currentUser.stacks_address ? 'Linked' : 'Connect')}
+                                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (currentUser.stacks_address ? 'Unlink' : 'Connect')}
                                     </button>
                                 </div>
 
@@ -467,21 +515,22 @@ export default function PageProfile({ currentUser, onUpdateUser, onLogout, userA
                             </div>
                         </ProfileSection>
 
+                        {/* PERBAIKAN: Wallet Management EVM dengan Web3Modal */}
                         <ProfileSection title="Wallet Management" icon={faWallet}>
                             <div className="text-center">
                                 <div className="mb-4">
-                                    <p className="text-xs text-slate-500 mb-1">Primary Wallet (Base)</p>
+                                    <p className="text-xs text-slate-500 mb-1">Primary Wallet (EVM)</p>
                                     <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg break-all">
-                                        {currentUser.address || "No wallet connected"}
+                                        {activeAddress || "No wallet connected"}
                                     </p>
                                 </div>
-                                {currentUser.address ? (
-                                    <button onClick={onOpenWalletModal} className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
-                                        Change Wallet
+                                {isConnected ? (
+                                    <button onClick={() => open()} className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                        Manage EVM Wallet
                                     </button>
                                 ) : (
-                                    <button onClick={onOpenWalletModal} className="w-full btn-primary py-2 rounded-lg text-sm">
-                                        Connect Wallet
+                                    <button onClick={() => open()} className="w-full btn-primary py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all">
+                                        Connect EVM Wallet
                                     </button>
                                 )}
                             </div>

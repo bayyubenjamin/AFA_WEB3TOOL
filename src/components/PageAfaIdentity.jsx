@@ -17,6 +17,9 @@ import { ethers } from 'ethers';
 import { supabase } from '../supabaseClient';
 import AfaIdentityABI from '../contracts/AFAIdentityDiamondABI.json';
 
+// --- TAMBAHAN: Import Web3Modal ---
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+
 // --- KONFIGURASI MULTI-CHAIN ---
 const contractConfig = {
     8453: { address: '0x91D6e01e871598CfD88734247F164f31461D6E5A', abi: AfaIdentityABI }, // Base Mainnet
@@ -176,6 +179,9 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     const { disconnect } = useDisconnect();
     const chainId = useChainId();
     const { switchChain, isPending: isSwitching, error: switchChainError } = useSwitchChain();
+    
+    // --- TAMBAHAN: Inisialisasi useWeb3Modal ---
+    const { open } = useWeb3Modal();
 
     const [feedback, setFeedback] = useState({ message: '', type: '', hash: null });
     const [isActionLoading, setIsActionLoading] = useState(false);
@@ -324,7 +330,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
     };
 
     const renderMintButton = () => {
-        if (!isConnected) return <button onClick={onOpenWalletModal} disabled={!currentUser?.address} className="btn-primary w-full py-3 text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">{!currentUser?.address ? 'Connect wallet in profile' : 'Connect to Wallet'}</button>;
+        // --- PERBAIKAN: Mengganti onOpenWalletModal menjadi () => open() ---
+        if (!isConnected) return <button onClick={() => open()} disabled={!currentUser?.address} className="btn-primary w-full py-3 text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">{!currentUser?.address ? 'Connect wallet in profile' : 'Connect to Wallet'}</button>;
         if (!walletMatches) return null;
 
         if (isNetworkMismatched) {
@@ -396,7 +403,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                         {userHasNFT ? (
                             <UpgradeView 
                                 tokenId={tokenId} isPremium={isPremium} expirationDate={formatExpirationDate(premiumExpirationTimestamp)}
-                                onUpgrade={handleUpgrade} isConnected={isConnected} onOpenWalletModal={onOpenWalletModal}
+                                onUpgrade={handleUpgrade} isConnected={isConnected} 
+                                onOpenWalletModal={() => open()} // --- PERBAIKAN: Mengganti onOpenWalletModal
                                 walletMatches={walletMatches} currentUser={currentUser} contractAddress={contractAddress} abi={abi}
                                 isActionLoading={isActionLoading || isConfirming}
                                 chainId={chainId}
@@ -406,7 +414,8 @@ export default function PageAfaIdentity({ currentUser, onOpenWalletModal }) {
                                 <h3 className="font-bold text-xl text-light-text dark:text-white mb-4">Mint Your AFA Identity</h3>
                                 <div className="space-y-2 mb-6">
                                     <PrerequisiteItem icon={faCheckCircle} title="Log In to AFA Account" isComplete={prerequisites.isLoggedIn} value={currentUser?.email} action={() => navigate('/login')} actionLabel="Login" />
-                                    <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={getWalletStatusMessage()} action={prerequisites.isLoggedIn && !currentUser.address ? () => navigate('/profile') : onOpenWalletModal} actionLabel={prerequisites.isLoggedIn && !currentUser.address ? 'Link' : 'Connect'} />
+                                    {/* --- PERBAIKAN: Mengganti action fallback pada PrerequisiteItem --- */}
+                                    <PrerequisiteItem icon={faWallet} title="Connect Wallet" isComplete={prerequisites.walletConnected} value={getWalletStatusMessage()} action={prerequisites.isLoggedIn && !currentUser.address ? () => navigate('/profile') : () => open()} actionLabel={prerequisites.isLoggedIn && !currentUser.address ? 'Link' : 'Connect'} />
                                     <PrerequisiteItem icon={faTelegram} title="Link Telegram" isComplete={prerequisites.telegramConnected} value={prerequisites.telegramConnected ? 'Linked' : 'Not linked'} action={() => navigate('/profile')} actionLabel="Link" />
                                     <PrerequisiteItem icon={faEnvelope} title="Secure with Email" isComplete={!isEmailDummy} value={isEmailDummy ? 'Not secured' : 'Secured'} action={() => navigate('/profile')} actionLabel="Secure" />
                                 </div>
