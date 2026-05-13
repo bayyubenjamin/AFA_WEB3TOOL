@@ -1,5 +1,6 @@
 # AFA WEB3TOOL - Integrated Web3 Dashboard
 
+![Stacks](https://img.shields.io/badge/Network-Stacks_Mainnet-5546FF?style=for-the-badge&logo=stacks)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/react-v18.3.1-61DAFB?logo=react)
 ![Vite](https://img.shields.io/badge/build-vite-646CFF?logo=vite)
