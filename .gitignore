@@ -26,7 +26,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.human-activity.sh
 
 # Keamanan Build Android
 /android/keystore.properties
 *.jks
+
+# Ignore 
+settings/Mainnet.toml
+settings/Testnet.toml
+settings/Devnet.toml
+.env
+human-activity.sh
+bot.sh
+keys.txt
+push-metrik.sh
+spam-log.txt
