@@ -1,6 +1,6 @@
-;; Math util updated 2026-05-28T09:31:17Z
+;; Math util updated 2026-05-29T06:44:38Z
 (define-constant ERR-OVERFLOW (err u500))
-(define-data-var precision-level uint u9)
+(define-data-var precision-level uint u6)
 
 (define-read-only (get-precision)
   (ok (var-get precision-level))
